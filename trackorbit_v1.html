@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TracKorbit v1.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4ff;color:#1a1a2e;min-height:100vh}
+:root{
+  --blue:#1a56db;--blue-dark:#1240a8;--blue-light:#e8f0fe;--blue-mid:#3b7de9;
+  --white:#fff;--gray-50:#f8faff;--gray-100:#f0f4ff;--gray-200:#e2e8f8;
+  --gray-300:#cbd5e8;--gray-400:#94a3b8;--gray-500:#64748b;--gray-600:#475569;
+  --gray-700:#334155;--gray-800:#1e293b;--text:#1a1a2e;
+  --green:#16a34a;--red:#dc2626;--orange:#ea580c;--yellow:#ca8a04;--purple:#7c3aed;
+  --sidebar-w:220px;--header-h:52px;
+  --shadow:0 1px 4px rgba(26,86,219,.10);--shadow-md:0 4px 16px rgba(26,86,219,.13);
+}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;outline:none}
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.header{height:var(--header-h);background:var(--white);border-bottom:1.5px solid var(--gray-200);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:700;color:var(--blue);letter-spacing:-.5px}
+.logo-icon{width:30px;height:30px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800}
+.header-nav{display:flex;gap:4px;flex:1;margin-left:8px}
+.header-nav button{padding:6px 12px;border:none;background:none;border-radius:6px;font-size:13px;color:var(--gray-600);font-weight:500;transition:all .15s}
+.header-nav button:hover{background:var(--blue-light);color:var(--blue)}
+.header-nav button.active{background:var(--blue-light);color:var(--blue);font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.btn{padding:7px 16px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-dark)}
+.btn-outline{background:none;border:1.5px solid var(--blue);color:var(--blue)}.btn-outline:hover{background:var(--blue-light)}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:5px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-ghost{background:none;border:none;color:var(--gray-500);font-size:13px}.btn-ghost:hover{color:var(--blue)}
+.body-wrap{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:var(--white);border-right:1.5px solid var(--gray-200);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;padding:12px 0}
+.sidebar-section{padding:0 10px;margin-bottom:4px}
+.sidebar-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-400);font-weight:600;padding:10px 8px 4px}
+.sidebar-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;font-size:13px;color:var(--gray-600);font-weight:500;transition:all .15s;margin:1px 0}
+.sidebar-item:hover{background:var(--blue-light);color:var(--blue)}
+.sidebar-item.active{background:var(--blue-light);color:var(--blue);font-weight:600}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--gray-100)}
+.page{padding:24px 28px}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:20px;font-weight:700;color:var(--text)}
+.page-sub{font-size:13px;color:var(--gray-500);margin-top:2px}
+.card{background:var(--white);border-radius:10px;border:1.5px solid var(--gray-200);padding:18px 20px;box-shadow:var(--shadow)}
+.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat-card{background:var(--white);border-radius:10px;border:1.5px solid var(--gray-200);padding:16px 18px;box-shadow:var(--shadow)}
+.stat-val{font-size:28px;font-weight:700;color:var(--blue)}
+.stat-label{font-size:12px;color:var(--gray-500);margin-top:2px;font-weight:500}
+.stat-delta{font-size:11px;margin-top:4px;font-weight:600}
+.delta-up{color:var(--green)}.delta-down{color:var(--red)}
+table{width:100%;border-collapse:collapse}
+thead th{background:var(--gray-50);font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1.5px solid var(--gray-200)}
+tbody tr{border-bottom:1px solid var(--gray-100);transition:background .1s}
+tbody tr:hover{background:var(--blue-light)}
+tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-blue{background:#dbeafe;color:#1e40af}.badge-green{background:#dcfce7;color:#166534}
+.badge-red{background:#fee2e2;color:#991b1b}.badge-orange{background:#ffedd5;color:#9a3412}
+.badge-yellow{background:#fef9c3;color:#854d0e}.badge-purple{background:#f3e8ff;color:#6b21a8}
+.badge-gray{background:var(--gray-100);color:var(--gray-600)}.badge-pink{background:#fce7f3;color:#9d174d}
+.p-critical::before{content:"🔴 "}.p-high::before{content:"🟠 "}
+.p-medium::before{content:"🟡 "}.p-low::before{content:"🟢 "}
+.s-todo{background:#f1f5f9;color:#475569}.s-inprogress{background:#dbeafe;color:#1d4ed8}
+.s-review{background:#fef9c3;color:#854d0e}.s-done{background:#dcfce7;color:#166534}
+.s-blocked{background:#fee2e2;color:#991b1b}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--white);border-radius:14px;box-shadow:var(--shadow-md);width:100%;max-width:620px;max-height:88vh;overflow-y:auto;padding:24px 28px;position:relative}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:18px;color:var(--text)}
+.modal-close{position:absolute;right:18px;top:18px;background:none;border:none;font-size:20px;color:var(--gray-400);cursor:pointer}
+.form-group{margin-bottom:14px}
+.form-label{font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:5px;display:block}
+.form-input{width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:7px;font-size:13px;color:var(--text);background:var(--white);transition:border .15s}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.10)}
+.form-select{width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:7px;font-size:13px;background:var(--white);color:var(--text)}
+.form-textarea{width:100%;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:7px;font-size:13px;color:var(--text);min-height:80px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kanban-board{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px}
+.kanban-col{min-width:230px;max-width:250px;flex-shrink:0}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--gray-200);border-radius:8px 8px 0 0;font-size:12px;font-weight:700;color:var(--gray-600)}
+.kanban-col-body{background:var(--gray-100);border-radius:0 0 8px 8px;min-height:200px;padding:8px}
+.kanban-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:8px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:all .15s;box-shadow:var(--shadow)}
+.kanban-card:hover{border-color:var(--blue);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.bar-chart{display:flex;gap:10px;align-items:flex-end;height:120px;padding-top:10px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;background:var(--blue-light);border-radius:4px 4px 0 0;min-height:4px;cursor:pointer}
+.bar:hover{background:var(--blue)}
+.bar-label{font-size:10px;color:var(--gray-500);text-align:center}
+.bar-val{font-size:10px;font-weight:700;color:var(--blue)}
+.filter-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--gray-300);font-size:12px;cursor:pointer;background:var(--white);color:var(--gray-600);transition:all .15s}
+.filter-chip:hover,.filter-chip.active{border-color:var(--blue);background:var(--blue-light);color:var(--blue)}
+.login-wrap{min-height:100vh;background:linear-gradient(135deg,#1a56db 0%,#1240a8 100%);display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--white);border-radius:16px;padding:38px 40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.login-logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:28px}
+.login-logo-icon{width:38px;height:38px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800}
+.login-logo-text{font-size:22px;font-weight:800;color:var(--blue);letter-spacing:-.5px}
+.login-title{text-align:center;font-size:15px;color:var(--gray-500);margin-bottom:24px}
+.login-input{width:100%;padding:10px 13px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;color:var(--text);margin-bottom:12px;transition:border .15s}
+.login-input:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(26,86,219,.12)}
+.login-btn{width:100%;padding:11px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px}
+.login-btn:hover{background:var(--blue-dark)}
+.login-hint{text-align:center;font-size:12px;color:var(--gray-400);margin-top:14px}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--gray-200);margin-bottom:20px}
+.tab{padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;color:var(--gray-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab:hover{color:var(--blue)}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-400);margin-bottom:12px}
+.breadcrumb span{cursor:pointer}.breadcrumb span:hover{color:var(--blue)}
+.bc-sep{color:var(--gray-300)}
+.progress-bar{height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s}
+.toggle-wrap{display:flex;align-items:center;gap:10px}
+.toggle{width:38px;height:20px;background:var(--gray-300);border-radius:10px;position:relative;cursor:pointer;transition:background .2s}
+.toggle.on{background:var(--blue)}
+.toggle-knob{width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-knob{left:20px}
+.settings-layout{display:grid;grid-template-columns:180px 1fr;gap:20px;min-height:400px}
+.settings-nav{background:var(--white);border-radius:10px;border:1.5px solid var(--gray-200);padding:10px 0;height:fit-content}
+.settings-nav-item{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--gray-600);border-left:3px solid transparent;transition:all .15s}
+.settings-nav-item:hover{color:var(--blue);background:var(--blue-light)}
+.settings-nav-item.active{color:var(--blue);border-left-color:var(--blue);background:var(--blue-light);font-weight:600}
+.settings-nav-group{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--gray-400);font-weight:600;padding:12px 16px 4px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600;background:var(--blue-light);color:var(--blue)}
+.search-input{padding:7px 12px;border:1.5px solid var(--gray-200);border-radius:7px;font-size:13px;min-width:200px;transition:border .15s}
+.search-input:focus{border-color:var(--blue);outline:none}
+.empty-state{text-align:center;padding:40px 20px;color:var(--gray-400)}
+.w-full{width:100%}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px}
+.version-badge{position:fixed;bottom:14px;right:14px;background:var(--blue);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;z-index:9999;box-shadow:var(--shadow-md)}
+
+/* ===================== ROADMAP STYLES ===================== */
+.roadmap-wrap{width:100%;overflow-x:auto;background:var(--white);border-radius:12px;border:1.5px solid var(--gray-200);box-shadow:var(--shadow)}
+.roadmap-header-row{display:flex;border-bottom:2px solid var(--gray-200);position:sticky;top:0;z-index:10;background:var(--white)}
+.roadmap-left-header{width:340px;min-width:340px;padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500);border-right:2px solid var(--gray-200);background:var(--gray-50)}
+.roadmap-timeline-header{flex:1;display:flex;overflow:hidden;background:var(--gray-50)}
+.roadmap-month{flex-shrink:0;padding:10px 0;text-align:center;font-size:11px;font-weight:700;color:var(--gray-600);border-right:1px solid var(--gray-200);position:relative}
+.roadmap-body{min-width:max-content}
+.roadmap-row{display:flex;border-bottom:1px solid var(--gray-100);align-items:stretch;transition:background .1s;position:relative}
+.roadmap-row:hover{background:#f8faff}
+.roadmap-row.expanded-parent{background:var(--gray-50)}
+.roadmap-row-label{width:340px;min-width:340px;display:flex;align-items:center;gap:6px;padding:8px 12px;border-right:2px solid var(--gray-200);cursor:pointer;position:sticky;left:0;background:inherit;z-index:2}
+.roadmap-row-label:hover .row-title{color:var(--blue)}
+.expand-btn{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--gray-300);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;flex-shrink:0;color:var(--gray-500);transition:all .15s}
+.expand-btn:hover{border-color:var(--blue);color:var(--blue)}
+.row-title{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.row-id{font-size:10px;color:var(--blue);font-weight:700;white-space:nowrap}
+.roadmap-bar-area{flex:1;position:relative;display:flex;align-items:center;min-height:44px}
+.roadmap-bar{position:absolute;height:24px;border-radius:5px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:filter .15s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.roadmap-bar:hover{filter:brightness(1.1);box-shadow:0 2px 8px rgba(0,0,0,.22)}
+.roadmap-bar.no-dates{background:var(--gray-300)!important;color:var(--gray-600)}
+.roadmap-today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--red);opacity:.7;z-index:3;pointer-events:none}
+.roadmap-today-line::before{content:'Today';position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--red);font-weight:700;white-space:nowrap}
+.roadmap-grid-line{position:absolute;top:0;bottom:0;width:1px;background:var(--gray-200);pointer-events:none}
+.roadmap-progress-ring{flex-shrink:0}
+.roadmap-controls{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.zoom-btn{padding:5px 10px;border:1.5px solid var(--gray-300);border-radius:6px;background:var(--white);font-size:12px;color:var(--gray-600);font-weight:600;cursor:pointer;transition:all .15s}
+.zoom-btn:hover,.zoom-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+.roadmap-legend{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--gray-500)}
+.legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:4px}
+/* depth indents */
+.depth-0 .roadmap-row-label{padding-left:12px}
+.depth-1 .roadmap-row-label{padding-left:28px}
+.depth-2 .roadmap-row-label{padding-left:44px}
+.depth-3 .roadmap-row-label{padding-left:60px}
+.depth-4 .roadmap-row-label{padding-left:76px}
+.depth-5 .roadmap-row-label{padding-left:92px}
+/* milestone diamond */
+.milestone-diamond{position:absolute;width:14px;height:14px;background:var(--purple);transform:rotate(45deg);cursor:pointer;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.milestone-diamond:hover{filter:brightness(1.15)}
+/* backlog badge */
+.backlog-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;background:#f3e8ff;color:#6b21a8;border:1px solid #ddd6fe}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="version-badge">TracKorbit v1.0</div>
+<script>
+// ============================================================
+// TRACKORBIT v1.0 — Roadmap Edition
+// ============================================================
+const ISSUE_TYPES=['Feature','Initiative','Epic','Story','Task','Sub-task'];
+const ISSUE_TYPE_PARENT={'Initiative':'Feature','Epic':'Initiative','Story':'Epic','Task':'Story','Sub-task':'Task'};
+const TYPE_DEPTH={'Feature':0,'Initiative':1,'Epic':2,'Story':3,'Task':4,'Sub-task':5};
+const STATUSES=['To Do','In Progress','In Review','Done','Blocked'];
+const PRIORITIES=['Critical','High','Medium','Low'];
+const WORKFLOWS=['Default Workflow','Bug Workflow','Sprint Workflow'];
+const SCREENS=['Create Screen','Edit Screen','View Screen'];
+
+// Type colours for roadmap bars
+const TYPE_COLORS={
+  'Feature':'#1a56db','Initiative':'#7c3aed','Epic':'#9333ea',
+  'Story':'#16a34a','Task':'#ca8a04','Sub-task':'#ea580c'
+};
+
+let state={
+  page:'login',user:null,modal:null,
+  settingsTab:'users',projectTab:'board',
+  activeProject:null,viewTicket:null,prevPage:null,
+  ticketSearch:'',typeFilter:'All',statusFilter:'All',projectFilter:'All',
+  roadmapZoom:'month', // month | quarter | year
+  roadmapExpanded:{}, // ticketId -> bool
+
+  users:[
+    {id:1,name:'Alex Johnson',email:'alex@trackorbit.io',role:'Admin',group:'Engineering',active:true},
+    {id:2,name:'Sara Lee',email:'sara@trackorbit.io',role:'Developer',group:'Engineering',active:true},
+    {id:3,name:'Mike Chen',email:'mike@trackorbit.io',role:'Developer',group:'Design',active:true},
+    {id:4,name:'Priya Patel',email:'priya@trackorbit.io',role:'Manager',group:'Product',active:false},
+    {id:5,name:'Tom Wilson',email:'tom@trackorbit.io',role:'Viewer',group:'QA',active:true},
+  ],
+  groups:['Engineering','Design','Product','QA','Management'],
+  roles:['Admin','Manager','Developer','Viewer'],
+
+  projects:[
+    {id:1,key:'TRK',name:'TracKorbit Platform',description:'Core platform development',color:'#1a56db',lead:'Alex Johnson',status:'Active',created:'2024-01-10'},
+    {id:2,key:'MOB',name:'Mobile App',description:'iOS and Android apps',color:'#7c3aed',lead:'Sara Lee',status:'Active',created:'2024-02-05'},
+    {id:3,key:'API',name:'API Gateway',description:'Backend API services',color:'#16a34a',lead:'Mike Chen',status:'On Hold',created:'2024-03-01'},
+  ],
+
+  tickets:[
+    // TRK Features & Initiative
+    {id:'TRK-1',project:1,type:'Feature',title:'User Authentication System',desc:'Implement OAuth2 login and JWT tokens.',status:'Done',priority:'Critical',assignee:'Alex Johnson',reporter:'Alex Johnson',created:'2024-01-15',updated:'2024-03-10',labels:['security'],sprint:'Sprint 1',parent:null,startDate:'2024-01-10',dueDate:'2024-03-15'},
+    {id:'TRK-2',project:1,type:'Initiative',title:'Platform Scalability Initiative',desc:'Scale platform to 100k users.',status:'In Progress',priority:'High',assignee:'Alex Johnson',reporter:'Alex Johnson',created:'2024-01-20',updated:'2024-03-15',labels:['infrastructure'],sprint:'Sprint 2',parent:'TRK-1',startDate:'2024-01-20',dueDate:'2024-05-30'},
+    // TRK Epics
+    {id:'TRK-3',project:1,type:'Epic',title:'Dashboard Analytics',desc:'Full dashboard and reporting suite.',status:'In Progress',priority:'High',assignee:'Sara Lee',reporter:'Alex Johnson',created:'2024-02-01',updated:'2024-03-18',labels:['analytics'],sprint:'Sprint 2',parent:'TRK-2',startDate:'2024-02-01',dueDate:'2024-04-30'},
+    {id:'TRK-8',project:1,type:'Epic',title:'Performance Optimisation',desc:'Reduce p95 latency below 200ms.',status:'To Do',priority:'High',assignee:'Mike Chen',reporter:'Alex Johnson',created:'2024-03-01',updated:'2024-03-18',labels:['perf'],sprint:'Sprint 3',parent:'TRK-2',startDate:'2024-04-01',dueDate:'2024-06-30'},
+    // TRK Stories
+    {id:'TRK-4',project:1,type:'Story',title:'Create ticket form UX',desc:'Design and build create ticket form.',status:'In Review',priority:'Medium',assignee:'Mike Chen',reporter:'Sara Lee',created:'2024-02-10',updated:'2024-03-20',labels:['UX'],sprint:'Sprint 2',parent:'TRK-3',startDate:'2024-02-10',dueDate:'2024-03-20'},
+    {id:'TRK-9',project:1,type:'Story',title:'Dashboard charts & widgets',desc:'Build chart widgets for dashboards.',status:'To Do',priority:'Medium',assignee:'Sara Lee',reporter:'Alex Johnson',created:'2024-03-10',updated:'2024-03-18',labels:['analytics'],sprint:'Sprint 3',parent:'TRK-3',startDate:'2024-03-20',dueDate:'2024-04-25'},
+    // TRK Tasks
+    {id:'TRK-5',project:1,type:'Task',title:'Implement ticket API endpoint',desc:'POST /api/tickets with validation.',status:'Done',priority:'High',assignee:'Sara Lee',reporter:'Alex Johnson',created:'2024-02-15',updated:'2024-03-12',labels:['backend'],sprint:'Sprint 1',parent:'TRK-4',startDate:'2024-02-15',dueDate:'2024-03-05'},
+    {id:'TRK-7',project:1,type:'Task',title:'Set up CI/CD pipeline',desc:'Configure GitHub Actions.',status:'In Progress',priority:'High',assignee:'Alex Johnson',reporter:'Alex Johnson',created:'2024-03-01',updated:'2024-03-22',labels:['devops'],sprint:'Sprint 2',parent:'TRK-3',startDate:'2024-03-01',dueDate:'2024-03-28'},
+    // TRK Sub-tasks
+    {id:'TRK-6',project:1,type:'Sub-task',title:'Write unit tests for ticket API',desc:'90%+ test coverage.',status:'To Do',priority:'Medium',assignee:'Tom Wilson',reporter:'Sara Lee',created:'2024-02-18',updated:'2024-03-05',labels:['testing'],sprint:'Sprint 2',parent:'TRK-5',startDate:'2024-03-05',dueDate:'2024-03-18'},
+    // MOB
+    {id:'MOB-1',project:2,type:'Feature',title:'Push Notifications Feature',desc:'Mobile push notifications.',status:'To Do',priority:'High',assignee:'Priya Patel',reporter:'Sara Lee',created:'2024-02-05',updated:'2024-03-15',labels:['mobile'],sprint:'Sprint 1',parent:null,startDate:'2024-02-05',dueDate:'2024-05-15'},
+    {id:'MOB-2',project:2,type:'Epic',title:'Mobile Onboarding',desc:'User onboarding flow.',status:'In Progress',priority:'Medium',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-02-10',updated:'2024-03-18',labels:['UX','mobile'],sprint:'Sprint 1',parent:'MOB-1',startDate:'2024-02-10',dueDate:'2024-04-10'},
+    {id:'MOB-3',project:2,type:'Story',title:'Welcome screen design',desc:'Design the welcome screens.',status:'In Progress',priority:'Medium',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-02-15',updated:'2024-03-18',labels:['design'],sprint:'Sprint 1',parent:'MOB-2',startDate:'2024-02-15',dueDate:'2024-03-15'},
+    // API
+    {id:'API-1',project:3,type:'Feature',title:'Rate Limiting Feature',desc:'API rate limiting.',status:'Blocked',priority:'Critical',assignee:'Alex Johnson',reporter:'Mike Chen',created:'2024-03-01',updated:'2024-03-20',labels:['security','api'],sprint:'Sprint 1',parent:null,startDate:'2024-03-01',dueDate:'2024-04-30'},
+  ],
+
+  filters:[
+    {id:1,name:'My Open Tickets',conditions:{assignee:'Alex Johnson',status:['To Do','In Progress','In Review']},owner:'Alex Johnson',shared:true,created:'2024-01-20'},
+    {id:2,name:'Critical Issues',conditions:{priority:'Critical',status:['To Do','In Progress','Blocked']},owner:'Alex Johnson',shared:true,created:'2024-02-05'},
+    {id:3,name:'Sprint 2 Tasks',conditions:{sprint:'Sprint 2',type:['Task','Sub-task']},owner:'Sara Lee',shared:false,created:'2024-03-01'},
+    {id:4,name:'Blocked Items',conditions:{status:['Blocked']},owner:'Alex Johnson',shared:true,created:'2024-03-10'},
+  ],
+  customFields:[
+    {id:1,name:'Story Points',type:'Number',applyTo:['Story','Task','Sub-task'],required:false},
+    {id:2,name:'Due Date',type:'Date',applyTo:['Feature','Epic','Story','Task'],required:false},
+    {id:3,name:'Business Value',type:'Select',applyTo:['Feature','Initiative'],options:['Low','Medium','High'],required:false},
+  ],
+  webConnectors:[
+    {id:1,name:'Slack',icon:'💬',status:'Connected',events:['Ticket Created','Status Changed'],url:'https://hooks.slack.com/...'},
+    {id:2,name:'GitHub',icon:'🐙',status:'Connected',events:['PR Linked','Commit Ref'],url:''},
+    {id:3,name:'Jenkins',icon:'🔧',status:'Disconnected',events:['Build Status'],url:''},
+    {id:4,name:'PagerDuty',icon:'🚨',status:'Disconnected',events:['Critical Alert'],url:''},
+  ],
+  notifications:[
+    {id:1,text:'TRK-6 assigned to you by Sara Lee',time:'2m ago',read:false},
+    {id:2,text:'TRK-7 status changed to In Progress',time:'1h ago',read:false},
+    {id:3,text:'New comment on TRK-4',time:'3h ago',read:true},
+  ],
+  appSettings:{appName:'TracKorbit',timezone:'UTC',dateFormat:'MM/DD/YYYY',allowSignup:false,sessionTimeout:30,emailNotif:true,slackNotif:true},
+  nextTicketNums:{1:10,2:4,3:2},
+};
+
+let render;
+function setState(p){Object.assign(state,p);render();}
+function getTypeColor(t){const m={'Feature':'badge-blue','Initiative':'badge-purple','Epic':'badge-pink','Story':'badge-green','Task':'badge-yellow','Sub-task':'badge-orange'};return m[t]||'badge-gray'}
+function getStatusClass(s){const m={'To Do':'s-todo','In Progress':'s-inprogress','In Review':'s-review','Done':'s-done','Blocked':'s-blocked'};return m[s]||'s-todo'}
+function priorityClass(p){return 'p-'+p.toLowerCase()}
+function projectById(id){return state.projects.find(p=>p.id===id)}
+function getTickets(pid){return pid?state.tickets.filter(t=>t.project===pid):state.tickets}
+function getFilteredTickets(fid){const f=state.filters.find(x=>x.id===fid);if(!f)return state.tickets;return state.tickets.filter(t=>{const c=f.conditions;if(c.assignee&&t.assignee!==c.assignee)return false;if(c.status&&!c.status.includes(t.status))return false;if(c.priority&&t.priority!==c.priority)return false;if(c.sprint&&t.sprint!==c.sprint)return false;if(c.type&&!c.type.includes(t.type))return false;return true})}
+function avatarEl(name,sz=28){const s=sz+'px';const ini=(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();const colors=['#1a56db','#7c3aed','#16a34a','#ea580c','#0891b2'];const ci=(name||'').charCodeAt(0)%5;return `<div style="width:${s};height:${s};border-radius:50%;background:${colors[ci]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.38)}px;font-weight:700;flex-shrink:0">${ini}</div>`}
+function nav(p){setState({page:p,activeProject:p==='projects'?null:state.activeProject})}
+function navSettings(tab){setState({page:'settings',settingsTab:tab})}
+function openProject(id){setState({page:'projectdetail',activeProject:id,projectTab:'board'})}
+function viewTicket(id){setState({page:'ticketview',viewTicket:id,prevPage:state.page})}
+function openModal(type,data,extra){setState({modal:{type,data,extra}})}
+function closeModal(){setState({modal:null})}
+function doLogout(){setState({user:null,page:'login',activeProject:null})}
+function doLogin(){const e=document.getElementById('l-email').value,p=document.getElementById('l-pass').value;if(e&&p){const u=state.users.find(u=>u.email===e)||state.users[0];setState({user:u,page:'projects'})}}
+function toggleUser(id){const u=state.users.find(x=>x.id===id);if(u){u.active=!u.active;render()}}
+function removeUser(id){if(confirm('Remove user?')){setState({users:state.users.filter(u=>u.id!==id)})}}
+function toggleConnector(id){const c=state.webConnectors.find(x=>x.id===id);if(c){c.status=c.status==='Connected'?'Disconnected':'Connected';render()}}
+function deleteFilter(id){if(confirm('Delete?')){setState({filters:state.filters.filter(f=>f.id!==id)})}}
+function updateTicket(id,field,val){const t=state.tickets.find(t=>t.id===id);if(t){t[field]=val;t.updated=new Date().toISOString().slice(0,10);render()}}
+function deleteTicketConfirm(id){if(confirm('Delete this ticket?')){setState({tickets:state.tickets.filter(t=>t.id!==id),page:state.prevPage||'alltickets'})}}
+
+// ============================================================
+// ROADMAP ENGINE
+// ============================================================
+
+function parseDate(s){if(!s)return null;const d=new Date(s);return isNaN(d)?null:d}
+function daysBetween(a,b){return Math.round((b-a)/(86400000))}
+function addDays(d,n){return new Date(d.getTime()+n*86400000)}
+function fmtDate(d){if(!d)return '';return d.toISOString().slice(0,10)}
+function fmtMonth(d){return d.toLocaleString('default',{month:'short',year:'2-digit'})}
+function fmtQuarter(d){return `Q${Math.ceil((d.getMonth()+1)/3)} '${String(d.getFullYear()).slice(2)}`}
+
+function getRoadmapRange(tickets){
+  const dates=[];
+  tickets.forEach(t=>{if(t.startDate)dates.push(parseDate(t.startDate));if(t.dueDate)dates.push(parseDate(t.dueDate))});
+  if(!dates.length){const now=new Date();return{start:new Date(now.getFullYear(),0,1),end:new Date(now.getFullYear(),11,31)}}
+  const minD=new Date(Math.min(...dates.map(d=>d.getTime())));
+  const maxD=new Date(Math.max(...dates.map(d=>d.getTime())));
+  // pad by 1 month each side
+  minD.setMonth(minD.getMonth()-1);maxD.setMonth(maxD.getMonth()+1);
+  return{start:minD,end:maxD};
+}
+
+function getZoomConfig(){
+  const z=state.roadmapZoom;
+  if(z==='week')return{colWidth:120,unit:'week',label:d=>{const s=new Date(d);return s.toLocaleDateString('default',{month:'short',day:'numeric'})},advance:d=>{const n=new Date(d);n.setDate(n.getDate()+7);return n}};
+  if(z==='quarter')return{colWidth:160,unit:'quarter',label:d=>fmtQuarter(d),advance:d=>{const n=new Date(d);n.setMonth(n.getMonth()+3);return n}};
+  if(z==='year')return{colWidth:180,unit:'year',label:d=>String(d.getFullYear()),advance:d=>{const n=new Date(d);n.setFullYear(n.getFullYear()+1);return n}};
+  // month (default)
+  return{colWidth:120,unit:'month',label:d=>fmtMonth(d),advance:d=>{const n=new Date(d);n.setMonth(n.getMonth()+1);return n}};
+}
+
+function getPeriodStart(d,unit){
+  const n=new Date(d);
+  if(unit==='month'){n.setDate(1);n.setHours(0,0,0,0);return n}
+  if(unit==='quarter'){n.setMonth(Math.floor(n.getMonth()/3)*3,1);n.setHours(0,0,0,0);return n}
+  if(unit==='year'){n.setMonth(0,1);n.setHours(0,0,0,0);return n}
+  // week — go to Monday
+  const day=n.getDay();const diff=n.getDate()-(day===0?6:day-1);n.setDate(diff);n.setHours(0,0,0,0);return n;
+}
+
+function getPeriodDays(d,unit){
+  if(unit==='month'){const e=new Date(d.getFullYear(),d.getMonth()+1,0);return daysBetween(getPeriodStart(d,'month'),e)+1}
+  if(unit==='quarter')return 91;
+  if(unit==='year')return 365;
+  return 7; // week
+}
+
+function generateColumns(start,end,zoom){
+  const {unit,advance,colWidth,label}=getZoomConfig();
+  const cols=[];
+  let cur=getPeriodStart(start,unit);
+  while(cur<=end){
+    const days=getPeriodDays(cur,unit);
+    cols.push({date:new Date(cur),label:label(cur),days,width:colWidth});
+    cur=advance(cur);
+  }
+  return cols;
+}
+
+function dateToX(date,rangeStart,cols){
+  // total pixels from left to given date
+  let x=0;
+  const d=new Date(date);
+  for(const col of cols){
+    const colEnd=new Date(col.date);
+    colEnd.setDate(colEnd.getDate()+col.days);
+    if(d<=col.date)return x;
+    if(d>=colEnd){x+=col.width;continue}
+    const frac=daysBetween(col.date,d)/col.days;
+    x+=frac*col.width;
+    return x;
+  }
+  return x;
+}
+
+function totalTimelineWidth(cols){return cols.reduce((s,c)=>s+c.width,0)}
+
+// Build flat ordered list of rows respecting expand/collapse
+function buildRoadmapRows(tickets,expanded){
+  // Build children map
+  const childMap={};
+  tickets.forEach(t=>{
+    const p=t.parent;
+    if(!childMap[p])childMap[p]=[];
+    childMap[p].push(t);
+  });
+  // sort each level by startDate
+  Object.keys(childMap).forEach(k=>{
+    childMap[k].sort((a,b)=>{
+      const da=parseDate(a.startDate),db=parseDate(b.startDate);
+      if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;
+      return da-db;
+    });
+  });
+
+  const rows=[];
+  function walk(parentId,depth){
+    const children=childMap[parentId]||[];
+    children.forEach(t=>{
+      const hasChildren=(childMap[t.id]||[]).length>0;
+      rows.push({ticket:t,depth,hasChildren});
+      if(hasChildren&&expanded[t.id]!==false){
+        walk(t.id,depth+1);
+      }
+    });
+  }
+  walk(null,0);
+  return rows;
+}
+
+// Compute completion % from children
+function computeProgress(ticketId,tickets){
+  const children=tickets.filter(t=>t.parent===ticketId);
+  if(!children.length){
+    const t=tickets.find(x=>x.id===ticketId);
+    return t&&t.status==='Done'?100:t&&t.status==='In Progress'?40:0;
+  }
+  const scores=children.map(c=>computeProgress(c.id,tickets));
+  return Math.round(scores.reduce((s,v)=>s+v,0)/scores.length);
+}
+
+function svgProgressRing(pct,size,color){
+  const r=(size-4)/2;
+  const circ=2*Math.PI*r;
+  const dash=circ*(pct/100);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex-shrink:0">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e2e8f8" stroke-width="3"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="3"
+      stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
+    <text x="${size/2}" y="${size/2+3}" text-anchor="middle" font-size="7" font-weight="700" fill="${color}">${pct}</text>
+  </svg>`;
+}
+
+function renderHierarchyRoadmap(pid){
+  const tickets=getTickets(pid);
+  if(!tickets.length) return '<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">📅</div><div>No tickets with dates yet. Create tickets and set start/due dates to see the roadmap.</div></div>';
+
+  const {start:rangeStart,end:rangeEnd}=getRoadmapRange(tickets);
+  const zoom=getZoomConfig();
+  const cols=generateColumns(rangeStart,rangeEnd,zoom);
+  const totalW=totalTimelineWidth(cols);
+  const today=new Date();
+  const todayX=dateToX(today,rangeStart,cols);
+
+  // Initialize expansion: default all top-level and L1 expanded
+  const expanded={...state.roadmapExpanded};
+  tickets.forEach(t=>{
+    if(expanded[t.id]===undefined){
+      const depth=TYPE_DEPTH[t.type]||0;
+      expanded[t.id]=depth<=1;
+    }
+  });
+
+  const rows=buildRoadmapRows(tickets,expanded);
+
+  // Header months
+  const monthHeaders=cols.map(col=>`<div class="roadmap-month" style="width:${col.width}px;min-width:${col.width}px">${col.label}</div>`).join('');
+
+  // Grid lines
+  let gridLines='';
+  let gx=0;
+  cols.forEach(col=>{gridLines+=`<div class="roadmap-grid-line" style="left:${gx}px"></div>`;gx+=col.width});
+  // Today line
+  const todayLine=todayX>=0&&todayX<=totalW?`<div class="roadmap-today-line" style="left:${todayX}px"><span style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--red);font-weight:700;white-space:nowrap">Today</span></div>`:'';
+
+  // Rows
+  const rowsHtml=rows.map(({ticket:t,depth,hasChildren})=>{
+    const color=TYPE_COLORS[t.type]||'#1a56db';
+    const progress=computeProgress(t.id,tickets);
+    const isExp=expanded[t.id]!==false;
+    const sd=parseDate(t.startDate),ed=parseDate(t.dueDate);
+    const hasDates=sd&&ed;
+
+    // Bar geometry
+    let barHtml='';
+    if(hasDates){
+      const x1=dateToX(sd,rangeStart,cols);
+      const x2=dateToX(ed,rangeStart,cols);
+      const bw=Math.max(x2-x1,20);
+      // progress fill inside bar
+      const fillW=Math.round(bw*(progress/100));
+      barHtml=`<div class="roadmap-bar" onclick="viewTicket('${t.id}')" style="left:${x1}px;width:${bw}px;background:${color};opacity:0.92"
+        title="${t.id}: ${t.title} | ${t.startDate} → ${t.dueDate} | ${progress}% done">
+        <div style="position:absolute;left:0;top:0;height:100%;width:${fillW}px;background:rgba(255,255,255,0.25);border-radius:5px;pointer-events:none"></div>
+        <span style="position:relative;z-index:1;font-size:11px;font-weight:600;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)">${t.id}</span>
+      </div>`;
+    } else {
+      // No dates — show diamond placeholder at left edge
+      barHtml=`<div style="position:absolute;left:12px;display:flex;align-items:center;gap:6px;color:var(--gray-400);font-size:11px">
+        <div style="width:10px;height:10px;background:var(--gray-300);transform:rotate(45deg)"></div>
+        <span>No dates set</span>
+      </div>`;
+    }
+
+    const expandBtn=hasChildren
+      ?`<button class="expand-btn" onclick="event.stopPropagation();toggleRoadmapRow('${t.id}')">${isExp?'▾':'▸'}</button>`
+      :`<span style="width:18px;flex-shrink:0"></span>`;
+
+    return `<div class="roadmap-row depth-${depth}" style="min-height:44px">
+      <div class="roadmap-row-label" onclick="viewTicket('${t.id}')">
+        ${expandBtn}
+        ${svgProgressRing(progress,28,color)}
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:5px">
+            <span class="badge ${getTypeColor(t.type)}" style="font-size:9px;padding:1px 5px">${t.type}</span>
+            <span class="row-id">${t.id}</span>
+          </div>
+          <div class="row-title" title="${t.title}">${t.title}</div>
+          <div style="font-size:10px;color:var(--gray-400)">${hasDates?t.startDate+' → '+t.dueDate:'<span class="backlog-badge">Backlog</span>'}</div>
+        </div>
+        ${avatarEl(t.assignee,20)}
+      </div>
+      <div class="roadmap-bar-area" style="width:${totalW}px;min-width:${totalW}px;position:relative">
+        ${gridLines}
+        ${todayLine}
+        ${barHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="roadmap-controls">
+    <span style="font-size:12px;font-weight:600;color:var(--gray-600)">Zoom:</span>
+    ${['week','month','quarter','year'].map(z=>`<button class="zoom-btn ${state.roadmapZoom===z?'active':''}" onclick="setState({roadmapZoom:'${z}'})">${z.charAt(0).toUpperCase()+z.slice(1)}</button>`).join('')}
+    <div style="margin-left:12px" class="roadmap-legend">
+      ${Object.entries(TYPE_COLORS).map(([t,c])=>`<span><span class="legend-dot" style="background:${c}"></span>${t}</span>`).join('')}
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="expandAllRoadmap()">Expand All</button>
+    <button class="btn btn-ghost btn-sm" onclick="collapseAllRoadmap()">Collapse All</button>
+  </div>
+  <div class="roadmap-wrap">
+    <div class="roadmap-header-row">
+      <div class="roadmap-left-header">Issue / Timeline</div>
+      <div class="roadmap-timeline-header">${monthHeaders}</div>
+    </div>
+    <div class="roadmap-body">
+      ${rowsHtml||'<div class="empty-state">No tickets found</div>'}
+    </div>
+  </div>`;
+}
+
+function toggleRoadmapRow(id){
+  const exp={...state.roadmapExpanded};
+  exp[id]=exp[id]===false?true:false;
+  setState({roadmapExpanded:exp});
+}
+function expandAllRoadmap(){
+  const exp={};
+  state.tickets.forEach(t=>exp[t.id]=true);
+  setState({roadmapExpanded:exp});
+}
+function collapseAllRoadmap(){
+  const exp={};
+  state.tickets.forEach(t=>exp[t.id]=false);
+  setState({roadmapExpanded:exp});
+}
+
+// ============================================================
+// RENDER ENGINE
+// ============================================================
+function renderApp(){if(!state.user)return renderLogin();return `<div id="app">${renderHeader()}${renderBody()}</div>`}
+
+function renderLogin(){return `<div class="login-wrap"><div class="login-box">
+  <div class="login-logo"><div class="login-logo-icon">T</div><div class="login-logo-text">TracKorbit</div></div>
+  <div class="login-title">Sign in to your workspace</div>
+  <input class="login-input" id="l-email" type="email" placeholder="Email" value="alex@trackorbit.io"/>
+  <input class="login-input" id="l-pass" type="password" placeholder="Password" value="password"/>
+  <button class="login-btn" onclick="doLogin()">Sign In</button>
+  <div class="login-hint">Demo: alex@trackorbit.io / password</div>
+</div></div>`}
+
+function renderHeader(){
+  const navItems=[{key:'projects',label:'Projects'},{key:'dashboards',label:'Dashboards'},{key:'filters',label:'Filters'},{key:'alltickets',label:'All Tickets'},{key:'webconnectors',label:'Web Connectors'}];
+  const unread=state.notifications.filter(n=>!n.read).length;
+  return `<div class="header">
+    <div class="logo"><div class="logo-icon">T</div>TracKorbit</div>
+    <div class="header-nav">
+      ${navItems.map(n=>`<button class="${state.page===n.key?'active':''}" onclick="nav('${n.key}')">${n.label}</button>`).join('')}
+      <button class="${state.page==='settings'?'active':''}" onclick="nav('settings')">⚙ Settings</button>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-primary btn-sm" onclick="openModal('createTicket')">+ Create</button>
+      <div style="position:relative;cursor:pointer;font-size:18px" onclick="openModal('notifications')">🔔${unread>0?`<span style="position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:var(--red);color:#fff;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center">${unread}</span>`:''}</div>
+      ${avatarEl(state.user.name,32)}
+      <span style="font-size:13px;font-weight:600">${state.user.name.split(' ')[0]}</span>
+      <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
+    </div>
+  </div>`
+}
+
+function renderBody(){return `<div class="body-wrap">${renderSidebar()}<div class="main">${renderPage()}</div></div>${state.modal?renderModal():''}`}
+
+function renderSidebar(){
+  const pi=state.projects.map(p=>`<div class="sidebar-item ${state.activeProject===p.id?'active':''}" onclick="openProject(${p.id})">
+    <span style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
+    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
+  </div>`).join('');
+  return `<div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <div class="sidebar-item ${state.page==='projects'?'active':''}" onclick="nav('projects')">🏠 Home</div>
+      <div class="sidebar-item ${state.page==='dashboards'?'active':''}" onclick="nav('dashboards')">📊 Dashboards</div>
+      <div class="sidebar-item ${state.page==='alltickets'?'active':''}" onclick="nav('alltickets')">🎫 All Tickets</div>
+      <div class="sidebar-item ${state.page==='filters'?'active':''}" onclick="nav('filters')">🔍 Filters</div>
+      <div class="sidebar-item ${state.page==='webconnectors'?'active':''}" onclick="nav('webconnectors')">🔗 Connectors</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Projects</div>
+      ${pi}
+      <div class="sidebar-item" onclick="openModal('createProject')" style="color:var(--blue)">+ New Project</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='users'?'active':''}" onclick="navSettings('users')">👥 Users</div>
+      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='roles'?'active':''}" onclick="navSettings('roles')">🛡 Roles & Groups</div>
+      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='fields'?'active':''}" onclick="navSettings('fields')">📝 Custom Fields</div>
+      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='workflows'?'active':''}" onclick="navSettings('workflows')">⚡ Workflows</div>
+      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='app'?'active':''}" onclick="navSettings('app')">⚙ App Settings</div>
+    </div>
+  </div>`
+}
+
+function renderPage(){
+  if(state.page==='projects')return renderProjects();
+  if(state.page==='projectdetail')return renderProjectDetail();
+  if(state.page==='dashboards')return renderDashboards();
+  if(state.page==='filters')return renderFilters();
+  if(state.page==='alltickets')return renderAllTickets();
+  if(state.page==='webconnectors')return renderWebConnectors();
+  if(state.page==='settings')return renderSettings();
+  if(state.page==='ticketview')return renderTicketView();
+  return renderProjects();
+}
+
+// ---- PROJECTS ----
+function renderProjects(){
+  const cards=state.projects.map(p=>{
+    const tks=state.tickets.filter(t=>t.project===p.id);
+    const done=tks.filter(t=>t.status==='Done').length;
+    const pct=tks.length?Math.round(done/tks.length*100):0;
+    return `<div class="card" style="cursor:pointer;border-left:4px solid ${p.color}" onclick="openProject(${p.id})">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div><div style="font-size:16px;font-weight:700">${p.name}</div><div style="font-size:11px;color:var(--blue);font-weight:600;margin-top:2px">${p.key}</div></div>
+        <span class="badge ${p.status==='Active'?'badge-green':'badge-orange'}">${p.status}</span>
+      </div>
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px">${p.description}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">${avatarEl(p.lead,24)}<span style="font-size:12px;color:var(--gray-500)">${p.lead}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray-500);margin-bottom:4px"><span>${tks.length} tickets</span><span>${pct}% done</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div style="margin-top:10px;display:flex;gap:5px;flex-wrap:wrap">
+        ${STATUSES.map(s=>{const c=tks.filter(t=>t.status===s).length;return c?`<span class="badge ${getStatusClass(s)}" style="font-size:10px">${s}: ${c}</span>`:''}).join('')}
+      </div>
+    </div>`}).join('');
+  return `<div class="page">
+    <div class="page-header">
+      <div><div class="page-title">Projects</div><div class="page-sub">${state.projects.length} projects</div></div>
+      <button class="btn btn-primary" onclick="openModal('createProject')">+ New Project</button>
+    </div>
+    <div class="grid-3">${cards}</div>
+  </div>`;
+}
+
+// ---- PROJECT DETAIL ----
+function renderProjectDetail(){
+  const p=projectById(state.activeProject);
+  if(!p)return '<div class="page"><div class="empty-state">Project not found</div></div>';
+  const tabs=['board','backlog','roadmap','reports'];
+  const tabHtml=tabs.map(t=>`<button class="tab ${state.projectTab===t?'active':''}" onclick="setState({projectTab:'${t}'})">${t==='roadmap'?'🗺 Roadmap':t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('');
+  let content='';
+  if(state.projectTab==='board')content=renderKanban(state.activeProject);
+  else if(state.projectTab==='backlog')content=renderBacklog(state.activeProject);
+  else if(state.projectTab==='roadmap')content=renderHierarchyRoadmap(state.activeProject);
+  else if(state.projectTab==='reports')content=renderProjectReports(state.activeProject);
+  return `<div class="page">
+    <div class="breadcrumb"><span onclick="nav('projects')">Projects</span><span class="bc-sep">›</span><span>${p.name}</span></div>
+    <div class="page-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;border-radius:9px;background:${p.color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px">${p.key[0]}</div>
+        <div><div class="page-title">${p.name}</div><div class="page-sub">${p.key} · ${p.description}</div></div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('createTicket')">+ Create Ticket</button>
+    </div>
+    <div class="tabs">${tabHtml}</div>
+    ${content}
+  </div>`;
+}
+
+// ---- KANBAN ----
+function renderKanban(pid){
+  const tks=getTickets(pid);
+  return `<div class="kanban-board">
+    ${STATUSES.map(status=>{
+      const cards=tks.filter(t=>t.status===status);
+      return `<div class="kanban-col">
+        <div class="kanban-col-header">${status}<span style="background:var(--gray-400);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px">${cards.length}</span></div>
+        <div class="kanban-col-body">
+          ${cards.map(t=>`<div class="kanban-card" onclick="viewTicket('${t.id}')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;color:var(--gray-400);font-weight:600">${t.id}</span>
+              <span class="badge ${getTypeColor(t.type)}" style="font-size:10px">${t.type}</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">${t.title}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+              <span style="font-size:11px" class="${priorityClass(t.priority)}">${t.priority}</span>
+              ${avatarEl(t.assignee,22)}
+            </div>
+          </div>`).join('')}
+          <div style="text-align:center;padding:8px;font-size:11px;color:var(--gray-400);cursor:pointer" onclick="openModal('createTicket',{status:'${status}'})">+ Add</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ---- BACKLOG (tickets go here after creation) ----
+function renderBacklog(pid){
+  const tks=getTickets(pid);
+  const backlog=tks.filter(t=>t.status==='To Do');
+  const inProgress=tks.filter(t=>t.status==='In Progress'||t.status==='In Review');
+  const done=tks.filter(t=>t.status==='Done');
+  const blocked=tks.filter(t=>t.status==='Blocked');
+
+  function ticketRows(list,label,labelClass){
+    if(!list.length)return'';
+    return `<tr><td colspan="8" style="padding:6px 14px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;border-top:2px solid var(--gray-200)">
+      <span class="badge ${labelClass}" style="margin-right:6px">${label}</span>${list.length} issues
+    </td></tr>`
+    +list.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+      <td style="font-weight:600;color:var(--blue);padding-left:20px">${t.id}</td>
+      <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
+      <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
+      <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
+      <td>${avatarEl(t.assignee,24)}</td>
+      <td style="font-size:11px;color:var(--gray-400)">${t.sprint||'—'}</td>
+      <td style="font-size:11px;color:var(--gray-400)">${t.dueDate||'—'}</td>
+    </tr>`).join('');
+  }
+
+  return `<div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:13px;color:var(--gray-500)">All issues in this project grouped by status</span>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openModal('createTicket')">+ Create Issue</button>
+    </div>
+    <div class="card" style="padding:0">
+      <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Sprint</th><th>Due Date</th></tr></thead>
+        <tbody>
+          ${ticketRows(backlog,'To Do','s-todo')}
+          ${ticketRows(inProgress,'In Progress / Review','s-inprogress')}
+          ${ticketRows(blocked,'Blocked','s-blocked')}
+          ${ticketRows(done,'Done','s-done')}
+          ${!tks.length?'<tr><td colspan="8"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">📋</div><div>No issues yet. Click + Create Issue to start.</div></div></td></tr>':''}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ---- PROJECT REPORTS ----
+function renderProjectReports(pid){
+  const tks=getTickets(pid);
+  const byStatus={};STATUSES.forEach(s=>byStatus[s]=tks.filter(t=>t.status===s).length);
+  const mx=Math.max(...Object.values(byStatus),1);
+  const byAssignee={};tks.forEach(t=>{if(!byAssignee[t.assignee])byAssignee[t.assignee]=0;byAssignee[t.assignee]++});
+  return `<div class="grid-2">
+    <div class="card"><div class="card-title">Tickets by Status</div>
+      <div class="bar-chart">${STATUSES.map(s=>`<div class="bar-wrap"><div class="bar-val">${byStatus[s]}</div><div class="bar" style="height:${Math.round(byStatus[s]/mx*80)+10}px;background:${s==='Done'?'var(--green)':s==='Blocked'?'var(--red)':'var(--blue)'}"></div><div class="bar-label">${s.split(' ')[0]}</div></div>`).join('')}</div>
+    </div>
+    <div class="card"><div class="card-title">Team Workload</div>
+      ${Object.entries(byAssignee).map(([name,count])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">${avatarEl(name,26)}<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${name}</span><span style="font-weight:700">${count}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(count/tks.length*100)}%"></div></div></div></div>`).join('')}
+    </div>
+    <div class="card"><div class="card-title">By Issue Type</div>
+      ${ISSUE_TYPES.map(t=>{const c=tks.filter(x=>x.type===t).length;return c?`<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t)}">${t}</span><strong>${c}</strong></div>`:''}).join('')}
+    </div>
+    <div class="card"><div class="card-title">By Priority</div>
+      ${PRIORITIES.map(p=>{const c=tks.filter(t=>t.priority===p).length;return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px" class="${priorityClass(p)}">${p}</span><strong>${c}</strong></div>`}).join('')}
+    </div>
+  </div>`;
+}
+
+// ---- DASHBOARDS ----
+function renderDashboards(){
+  const tks=state.tickets;const total=tks.length;
+  const done=tks.filter(t=>t.status==='Done').length;
+  const inprog=tks.filter(t=>t.status==='In Progress').length;
+  const blocked=tks.filter(t=>t.status==='Blocked').length;
+  const byStatus={};STATUSES.forEach(s=>byStatus[s]=tks.filter(t=>t.status===s).length);
+  const mx=Math.max(...Object.values(byStatus),1);
+  const byAssignee={};tks.forEach(t=>{if(!byAssignee[t.assignee])byAssignee[t.assignee]=0;byAssignee[t.assignee]++});
+  const byType={};ISSUE_TYPES.forEach(t=>byType[t]=tks.filter(x=>x.type===t).length);
+  const mxT=Math.max(...Object.values(byType),1);
+  return `<div class="page">
+    <div class="page-header">
+      <div><div class="page-title">Dashboards</div><div class="page-sub">All project analytics & KPIs</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${state.filters.filter(f=>f.shared).map(f=>`<button class="filter-chip" title="${Object.entries(f.conditions).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)).join(' | ')}">${f.name} (${getFilteredTickets(f.id).length})</button>`).join('')}
+      </div>
+    </div>
+    <div class="grid-4" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">Total Tickets</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--green)">${done}</div><div class="stat-label">Done</div><div class="stat-delta delta-up">↑ ${total?Math.round(done/total*100):0}%</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${inprog}</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--red)">${blocked}</div><div class="stat-label">Blocked</div>${blocked>0?'<div class="stat-delta delta-down">Needs attention</div>':''}</div>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card"><div class="card-title">Tickets by Status</div>
+        <div class="bar-chart" style="height:130px">${STATUSES.map(s=>`<div class="bar-wrap"><div class="bar-val">${byStatus[s]}</div><div class="bar" style="height:${Math.round(byStatus[s]/mx*90)+10}px;background:${s==='Done'?'var(--green)':s==='Blocked'?'var(--red)':s==='In Progress'?'var(--blue)':'var(--gray-300)'}"></div><div class="bar-label" style="font-size:9px">${s}</div></div>`).join('')}</div>
+      </div>
+      <div class="card"><div class="card-title">Team Workload</div>
+        ${Object.entries(byAssignee).slice(0,5).map(([name,count])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">${avatarEl(name,26)}<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${name}</span><span style="font-weight:700">${count}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(count/total*100)}%"></div></div></div></div>`).join('')}
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="card"><div class="card-title">By Issue Type</div>
+        ${ISSUE_TYPES.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t)}" style="width:80px;justify-content:center">${t}</span><div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:${byType[t]?Math.round(byType[t]/mxT*100):0}%"></div></div></div><span style="font-size:12px;font-weight:700;min-width:20px">${byType[t]}</span></div>`).join('')}
+      </div>
+      <div class="card"><div class="card-title">Projects Overview</div>
+        ${state.projects.map(p=>{const pt=tks.filter(t=>t.project===p.id);const pd=pt.filter(t=>t.status==='Done').length;return `<div style="padding:8px 0;border-bottom:1px solid var(--gray-100)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span><span style="font-size:13px;font-weight:600">${p.name}</span></div><span style="font-size:11px;color:var(--gray-400)">${pd}/${pt.length}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pt.length?Math.round(pd/pt.length*100):0}%;background:${p.color}"></div></div></div>`}).join('')}
+      </div>
+      <div class="card"><div class="card-title">Recent Activity</div>
+        ${tks.slice(0,6).map(t=>`<div style="display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t.type)}" style="font-size:10px;margin-top:1px">${t.type[0]}</span><div style="flex:1"><div style="font-size:12px;font-weight:600">${t.id}: ${t.title.slice(0,36)}${t.title.length>36?'...':''}</div><div style="font-size:11px;color:var(--gray-400)">${t.updated} · <span class="badge ${getStatusClass(t.status)}" style="font-size:10px">${t.status}</span></div></div></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---- FILTERS ----
+function renderFilters(){
+  return `<div class="page">
+    <div class="page-header">
+      <div><div class="page-title">Filters</div><div class="page-sub">Saved filters — shared filters appear on Dashboards</div></div>
+      <button class="btn btn-primary" onclick="openModal('createFilter')">+ New Filter</button>
+    </div>
+    <div class="grid-2">
+      ${state.filters.map(f=>{const res=getFilteredTickets(f.id);return `<div class="card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:15px;font-weight:700">${f.name}</div>
+          <div style="display:flex;gap:4px">
+            ${f.shared?'<span class="badge badge-blue">Shared</span>':'<span class="badge badge-gray">Private</span>'}
+            <button class="btn btn-ghost btn-sm" onclick="deleteFilter(${f.id})">🗑</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px">By ${f.owner} · ${f.created}</div>
+        <div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px">
+          ${Object.entries(f.conditions).map(([k,v])=>`<span class="filter-chip active">${k}: ${Array.isArray(v)?v.join(', '):v}</span>`).join('')}
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:10px">${res.length} matching tickets</div>
+        <div class="card" style="padding:0;margin:0"><table>
+          <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Assignee</th></tr></thead>
+          <tbody>${res.slice(0,3).map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+            <td style="font-weight:600;color:var(--blue)">${t.id}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</td>
+            <td><span class="badge ${getStatusClass(t.status)}" style="font-size:10px">${t.status}</span></td>
+            <td>${avatarEl(t.assignee,22)}</td>
+          </tr>`).join('')}
+          ${res.length>3?`<tr><td colspan="4" style="text-align:center;font-size:11px;color:var(--gray-400);padding:7px">+${res.length-3} more</td></tr>`:''}
+          </tbody>
+        </table></div>
+      </div>`}).join('')}
+    </div>
+  </div>`;
+}
+
+// ---- ALL TICKETS ----
+function renderAllTickets(){
+  const q=state.ticketSearch||'',tf=state.typeFilter||'All',sf=state.statusFilter||'All',pf=state.projectFilter||'All';
+  let tks=state.tickets;
+  if(q)tks=tks.filter(t=>t.title.toLowerCase().includes(q.toLowerCase())||t.id.toLowerCase().includes(q.toLowerCase()));
+  if(tf!=='All')tks=tks.filter(t=>t.type===tf);
+  if(sf!=='All')tks=tks.filter(t=>t.status===sf);
+  if(pf!=='All')tks=tks.filter(t=>t.project===parseInt(pf));
+  return `<div class="page">
+    <div class="page-header">
+      <div><div class="page-title">All Tickets</div><div class="page-sub">${tks.length} of ${state.tickets.length} tickets</div></div>
+      <button class="btn btn-primary" onclick="openModal('createTicket')">+ Create Ticket</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <input class="search-input" placeholder="Search by title or ID..." value="${q}" oninput="setState({ticketSearch:this.value})"/>
+      <select class="form-select" style="width:auto" onchange="setState({typeFilter:this.value})"><option value="All">All Types</option>${ISSUE_TYPES.map(t=>`<option value="${t}" ${tf===t?'selected':''}>${t}</option>`).join('')}</select>
+      <select class="form-select" style="width:auto" onchange="setState({statusFilter:this.value})"><option value="All">All Statuses</option>${STATUSES.map(s=>`<option value="${s}" ${sf===s?'selected':''}>${s}</option>`).join('')}</select>
+      <select class="form-select" style="width:auto" onchange="setState({projectFilter:this.value})"><option value="All">All Projects</option>${state.projects.map(p=>`<option value="${p.id}" ${pf==p.id?'selected':''}>${p.name}</option>`).join('')}</select>
+      ${(q||tf!=='All'||sf!=='All'||pf!=='All')?`<button class="btn btn-ghost" onclick="setState({ticketSearch:'',typeFilter:'All',statusFilter:'All',projectFilter:'All'})">✕ Clear</button>`:''}
+    </div>
+    <div class="card" style="padding:0"><table>
+      <thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Project</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Start</th><th>Due</th></tr></thead>
+      <tbody>${tks.length?tks.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+        <td style="font-weight:600;color:var(--blue)">${t.id}</td>
+        <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
+        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
+        <td><span style="font-size:11px;background:var(--blue-light);color:var(--blue);padding:2px 7px;border-radius:4px;font-weight:600">${projectById(t.project)?.key||'-'}</span></td>
+        <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
+        <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
+        <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,22)}<span style="font-size:12px">${t.assignee.split(' ')[0]}</span></div></td>
+        <td style="font-size:11px;color:var(--gray-400)">${t.startDate||'—'}</td>
+        <td style="font-size:11px;color:var(--gray-400)">${t.dueDate||'—'}</td>
+      </tr>`).join(''):`<tr><td colspan="9"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">🔍</div><div>No tickets match filters</div></div></td></tr>`}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+// ---- TICKET VIEW ----
+function renderTicketView(){
+  const t=state.tickets.find(t=>t.id===state.viewTicket);
+  if(!t)return '<div class="page"><div class="empty-state">Ticket not found</div></div>';
+  const p=projectById(t.project);
+  const children=state.tickets.filter(x=>x.parent===t.id);
+  const parentT=t.parent?state.tickets.find(x=>x.id===t.parent):null;
+  return `<div class="page">
+    <div class="breadcrumb"><span onclick="nav(state.prevPage||'alltickets')">← Back</span><span class="bc-sep">›</span><span onclick="openProject(${t.project})">${p?.name}</span><span class="bc-sep">›</span><span>${t.id}</span></div>
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span class="badge ${getTypeColor(t.type)}">${t.type}</span>
+          <span style="font-size:12px;color:var(--blue);font-weight:700">${t.id}</span>
+          <span class="badge ${getStatusClass(t.status)}">${t.status}</span>
+          <span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span>
+        </div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px">${t.title}</div>
+        <div style="font-size:13px;color:var(--gray-600);line-height:1.7;padding:14px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200);margin-bottom:16px">${t.desc||'No description.'}</div>
+        ${parentT?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--gray-500);margin-bottom:6px">PARENT ${parentT.type.toUpperCase()}</div>
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--blue-light);border-radius:8px;border:1.5px solid #bfdbfe;cursor:pointer" onclick="viewTicket('${parentT.id}')">
+            <span class="badge ${getTypeColor(parentT.type)}">${parentT.type}</span>
+            <span style="font-weight:600;color:var(--blue)">${parentT.id}</span>
+            <span>${parentT.title}</span>
+          </div></div>`:''}
+        ${children.length?`<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--gray-500);margin-bottom:6px">CHILD ITEMS (${children.length})</div>
+          ${children.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--gray-200);border-radius:8px;cursor:pointer;margin-bottom:6px;background:var(--white)" onclick="viewTicket('${c.id}')">
+            <span class="badge ${getTypeColor(c.type)}">${c.type}</span>
+            <span style="font-weight:600;color:var(--blue)">${c.id}</span>
+            <span style="flex:1">${c.title}</span>
+            <span class="badge ${getStatusClass(c.status)}">${c.status}</span>
+          </div>`).join('')}
+        </div>`:''}
+        <div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--gray-500);margin-bottom:6px">LABELS</div>
+          ${t.labels?.length?t.labels.map(l=>`<span class="tag">${l}</span> `).join(''):'<span style="font-size:12px;color:var(--gray-400)">No labels</span>'}
+        </div>
+        <div style="padding:14px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200)">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px">Add Comment</div>
+          <textarea class="form-textarea" placeholder="Write a comment..." style="min-height:60px"></textarea>
+          <div style="text-align:right;margin-top:6px"><button class="btn btn-primary btn-sm">Save</button></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="card" style="padding:14px 16px">
+          <div style="font-size:11px;font-weight:600;color:var(--gray-500);margin-bottom:12px">TICKET DETAILS</div>
+          <div class="form-group"><label class="form-label">Status</label>
+            <select class="form-select" onchange="updateTicket('${t.id}','status',this.value)">${STATUSES.map(s=>`<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Priority</label>
+            <select class="form-select" onchange="updateTicket('${t.id}','priority',this.value)">${PRIORITIES.map(p=>`<option value="${p}" ${t.priority===p?'selected':''}>${p}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Assignee</label>
+            <select class="form-select" onchange="updateTicket('${t.id}','assignee',this.value)">${state.users.map(u=>`<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Start Date</label>
+            <input class="form-input" type="date" value="${t.startDate||''}" onchange="updateTicket('${t.id}','startDate',this.value)"/></div>
+          <div class="form-group"><label class="form-label">Due Date</label>
+            <input class="form-input" type="date" value="${t.dueDate||''}" onchange="updateTicket('${t.id}','dueDate',this.value)"/></div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:4px">Reporter: ${t.reporter}</div>
+          <div style="font-size:11px;color:var(--gray-400)">Sprint: ${t.sprint||'—'}</div>
+          <div style="font-size:11px;color:var(--gray-400)">Created: ${t.created}</div>
+        </div>
+        <button class="btn btn-outline btn-sm w-full" onclick="openModal('editTicket','${t.id}')">✏ Edit Ticket</button>
+        <button class="btn btn-outline btn-sm w-full" onclick="openModal('createTicket',null,'${t.id}')">+ Add Child Ticket</button>
+        <button class="btn btn-danger btn-sm w-full" onclick="deleteTicketConfirm('${t.id}')">🗑 Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ---- WEB CONNECTORS ----
+function renderWebConnectors(){
+  return `<div class="page">
+    <div class="page-header"><div><div class="page-title">Web Connectors</div><div class="page-sub">Integrate with external tools</div></div><button class="btn btn-primary">+ Add Connector</button></div>
+    <div class="grid-2">${state.webConnectors.map(c=>`<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:28px">${c.icon}</span>
+          <div><div style="font-size:15px;font-weight:700">${c.name}</div><div style="font-size:12px;color:${c.status==='Connected'?'var(--green)':'var(--gray-400)'};font-weight:600">⬤ ${c.status}</div></div>
+        </div>
+        <button class="btn ${c.status==='Connected'?'btn-outline':'btn-primary'} btn-sm" onclick="toggleConnector(${c.id})">${c.status==='Connected'?'Disconnect':'Connect'}</button>
+      </div>
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px">Events: ${c.events.join(', ')}</div>
+      ${c.status==='Connected'?`<input class="form-input" placeholder="Webhook URL" value="${c.url||''}"/>`:''}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ---- SETTINGS ----
+function renderSettings(){
+  const tabs={users:'Users',roles:'Roles & Groups',permissions:'Permissions',fields:'Custom Fields',workflows:'Workflows',screens:'Screens',app:'App Settings'};
+  const content={users:rSUsers,roles:rSRoles,permissions:rSPerms,fields:rSFields,workflows:rSWorkflows,screens:rSScreens,app:rSApp};
+  const fn=content[state.settingsTab]||rSUsers;
+  return `<div class="page"><div class="page-header"><div class="page-title">Settings</div></div>
+    <div class="settings-layout">
+      <div class="settings-nav">
+        <div class="settings-nav-group">Admin</div>
+        ${['users','roles','permissions'].map(k=>`<div class="settings-nav-item ${state.settingsTab===k?'active':''}" onclick="navSettings('${k}')">${tabs[k]}</div>`).join('')}
+        <div class="settings-nav-group">App</div>
+        ${['fields','workflows','screens','app'].map(k=>`<div class="settings-nav-item ${state.settingsTab===k?'active':''}" onclick="navSettings('${k}')">${tabs[k]}</div>`).join('')}
+      </div>
+      <div>${fn()}</div>
+    </div>
+  </div>`;
+}
+function rSUsers(){return `<div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:16px;font-weight:700">Users</div><button class="btn btn-primary btn-sm" onclick="openModal('addUser')">+ Add User</button></div>
+  <div class="card" style="padding:0"><table><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Group</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+  ${state.users.map(u=>`<tr><td><div style="display:flex;align-items:center;gap:8px">${avatarEl(u.name,30)}<span style="font-weight:600">${u.name}</span></div></td>
+  <td style="color:var(--gray-500)">${u.email}</td>
+  <td><span class="badge ${u.role==='Admin'?'badge-red':u.role==='Manager'?'badge-purple':u.role==='Developer'?'badge-blue':'badge-gray'}">${u.role}</span></td>
+  <td><span class="tag">${u.group}</span></td>
+  <td><div class="toggle-wrap"><div class="toggle ${u.active?'on':''}" onclick="toggleUser(${u.id})"><div class="toggle-knob"></div></div><span style="font-size:12px">${u.active?'Active':'Inactive'}</span></div></td>
+  <td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openModal('editUser',${u.id})">✏</button><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeUser(${u.id})">🗑</button></div></td>
+  </tr>`).join('')}</tbody></table></div></div>`}
+function rSRoles(){return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Roles & Groups</div><div class="grid-2">
+  <div class="card"><div class="card-title">Roles</div>${state.roles.map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${r==='Admin'?'badge-red':r==='Manager'?'badge-purple':r==='Developer'?'badge-blue':'badge-gray'}">${r}</span><span style="font-size:12px;color:var(--gray-500)">${state.users.filter(u=>u.role===r).length} users</span></div>`).join('')}<button class="btn btn-outline btn-sm w-full" style="margin-top:10px" onclick="openModal('addRole')">+ New Role</button></div>
+  <div class="card"><div class="card-title">Groups</div>${state.groups.map(g=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100)"><span class="tag">${g}</span><span style="font-size:12px;color:var(--gray-500)">${state.users.filter(u=>u.group===g).length} members</span></div>`).join('')}<button class="btn btn-outline btn-sm w-full" style="margin-top:10px" onclick="openModal('addGroup')">+ New Group</button></div>
+  </div></div>`}
+function rSPerms(){const perms=['Create Tickets','Edit Tickets','Delete Tickets','Manage Projects','Manage Users','View Reports','Admin Settings'];return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Permissions</div><div class="card" style="padding:0"><table><thead><tr><th>Permission</th>${state.roles.map(r=>`<th>${r}</th>`).join('')}</tr></thead><tbody>${perms.map(perm=>`<tr><td style="font-weight:500">${perm}</td>${state.roles.map(r=>{const has=['Create Tickets','Edit Tickets','View Reports'].includes(perm)||(r==='Admin')||(['Manage Projects','Delete Tickets'].includes(perm)&&['Admin','Manager'].includes(r));return `<td style="text-align:center">${has?'✅':'—'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>`}
+function rSFields(){return `<div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:16px;font-weight:700">Custom Fields</div><button class="btn btn-primary btn-sm" onclick="openModal('addField')">+ Add Field</button></div><div class="card" style="padding:0"><table><thead><tr><th>Field</th><th>Type</th><th>Applies To</th><th>Required</th><th>Actions</th></tr></thead><tbody>${state.customFields.map(f=>`<tr><td style="font-weight:600">${f.name}</td><td><span class="badge badge-blue">${f.type}</span></td><td>${f.applyTo.map(t=>`<span class="badge ${getTypeColor(t)}" style="margin:1px">${t}</span>`).join('')}</td><td>${f.required?'<span class="badge badge-red">Yes</span>':'<span class="badge badge-gray">No</span>'}</td><td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm">✏</button><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></div></td></tr>`).join('')}</tbody></table></div></div>`}
+function rSWorkflows(){const tr=[{from:'To Do',to:['In Progress']},{from:'In Progress',to:['In Review','Blocked','To Do']},{from:'In Review',to:['Done','In Progress']},{from:'Blocked',to:['To Do','In Progress']}];return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Workflows</div>${WORKFLOWS.map((w,i)=>`<div class="card" style="margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:14px;font-weight:700">${w}</div><span class="badge ${i===0?'badge-green':'badge-gray'}">${i===0?'Active':'Draft'}</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${STATUSES.map(s=>`<span class="badge ${getStatusClass(s)}">${s}</span>`).join('')}</div>${tr.map(t=>`<div style="font-size:12px;color:var(--gray-600);padding:3px 0"><span class="badge ${getStatusClass(t.from)}" style="font-size:10px">${t.from}</span><span style="margin:0 5px;color:var(--gray-400)">→</span>${t.to.map(x=>`<span class="badge ${getStatusClass(x)}" style="font-size:10px">${x}</span>`).join(' ')}</div>`).join('')}</div>`).join('')}</div>`}
+function rSScreens(){const fields=['Summary','Description','Assignee','Reporter','Priority','Status','Sprint','Labels','Start Date','Due Date','Story Points'];return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Screens</div>${['Create Screen','Edit Screen','View Screen'].map(s=>`<div class="card" style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;margin-bottom:10px">${s}</div><div style="display:flex;gap:6px;flex-wrap:wrap">${fields.map(f=>`<span onclick="this.style.background=this.style.background==='var(--blue-light)'?'var(--gray-50)':'var(--blue-light)';this.style.borderColor=this.style.background==='var(--blue-light)'?'var(--blue)':'var(--gray-200)'" style="padding:5px 11px;border-radius:6px;font-size:12px;border:1.5px solid var(--gray-200);background:var(--gray-50);cursor:pointer">${f}</span>`).join('')}</div></div>`).join('')}</div>`}
+function rSApp(){const s=state.appSettings;return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">App Settings</div><div class="card" style="max-width:480px">
+  <div class="form-group"><label class="form-label">Application Name</label><input class="form-input" value="${s.appName}" oninput="state.appSettings.appName=this.value"/></div>
+  <div class="form-row"><div class="form-group"><label class="form-label">Timezone</label><select class="form-select" onchange="state.appSettings.timezone=this.value">${['UTC','US/Eastern','US/Pacific','Europe/London','Asia/Kolkata'].map(tz=>`<option value="${tz}" ${s.timezone===tz?'selected':''}>${tz}</option>`).join('')}</select></div>
+  <div class="form-group"><label class="form-label">Date Format</label><select class="form-select">${['MM/DD/YYYY','DD/MM/YYYY','YYYY-MM-DD'].map(f=>`<option ${s.dateFormat===f?'selected':''}>${f}</option>`).join('')}</select></div></div>
+  ${[['emailNotif','Email Notifications'],['slackNotif','Slack Notifications'],['allowSignup','Allow Self Signup']].map(([k,l])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${l}</span><div class="toggle ${s[k]?'on':''}" onclick="state.appSettings['${k}']=!state.appSettings['${k}'];render()"><div class="toggle-knob"></div></div></div>`).join('')}
+  <button class="btn btn-primary w-full" style="margin-top:14px" onclick="alert('✅ Settings saved!')">Save Settings</button>
+  </div></div>`}
+
+// ============================================================
+// MODALS
+// ============================================================
+function renderModal(){
+  const m=state.modal;if(!m)return'';
+  let inner='';
+  if(m.type==='createTicket')inner=renderCTModal(m.data,m.extra);
+  else if(m.type==='editTicket')inner=renderETModal(m.data);
+  else if(m.type==='createProject')inner=renderCPModal();
+  else if(m.type==='createFilter')inner=renderCFModal();
+  else if(m.type==='addUser')inner=renderAUModal();
+  else if(m.type==='editUser')inner=renderEUModal(m.data);
+  else if(m.type==='addField')inner=renderAFModal();
+  else if(m.type==='notifications')inner=renderNotifsModal();
+  else if(m.type==='addGroup')inner=rSimple('Add Group','Group Name','addGroup');
+  else if(m.type==='addRole')inner=rSimple('Add Role','Role Name','addRole');
+  else inner=`<div class="modal-title">Coming Soon</div>`;
+  return `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${inner}</div></div>`;
+}
+
+// CREATE TICKET — goes to backlog (status stays To Do, lands on backlog tab)
+function renderCTModal(init,parentId){
+  const pid=state.activeProject||state.projects[0]?.id;
+  const pTicket=parentId?state.tickets.find(t=>t.id===parentId):null;
+  const defType=pTicket?(Object.entries(ISSUE_TYPE_PARENT).find(([child,par])=>par===pTicket.type)?.[0]||'Task'):'Feature';
+  return `<div>
+    <div class="modal-title">${parentId?`Create Child of ${parentId}`:'Create Ticket → goes to Backlog'}</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Project *</label>
+        <select class="form-select" id="ct-project">${state.projects.map(p=>`<option value="${p.id}" ${p.id===pid?'selected':''}>${p.name} (${p.key})</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Issue Type * <span style="font-size:10px;color:var(--gray-400)">(Feature→Initiative→Epic→Story→Task→Sub-task)</span></label>
+        <select class="form-select" id="ct-type">${ISSUE_TYPES.map(t=>`<option value="${t}" ${t===defType?'selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="ct-title" placeholder="Enter ticket title..."/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="ct-desc" placeholder="Describe the issue..."></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select class="form-select" id="ct-priority">${PRIORITIES.map(p=>`<option value="${p}" ${p==='Medium'?'selected':''}>${p}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Assignee</label>
+        <select class="form-select" id="ct-assignee">${state.users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start Date</label><input class="form-input" type="date" id="ct-start"/></div>
+      <div class="form-group"><label class="form-label">Due Date</label><input class="form-input" type="date" id="ct-due"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Parent Ticket ${parentId?`(${parentId})`:''}</label>
+        <select class="form-select" id="ct-parent"><option value="">None</option>
+          ${state.tickets.filter(t=>t.project===pid).map(t=>`<option value="${t.id}" ${t.id===parentId?'selected':''}>${t.id}: ${t.title.slice(0,32)}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Sprint</label>
+        <select class="form-select" id="ct-sprint"><option>Sprint 1</option><option selected>Sprint 2</option><option>Sprint 3</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Labels (comma separated)</label><input class="form-input" id="ct-labels" placeholder="e.g. bug, ux"/></div>
+    <div style="padding:10px 12px;background:#f0fdf4;border-radius:7px;border:1px solid #bbf7d0;font-size:12px;color:#166534;margin-bottom:12px">
+      ✅ Ticket will be created with status <strong>To Do</strong> and placed in the <strong>Backlog</strong>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subCT()">Create & Add to Backlog</button>
+    </div>
+  </div>`;
+}
+
+function subCT(){
+  const pid=parseInt(document.getElementById('ct-project').value);
+  const type=document.getElementById('ct-type').value;
+  const title=document.getElementById('ct-title').value.trim();
+  if(!title){alert('Title required');return}
+  const desc=document.getElementById('ct-desc').value;
+  const priority=document.getElementById('ct-priority').value;
+  const assignee=document.getElementById('ct-assignee').value;
+  const parent=document.getElementById('ct-parent').value||null;
+  const sprint=document.getElementById('ct-sprint').value;
+  const startDate=document.getElementById('ct-start').value||null;
+  const dueDate=document.getElementById('ct-due').value||null;
+  const labels=document.getElementById('ct-labels').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const p=projectById(pid);
+  const num=state.nextTicketNums[pid]||1;
+  const id=`${p.key}-${num}`;
+  state.nextTicketNums[pid]=num+1;
+  const today=new Date().toISOString().slice(0,10);
+  // STATUS IS ALWAYS 'To Do' — goes to backlog
+  const t={id,project:pid,type,title,desc,status:'To Do',priority,assignee,reporter:state.user.name,created:today,updated:today,labels,sprint,parent,startDate,dueDate};
+  setState({tickets:[...state.tickets,t],modal:null,activeProject:pid,page:'projectdetail',projectTab:'backlog'});
+}
+
+function renderETModal(tid){
+  const t=state.tickets.find(t=>t.id===tid);if(!t)return'<div>Not found</div>';
+  return `<div>
+    <div class="modal-title">Edit: ${t.id}</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="et-title" value="${t.title}"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="et-desc">${t.desc||''}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="et-type">${ISSUE_TYPES.map(x=>`<option value="${x}" ${t.type===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="et-status">${STATUSES.map(x=>`<option value="${x}" ${t.status===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="et-priority">${PRIORITIES.map(x=>`<option value="${x}" ${t.priority===x?'selected':''}>${x}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Assignee</label><select class="form-select" id="et-assignee">${state.users.map(u=>`<option value="${u.name}" ${t.assignee===u.name?'selected':''}>${u.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start Date</label><input class="form-input" type="date" id="et-start" value="${t.startDate||''}"/></div>
+      <div class="form-group"><label class="form-label">Due Date</label><input class="form-input" type="date" id="et-due" value="${t.dueDate||''}"/></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subET('${t.id}')">Save Changes</button>
+    </div>
+  </div>`;
+}
+function subET(id){const t=state.tickets.find(t=>t.id===id);if(t){t.title=document.getElementById('et-title').value;t.desc=document.getElementById('et-desc').value;t.type=document.getElementById('et-type').value;t.status=document.getElementById('et-status').value;t.priority=document.getElementById('et-priority').value;t.assignee=document.getElementById('et-assignee').value;t.startDate=document.getElementById('et-start').value||null;t.dueDate=document.getElementById('et-due').value||null;t.updated=new Date().toISOString().slice(0,10);setState({modal:null})}}
+
+function renderCPModal(){return `<div>
+  <div class="modal-title">Create Project</div><button class="modal-close" onclick="closeModal()">×</button>
+  <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cp-name" placeholder="e.g. Mobile App v2"/></div>
+  <div class="form-group"><label class="form-label">Key * (3-5 letters)</label><input class="form-input" id="cp-key" placeholder="MOB" maxlength="5"/></div>
+  <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="cp-desc" style="min-height:55px"></textarea></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Lead</label><select class="form-select" id="cp-lead">${state.users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Color</label><input class="form-input" type="color" id="cp-color" value="#1a56db" style="height:40px;padding:4px 8px"/></div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="subCP()">Create</button>
+  </div></div>`}
+function subCP(){const name=document.getElementById('cp-name').value.trim(),key=document.getElementById('cp-key').value.trim().toUpperCase();if(!name||!key){alert('Name+Key required');return}if(state.projects.find(p=>p.key===key)){alert('Key exists');return}const id=state.projects.length+1;const p={id,key,name,description:document.getElementById('cp-desc').value||'No description',color:document.getElementById('cp-color').value,lead:document.getElementById('cp-lead').value,status:'Active',created:new Date().toISOString().slice(0,10)};state.nextTicketNums[id]=1;setState({projects:[...state.projects,p],modal:null,activeProject:id,page:'projectdetail',projectTab:'backlog'})}
+
+function renderCFModal(){return `<div>
+  <div class="modal-title">Create Filter</div><button class="modal-close" onclick="closeModal()">×</button>
+  <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" placeholder="My Sprint Tasks"/></div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Assignee</label><select class="form-select" id="cf-assignee"><option value="">Any</option>${state.users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="cf-priority"><option value="">Any</option>${PRIORITIES.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="cf-status"><option value="">Any</option>${STATUSES.map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="cf-type"><option value="">Any</option>${ISSUE_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
+  </div>
+  <div class="form-group"><label class="form-label">Sprint</label><select class="form-select" id="cf-sprint"><option value="">Any</option><option>Sprint 1</option><option>Sprint 2</option><option>Sprint 3</option></select></div>
+  <div class="form-group"><div class="toggle-wrap"><div class="toggle on" id="cf-shared-toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div><label class="form-label" style="margin:0">Share with team</label></div></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="subCF()">Create Filter</button>
+  </div></div>`}
+function subCF(){const name=document.getElementById('cf-name').value.trim();if(!name){alert('Name required');return}const cond={};const a=document.getElementById('cf-assignee').value,p=document.getElementById('cf-priority').value,s=document.getElementById('cf-status').value,t=document.getElementById('cf-type').value,sp=document.getElementById('cf-sprint').value;if(a)cond.assignee=a;if(p)cond.priority=p;if(s)cond.status=[s];if(t)cond.type=[t];if(sp)cond.sprint=sp;const shared=document.getElementById('cf-shared-toggle').classList.contains('on');setState({filters:[...state.filters,{id:state.filters.length+1,name,conditions:cond,owner:state.user.name,shared,created:new Date().toISOString().slice(0,10)}],modal:null})}
+
+function renderAUModal(){return `<div>
+  <div class="modal-title">Add User</div><button class="modal-close" onclick="closeModal()">×</button>
+  <div class="form-row"><div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="au-fn" placeholder="John"/></div><div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="au-ln" placeholder="Doe"/></div></div>
+  <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="au-em" type="email" placeholder="john@company.com"/></div>
+  <div class="form-row"><div class="form-group"><label class="form-label">Role</label><select class="form-select" id="au-role">${state.roles.map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Group</label><select class="form-select" id="au-group">${state.groups.map(g=>`<option value="${g}">${g}</option>`).join('')}</select></div></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="subAU()">Add User</button></div></div>`}
+function subAU(){const fn=document.getElementById('au-fn').value.trim(),em=document.getElementById('au-em').value.trim();if(!fn||!em){alert('Name+email required');return}const name=fn+' '+(document.getElementById('au-ln').value.trim());setState({users:[...state.users,{id:state.users.length+1,name,email:em,role:document.getElementById('au-role').value,group:document.getElementById('au-group').value,active:true}],modal:null})}
+
+function renderEUModal(uid){const u=state.users.find(x=>x.id===uid);if(!u)return'<div>Not found</div>';return `<div>
+  <div class="modal-title">Edit User</div><button class="modal-close" onclick="closeModal()">×</button>
+  <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="eu-name" value="${u.name}"/></div>
+  <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="eu-email" value="${u.email}"/></div>
+  <div class="form-row"><div class="form-group"><label class="form-label">Role</label><select class="form-select" id="eu-role">${state.roles.map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="form-group"><label class="form-label">Group</label><select class="form-select" id="eu-group">${state.groups.map(g=>`<option value="${g}" ${u.group===g?'selected':''}>${g}</option>`).join('')}</select></div></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="subEU(${uid})">Save</button></div></div>`}
+function subEU(id){const u=state.users.find(x=>x.id===id);if(u){u.name=document.getElementById('eu-name').value;u.email=document.getElementById('eu-email').value;u.role=document.getElementById('eu-role').value;u.group=document.getElementById('eu-group').value;setState({modal:null})}}
+
+function renderAFModal(){return `<div>
+  <div class="modal-title">Add Custom Field</div><button class="modal-close" onclick="closeModal()">×</button>
+  <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="af-name" placeholder="e.g. Customer Impact"/></div>
+  <div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-select" id="af-type"><option>Text</option><option>Number</option><option>Date</option><option>Select</option><option>Checkbox</option></select></div><div class="form-group"><label class="form-label">Required</label><select class="form-select" id="af-req"><option value="false">Optional</option><option value="true">Required</option></select></div></div>
+  <div class="form-group"><label class="form-label">Apply to</label><div style="display:flex;flex-wrap:wrap;gap:6px;padding:6px 0">${ISSUE_TYPES.map(t=>`<label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" id="af-it-${t.replace('-','')}" checked/>${t}</label>`).join('')}</div></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="subAF()">Add Field</button></div></div>`}
+function subAF(){const name=document.getElementById('af-name').value.trim();if(!name){alert('Name required');return}const applyTo=ISSUE_TYPES.filter(t=>{try{return document.getElementById('af-it-'+t.replace('-','')).checked}catch(e){return false}});setState({customFields:[...state.customFields,{id:state.customFields.length+1,name,type:document.getElementById('af-type').value,applyTo,required:document.getElementById('af-req').value==='true'}],modal:null})}
+
+function renderNotifsModal(){return `<div>
+  <div class="modal-title">Notifications</div><button class="modal-close" onclick="closeModal()">×</button>
+  ${state.notifications.map(n=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid var(--gray-100)"><div style="width:8px;height:8px;border-radius:50%;background:${n.read?'var(--gray-300)':'var(--blue)'};margin-top:5px;flex-shrink:0"></div><div><div style="font-size:13px;font-weight:${n.read?400:600}">${n.text}</div><div style="font-size:11px;color:var(--gray-400);margin-top:2px">${n.time}</div></div></div>`).join('')}
+  <div style="text-align:right;margin-top:10px"><button class="btn btn-ghost" onclick="state.notifications.forEach(n=>n.read=true);closeModal()">Mark all read</button></div>
+  </div>`}
+
+function rSimple(title,ph,action){return `<div><div class="modal-title">${title}</div><button class="modal-close" onclick="closeModal()">×</button><div class="form-group"><label class="form-label">${ph} *</label><input class="form-input" id="sm-val" placeholder="${ph}"/></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="subSimple('${action}')">Create</button></div></div>`}
+function subSimple(action){const val=document.getElementById('sm-val').value.trim();if(!val)return;if(action==='addGroup')setState({groups:[...state.groups,val],modal:null});else if(action==='addRole')setState({roles:[...state.roles,val],modal:null})}
+
+// ============================================================
+// BOOTSTRAP
+// ============================================================
+render=function(){
+  document.getElementById('root').innerHTML=renderApp();
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&state.modal)closeModal()},{once:true});
+};
+window.setState=setState;window.nav=nav;window.navSettings=navSettings;
+window.doLogin=doLogin;window.doLogout=doLogout;
+window.openModal=openModal;window.closeModal=closeModal;
+window.openProject=openProject;window.viewTicket=viewTicket;
+window.updateTicket=updateTicket;window.deleteTicketConfirm=deleteTicketConfirm;
+window.subCT=subCT;window.subET=subET;window.subCP=subCP;window.subCF=subCF;
+window.subAU=subAU;window.subEU=subEU;window.subAF=subAF;window.subSimple=subSimple;
+window.toggleUser=toggleUser;window.removeUser=removeUser;
+window.toggleConnector=toggleConnector;window.deleteFilter=deleteFilter;
+window.toggleRoadmapRow=toggleRoadmapRow;
+window.expandAllRoadmap=expandAllRoadmap;window.collapseAllRoadmap=collapseAllRoadmap;
+render();
+</script>
+</body>
+</html>
