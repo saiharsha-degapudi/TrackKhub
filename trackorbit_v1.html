@@ -138,15 +138,17 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 /* ===================== ROADMAP STYLES ===================== */
 .roadmap-wrap{width:100%;overflow-x:auto;background:var(--white);border-radius:12px;border:1.5px solid var(--gray-200);box-shadow:var(--shadow)}
 .roadmap-header-row{display:flex;border-bottom:2px solid var(--gray-200);position:sticky;top:0;z-index:10;background:var(--white)}
-.roadmap-left-header{width:340px;min-width:340px;padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500);border-right:2px solid var(--gray-200);background:var(--gray-50)}
+.roadmap-left-header{width:340px;min-width:340px;padding:10px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray-500);border-right:2px solid var(--gray-200);background:var(--gray-50);position:sticky;left:0;z-index:12}
 .roadmap-timeline-header{flex:1;display:flex;overflow:hidden;background:var(--gray-50)}
 .roadmap-month{flex-shrink:0;padding:10px 0;text-align:center;font-size:11px;font-weight:700;color:var(--gray-600);border-right:1px solid var(--gray-200);position:relative}
 .roadmap-body{min-width:max-content}
 .roadmap-row{display:flex;border-bottom:1px solid var(--gray-100);align-items:stretch;transition:background .1s;position:relative}
 .roadmap-row:hover{background:#f8faff}
 .roadmap-row.expanded-parent{background:var(--gray-50)}
-.roadmap-row-label{width:340px;min-width:340px;display:flex;align-items:center;gap:6px;padding:8px 12px;border-right:2px solid var(--gray-200);cursor:pointer;position:sticky;left:0;background:inherit;z-index:2}
+.roadmap-row-label{width:340px;min-width:340px;display:flex;align-items:center;gap:6px;padding:8px 12px;border-right:2px solid var(--gray-200);cursor:pointer;position:sticky;left:0;background:var(--white);z-index:2}
 .roadmap-row-label:hover .row-title{color:var(--blue)}
+.roadmap-row:hover .roadmap-row-label{background:#f8faff}
+.roadmap-row.expanded-parent .roadmap-row-label{background:var(--gray-50)}
 .expand-btn{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--gray-300);background:var(--white);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;flex-shrink:0;color:var(--gray-500);transition:all .15s}
 .expand-btn:hover{border-color:var(--blue);color:var(--blue)}
 .row-title{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
@@ -206,6 +208,12 @@ let state={
   ticketSearch:'',typeFilter:'All',statusFilter:'All',projectFilter:'All',
   roadmapZoom:'month', // month | quarter | year
   roadmapExpanded:{}, // ticketId -> bool
+  recentProjects:[],
+  projectsOpen:true,
+  projectSearch:'',
+  customDashboards:[],
+  roadmapProjectFilter:[],
+  roadmapTypeFilter:'All',
 
   users:[
     {id:1,name:'Alex Johnson',email:'alex@trackorbit.io',role:'Admin',group:'Engineering',active:true},
@@ -283,7 +291,8 @@ function getFilteredTickets(fid){const f=state.filters.find(x=>x.id===fid);if(!f
 function avatarEl(name,sz=28){const s=sz+'px';const ini=(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();const colors=['#1a56db','#7c3aed','#16a34a','#ea580c','#0891b2'];const ci=(name||'').charCodeAt(0)%5;return `<div style="width:${s};height:${s};border-radius:50%;background:${colors[ci]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.38)}px;font-weight:700;flex-shrink:0">${ini}</div>`}
 function nav(p){setState({page:p,activeProject:p==='projects'?null:state.activeProject})}
 function navSettings(tab){setState({page:'settings',settingsTab:tab})}
-function openProject(id){setState({page:'projectdetail',activeProject:id,projectTab:'board'})}
+function openProject(id){const recents=[id,...state.recentProjects.filter(x=>x!==id)].slice(0,3);setState({page:'projectdetail',activeProject:id,projectTab:'board',recentProjects:recents});}
+function toggleProjectsSidebar(){setState({projectsOpen:!state.projectsOpen});}
 function viewTicket(id){setState({page:'ticketview',viewTicket:id,prevPage:state.page})}
 function openModal(type,data,extra){setState({modal:{type,data,extra}})}
 function closeModal(){setState({modal:null})}
@@ -429,8 +438,8 @@ function svgProgressRing(pct,size,color){
   </svg>`;
 }
 
-function renderHierarchyRoadmap(pid){
-  const tickets=getTickets(pid);
+function renderHierarchyRoadmap(pid,ticketsOverride){
+  const tickets=ticketsOverride||getTickets(pid);
   if(!tickets.length) return '<div class="empty-state"><div style="font-size:32px;margin-bottom:8px">📅</div><div>No tickets with dates yet. Create tickets and set start/due dates to see the roadmap.</div></div>';
 
   const {start:rangeStart,end:rangeEnd}=getRoadmapRange(tickets);
@@ -568,7 +577,7 @@ function renderLogin(){return `<div class="login-wrap"><div class="login-box">
 </div></div>`}
 
 function renderHeader(){
-  const navItems=[{key:'projects',label:'Projects'},{key:'dashboards',label:'Dashboards'},{key:'filters',label:'Filters'},{key:'alltickets',label:'All Tickets'},{key:'webconnectors',label:'Web Connectors'}];
+  const navItems=[{key:'projects',label:'Projects'},{key:'dashboards',label:'Dashboards'},{key:'filters',label:'Filters'},{key:'alltickets',label:'All Tickets'},{key:'roadmaps',label:'🗺 Roadmaps'},{key:'webconnectors',label:'Web Connectors'}];
   const unread=state.notifications.filter(n=>!n.read).length;
   return `<div class="header">
     <div class="logo"><div class="logo-icon">T</div>TracKorbit</div>
@@ -589,10 +598,18 @@ function renderHeader(){
 function renderBody(){return `<div class="body-wrap">${renderSidebar()}<div class="main">${renderPage()}</div></div>${state.modal?renderModal():''}`}
 
 function renderSidebar(){
-  const pi=state.projects.map(p=>`<div class="sidebar-item ${state.activeProject===p.id?'active':''}" onclick="openProject(${p.id})">
-    <span style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
-    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
-  </div>`).join('');
+  const open=state.projectsOpen!==false;
+  const q=(state.projectSearch||'').toLowerCase();
+  let shownProjects;
+  if(q){
+    shownProjects=state.projects.filter(p=>p.name.toLowerCase().includes(q)||p.key.toLowerCase().includes(q));
+  } else {
+    const recIds=state.recentProjects.length?state.recentProjects:state.projects.slice(0,3).map(p=>p.id);
+    shownProjects=recIds.map(id=>state.projects.find(p=>p.id===id)).filter(Boolean);
+  }
+  const pi=shownProjects.map(p=>`<div class="sidebar-item ${state.activeProject===p.id?'active':''}" onclick="openProject(${p.id})"><span style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span></div>`).join('');
+  const recentLabel=!q?`<div style="font-size:10px;color:var(--gray-400);padding:2px 10px 6px;display:flex;justify-content:space-between"><span>Recent</span><span style="color:var(--blue);cursor:pointer" onclick="nav('projects')">View all →</span></div>`:'';
+  const projectsContent=open?`<div style="padding:0 6px 6px"><input class="form-input" placeholder="🔍 Search projects..." value="${state.projectSearch||''}" oninput="setState({projectSearch:this.value})" style="font-size:12px;padding:5px 9px;width:100%"/></div>${pi}${recentLabel}<div class="sidebar-item" onclick="openModal('createProject')" style="color:var(--blue)">+ New Project</div>`:'';
   return `<div class="sidebar">
     <div class="sidebar-section">
       <div class="sidebar-label">Navigation</div>
@@ -600,20 +617,15 @@ function renderSidebar(){
       <div class="sidebar-item ${state.page==='dashboards'?'active':''}" onclick="nav('dashboards')">📊 Dashboards</div>
       <div class="sidebar-item ${state.page==='alltickets'?'active':''}" onclick="nav('alltickets')">🎫 All Tickets</div>
       <div class="sidebar-item ${state.page==='filters'?'active':''}" onclick="nav('filters')">🔍 Filters</div>
+      <div class="sidebar-item ${state.page==='roadmaps'?'active':''}" onclick="nav('roadmaps')">🗺 Roadmaps</div>
       <div class="sidebar-item ${state.page==='webconnectors'?'active':''}" onclick="nav('webconnectors')">🔗 Connectors</div>
     </div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Projects</div>
-      ${pi}
-      <div class="sidebar-item" onclick="openModal('createProject')" style="color:var(--blue)">+ New Project</div>
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-label">Settings</div>
-      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='users'?'active':''}" onclick="navSettings('users')">👥 Users</div>
-      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='roles'?'active':''}" onclick="navSettings('roles')">🛡 Roles & Groups</div>
-      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='fields'?'active':''}" onclick="navSettings('fields')">📝 Custom Fields</div>
-      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='workflows'?'active':''}" onclick="navSettings('workflows')">⚡ Workflows</div>
-      <div class="sidebar-item ${state.page==='settings'&&state.settingsTab==='app'?'active':''}" onclick="navSettings('app')">⚙ App Settings</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 8px 4px;cursor:pointer;user-select:none" onclick="toggleProjectsSidebar()">
+        <div class="sidebar-label" style="padding:0;margin:0">Projects</div>
+        <span style="font-size:11px;color:var(--gray-400)">${open?'▾':'▸'}</span>
+      </div>
+      ${projectsContent}
     </div>
   </div>`
 }
@@ -624,6 +636,7 @@ function renderPage(){
   if(state.page==='dashboards')return renderDashboards();
   if(state.page==='filters')return renderFilters();
   if(state.page==='alltickets')return renderAllTickets();
+  if(state.page==='roadmaps')return renderRoadmapsPage();
   if(state.page==='webconnectors')return renderWebConnectors();
   if(state.page==='settings')return renderSettings();
   if(state.page==='ticketview')return renderTicketView();
@@ -791,8 +804,9 @@ function renderDashboards(){
   return `<div class="page">
     <div class="page-header">
       <div><div class="page-title">Dashboards</div><div class="page-sub">All project analytics & KPIs</div></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         ${state.filters.filter(f=>f.shared).map(f=>`<button class="filter-chip" title="${Object.entries(f.conditions).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)).join(' | ')}">${f.name} (${getFilteredTickets(f.id).length})</button>`).join('')}
+        <button class="btn btn-primary btn-sm" onclick="openModal('createDashboard')">+ New Dashboard</button>
       </div>
     </div>
     <div class="grid-4" style="margin-bottom:20px">
@@ -820,7 +834,64 @@ function renderDashboards(){
         ${tks.slice(0,6).map(t=>`<div style="display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t.type)}" style="font-size:10px;margin-top:1px">${t.type[0]}</span><div style="flex:1"><div style="font-size:12px;font-weight:600">${t.id}: ${t.title.slice(0,36)}${t.title.length>36?'...':''}</div><div style="font-size:11px;color:var(--gray-400)">${t.updated} · <span class="badge ${getStatusClass(t.status)}" style="font-size:10px">${t.status}</span></div></div></div>`).join('')}
       </div>
     </div>
+    ${renderCustomDashboards()}
   </div>`;
+}
+
+const REPORT_LABELS={'issue-list':'📋 Issue List','pie-status':'🥧 By Status','pie-priority':'🥧 By Priority','pie-type':'🥧 By Issue Type','burndown':'📉 Burndown','velocity':'⚡ Velocity','workload':'👥 Team Workload','created-resolved':'📊 Created vs Resolved'};
+function renderCustomDashboards(){
+  if(!state.customDashboards.length)return'';
+  const cards=state.customDashboards.map(d=>{
+    const f=state.filters.find(x=>x.id===d.filterId);
+    const res=f?getFilteredTickets(d.filterId):state.tickets;
+    const done=res.filter(t=>t.status==='Done').length;
+    const inprog=res.filter(t=>t.status==='In Progress').length;
+    const blocked=res.filter(t=>t.status==='Blocked').length;
+    return `<div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:15px;font-weight:700">${d.name}</div>
+          <div style="font-size:12px;color:var(--gray-500);margin-top:2px">Filter: ${f?f.name:'All Tickets'} · ${REPORT_LABELS[d.reportType||'issue-list']}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-sm" onclick="openModal('editDashboard',${d.id})">✏ Edit Report</button>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCustomDashboard(${d.id})">🗑</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--blue)">${res.length}</div><div style="font-size:11px;color:var(--gray-500)">Total</div></div>
+        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--green)">${done}</div><div style="font-size:11px;color:var(--gray-500)">Done</div></div>
+        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--blue)">${inprog}</div><div style="font-size:11px;color:var(--gray-500)">In Progress</div></div>
+        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--red)">${blocked}</div><div style="font-size:11px;color:var(--gray-500)">Blocked</div></div>
+      </div>
+      ${renderDashboardReport(d,res)}
+    </div>`;
+  }).join('');
+  return `<div style="margin-top:24px"><div style="font-size:16px;font-weight:700;margin-bottom:14px">Custom Dashboards</div><div class="grid-2">${cards}</div></div>`;
+}
+function renderSegChart(segs,total){
+  const bar=segs.map(s=>`<div style="flex:${s.value};background:${s.color};height:100%" title="${s.label}: ${s.value}"></div>`).join('');
+  const legend=segs.map(s=>`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--gray-100)"><span style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0"></span><span style="font-size:12px;flex:1">${s.label}</span><span style="font-size:12px;font-weight:700">${s.value}</span><span style="font-size:11px;color:var(--gray-400);min-width:38px;text-align:right">${Math.round(s.value/total*100)}%</span></div>`).join('');
+  return `<div style="height:16px;border-radius:6px;overflow:hidden;display:flex;margin-bottom:10px">${bar}</div><div>${legend}</div>`;
+}
+function renderDashboardReport(d,res){
+  const rt=d.reportType||'issue-list';
+  const SC={'To Do':'#94a3b8','In Progress':'#1a56db','In Review':'#ca8a04','Done':'#16a34a','Blocked':'#dc2626'};
+  const PC={'Critical':'#dc2626','High':'#ea580c','Medium':'#ca8a04','Low':'#16a34a'};
+  const TC={'Feature':'#1a56db','Initiative':'#7c3aed','Epic':'#9333ea','Story':'#16a34a','Task':'#ca8a04','Sub-task':'#ea580c'};
+  if(rt==='issue-list'){
+    const rows=res.slice(0,5).map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer"><td style="font-weight:600;color:var(--blue)">${t.id}</td><td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</td><td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td><td>${avatarEl(t.assignee,22)}</td></tr>`).join('');
+    const more=res.length>5?`<tr><td colspan="4" style="text-align:center;font-size:11px;color:var(--gray-400);padding:7px">+${res.length-5} more</td></tr>`:'';
+    return `<div class="card" style="padding:0;margin:0"><table><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Assignee</th></tr></thead><tbody>${rows}${more}</tbody></table></div>`;
+  }
+  if(rt==='pie-status'){const segs=STATUSES.map(s=>({label:s,value:res.filter(t=>t.status===s).length,color:SC[s]})).filter(s=>s.value>0);return res.length?renderSegChart(segs,res.length):'<div class="empty-state" style="padding:12px">No data</div>';}
+  if(rt==='pie-priority'){const segs=PRIORITIES.map(p=>({label:p,value:res.filter(t=>t.priority===p).length,color:PC[p]})).filter(s=>s.value>0);return res.length?renderSegChart(segs,res.length):'<div class="empty-state" style="padding:12px">No data</div>';}
+  if(rt==='pie-type'){const segs=ISSUE_TYPES.map(t=>({label:t,value:res.filter(x=>x.type===t).length,color:TC[t]})).filter(s=>s.value>0);return res.length?renderSegChart(segs,res.length):'<div class="empty-state" style="padding:12px">No data</div>';}
+  if(rt==='burndown'){const mx=Math.max(...STATUSES.map(s=>res.filter(t=>t.status===s).length),1);return `<div class="bar-chart" style="height:90px">${STATUSES.map(s=>{const c=res.filter(t=>t.status===s).length;return `<div class="bar-wrap"><div class="bar-val">${c}</div><div class="bar" style="height:${Math.round(c/mx*70)+5}px;background:${SC[s]}"></div><div class="bar-label" style="font-size:9px">${s.split(' ')[0]}</div></div>`}).join('')}</div>`;}
+  if(rt==='velocity'){const sprints=['Sprint 1','Sprint 2','Sprint 3'];const mx=Math.max(...sprints.map(s=>res.filter(t=>t.sprint===s&&t.status==='Done').length),1);return `<div style="font-size:11px;color:var(--gray-500);margin-bottom:6px">Completed tickets per sprint</div><div class="bar-chart" style="height:90px">${sprints.map(s=>{const c=res.filter(t=>t.sprint===s&&t.status==='Done').length;return `<div class="bar-wrap"><div class="bar-val">${c}</div><div class="bar" style="height:${Math.round(c/mx*70)+5}px;background:var(--green)"></div><div class="bar-label" style="font-size:9px">${s}</div></div>`}).join('')}</div>`;}
+  if(rt==='workload'){const by={};res.forEach(t=>{if(!by[t.assignee])by[t.assignee]=0;by[t.assignee]++});const mx=Math.max(...Object.values(by),1);return Object.entries(by).slice(0,5).map(([name,count])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">${avatarEl(name,24)}<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${name}</span><strong>${count}</strong></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(count/mx*100)}%"></div></div></div></div>`).join('');}
+  if(rt==='created-resolved'){const total=res.length,done=res.filter(t=>t.status==='Done').length,open=total-done;return `<div><div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Total Created</span><strong>${total}</strong></div><div class="progress-bar" style="height:10px"><div class="progress-fill" style="width:100%;background:var(--blue)"></div></div></div><div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Resolved (Done)</span><strong>${done}</strong></div><div class="progress-bar" style="height:10px"><div class="progress-fill" style="width:${total?Math.round(done/total*100):0}%;background:var(--green)"></div></div></div><div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Still Open</span><strong>${open}</strong></div><div class="progress-bar" style="height:10px"><div class="progress-fill" style="width:${total?Math.round(open/total*100):0}%;background:var(--orange)"></div></div></div></div>`;}
+  return '';
 }
 
 // ---- FILTERS ----
@@ -965,6 +1036,39 @@ function renderTicketView(){
   </div>`;
 }
 
+// ---- ROADMAPS (ALL PROJECTS) ----
+function toggleRoadmapProjectFilter(id){const pf=state.roadmapProjectFilter||[];setState({roadmapProjectFilter:pf.includes(id)?pf.filter(x=>x!==id):[...pf,id]});}
+function renderRoadmapsPage(){
+  const pf=state.roadmapProjectFilter||[];
+  const tf=state.roadmapTypeFilter||'All';
+  let tickets=state.tickets;
+  if(pf.length)tickets=tickets.filter(t=>pf.includes(t.project));
+  if(tf!=='All')tickets=tickets.filter(t=>t.type===tf);
+  const projectChips=state.projects.map(p=>{
+    const active=pf.includes(p.id);
+    return `<button class="filter-chip ${active?'active':''}" onclick="toggleRoadmapProjectFilter(${p.id})" style="${active?'border-color:'+p.color+';color:'+p.color+';background:'+p.color+'18':''}">
+      <span style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0;display:inline-block"></span> ${p.name}
+    </button>`;
+  }).join('');
+  return `<div class="page">
+    <div class="page-header">
+      <div><div class="page-title">🗺 Roadmaps</div><div class="page-sub">${tickets.length} issues across ${pf.length?pf.length:state.projects.length} project${(pf.length||state.projects.length)>1?'s':''}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;padding:12px 14px;background:var(--white);border-radius:9px;border:1.5px solid var(--gray-200)">
+      <span style="font-size:12px;font-weight:600;color:var(--gray-600)">Project:</span>
+      <button class="filter-chip ${!pf.length?'active':''}" onclick="setState({roadmapProjectFilter:[]})">All Projects</button>
+      ${projectChips}
+      <span style="font-size:12px;font-weight:600;color:var(--gray-600);margin-left:12px">Issue Type:</span>
+      <select class="form-select" style="width:auto;font-size:12px" onchange="setState({roadmapTypeFilter:this.value})">
+        <option value="All" ${tf==='All'?'selected':''}>All Types</option>
+        ${ISSUE_TYPES.map(t=>`<option value="${t}" ${tf===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      ${(pf.length||tf!=='All')?`<button class="btn btn-ghost btn-sm" onclick="setState({roadmapProjectFilter:[],roadmapTypeFilter:'All'})">✕ Clear</button>`:''}
+    </div>
+    ${renderHierarchyRoadmap(null,tickets)}
+  </div>`;
+}
+
 // ---- WEB CONNECTORS ----
 function renderWebConnectors(){
   return `<div class="page">
@@ -1034,6 +1138,8 @@ function renderModal(){
   else if(m.type==='editTicket')inner=renderETModal(m.data);
   else if(m.type==='createProject')inner=renderCPModal();
   else if(m.type==='createFilter')inner=renderCFModal();
+  else if(m.type==='createDashboard')inner=renderCDModal();
+  else if(m.type==='editDashboard')inner=renderEDModal(m.data);
   else if(m.type==='addUser')inner=renderAUModal();
   else if(m.type==='editUser')inner=renderEUModal(m.data);
   else if(m.type==='addField')inner=renderAFModal();
@@ -1172,6 +1278,53 @@ function renderCFModal(){return `<div>
   </div></div>`}
 function subCF(){const name=document.getElementById('cf-name').value.trim();if(!name){alert('Name required');return}const cond={};const a=document.getElementById('cf-assignee').value,p=document.getElementById('cf-priority').value,s=document.getElementById('cf-status').value,t=document.getElementById('cf-type').value,sp=document.getElementById('cf-sprint').value;if(a)cond.assignee=a;if(p)cond.priority=p;if(s)cond.status=[s];if(t)cond.type=[t];if(sp)cond.sprint=sp;const shared=document.getElementById('cf-shared-toggle').classList.contains('on');setState({filters:[...state.filters,{id:state.filters.length+1,name,conditions:cond,owner:state.user.name,shared,created:new Date().toISOString().slice(0,10)}],modal:null})}
 
+function renderCDModal(){return `<div>
+  <div class="modal-title">Create Dashboard</div><button class="modal-close" onclick="closeModal()">×</button>
+  <div class="form-group"><label class="form-label">Dashboard Name *</label><input class="form-input" id="cd-name" placeholder="e.g. My Sprint Dashboard"/></div>
+  <div class="form-group"><label class="form-label">Based on Filter</label>
+    <select class="form-select" id="cd-filter">
+      <option value="">All Tickets (no filter)</option>
+      ${state.filters.map(f=>`<option value="${f.id}">${f.name} — ${getFilteredTickets(f.id).length} tickets</option>`).join('')}
+    </select>
+  </div>
+  <div style="padding:10px 12px;background:var(--blue-light);border-radius:7px;font-size:12px;color:var(--blue);margin-bottom:12px">
+    💡 The dashboard will show live stats for tickets matching the selected filter.
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="subCD()">Create Dashboard</button>
+  </div></div>`}
+function subCD(){const name=document.getElementById('cd-name').value.trim();if(!name){alert('Name required');return}const fv=document.getElementById('cd-filter').value;const filterId=fv?parseInt(fv):null;setState({customDashboards:[...state.customDashboards,{id:Date.now(),name,filterId,reportType:'issue-list',created:new Date().toISOString().slice(0,10)}],modal:null});}
+function deleteCustomDashboard(id){setState({customDashboards:state.customDashboards.filter(d=>d.id!==id)});}
+function renderEDModal(id){
+  const d=state.customDashboards.find(x=>x.id===id);if(!d)return'<div>Not found</div>';
+  const reports=[
+    {id:'issue-list',label:'📋 Issue List',desc:'Flat table of matching tickets — like Jira Issue Navigator'},
+    {id:'pie-status',label:'🥧 Pie: By Status',desc:'Proportion of tickets across each status'},
+    {id:'pie-priority',label:'🥧 Pie: By Priority',desc:'Proportion of tickets by priority level'},
+    {id:'pie-type',label:'🥧 Pie: By Issue Type',desc:'Breakdown by Feature / Epic / Story / Task'},
+    {id:'burndown',label:'📉 Burndown Chart',desc:'Remaining issues per status — track sprint progress'},
+    {id:'velocity',label:'⚡ Velocity Chart',desc:'Completed tickets per sprint — team throughput'},
+    {id:'workload',label:'👥 Team Workload',desc:'Ticket count per team member — like Jira Workload report'},
+    {id:'created-resolved',label:'📊 Created vs Resolved',desc:'Total created vs resolved (Done) tickets over time'},
+  ];
+  return `<div>
+    <div class="modal-title">Edit Report: ${d.name}</div><button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-group" style="margin-bottom:0"><label class="form-label">Select Report Type</label>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        ${reports.map(r=>`<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1.5px solid ${(d.reportType||'issue-list')===r.id?'var(--blue)':'var(--gray-200)'};border-radius:8px;cursor:pointer;background:${(d.reportType||'issue-list')===r.id?'var(--blue-light)':'var(--white)'}">
+          <input type="radio" name="ed-report" value="${r.id}" ${(d.reportType||'issue-list')===r.id?'checked':''} style="margin-top:3px;flex-shrink:0"/>
+          <div><div style="font-size:13px;font-weight:600">${r.label}</div><div style="font-size:11px;color:var(--gray-500);margin-top:1px">${r.desc}</div></div>
+        </label>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subED(${id})">Apply Report</button>
+    </div></div>`;
+}
+function subED(id){const sel=document.querySelector('input[name="ed-report"]:checked');if(!sel)return;setState({customDashboards:state.customDashboards.map(d=>d.id===id?{...d,reportType:sel.value}:d),modal:null});}
+
 function renderAUModal(){return `<div>
   <div class="modal-title">Add User</div><button class="modal-close" onclick="closeModal()">×</button>
   <div class="form-row"><div class="form-group"><label class="form-label">First Name *</label><input class="form-input" id="au-fn" placeholder="John"/></div><div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="au-ln" placeholder="Doe"/></div></div>
@@ -1223,6 +1376,8 @@ window.toggleUser=toggleUser;window.removeUser=removeUser;
 window.toggleConnector=toggleConnector;window.deleteFilter=deleteFilter;
 window.toggleRoadmapRow=toggleRoadmapRow;
 window.expandAllRoadmap=expandAllRoadmap;window.collapseAllRoadmap=collapseAllRoadmap;
+window.subCD=subCD;window.deleteCustomDashboard=deleteCustomDashboard;window.toggleProjectsSidebar=toggleProjectsSidebar;
+window.subED=subED;window.toggleRoadmapProjectFilter=toggleRoadmapProjectFilter;
 render();
 </script>
 </body>
