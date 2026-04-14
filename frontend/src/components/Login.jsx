@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext'
 
 export default function Login() {
   const { doLogin } = useApp()
-  const [email, setEmail] = useState('alex@trackorbit.io')
+  const [email, setEmail] = useState('harsha@trackkub.io')
   const [password, setPassword] = useState('password')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,7 +27,7 @@ export default function Login() {
       <div className="login-box">
         <div className="login-logo">
           <div className="login-logo-icon">T</div>
-          <div className="login-logo-text">TracKorbit</div>
+          <div className="login-logo-text">TrackKub</div>
         </div>
         <div className="login-title">Sign in to your workspace</div>
         <form onSubmit={handleLogin}>
@@ -50,7 +50,7 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <div className="login-hint">Demo: alex@trackorbit.io / password</div>
+        <div className="login-hint">Demo: harsha@trackkub.io / password</div>
       </div>
     </div>
   )

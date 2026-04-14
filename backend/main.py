@@ -1,5 +1,5 @@
 """
-TracKorbit FastAPI Backend
+TrackKub FastAPI Backend
 """
 import copy
 from datetime import date
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 import data as seed
 
-app = FastAPI(title="TracKorbit API")
+app = FastAPI(title="TrackKub API")
 
 app.add_middleware(
     CORSMiddleware,

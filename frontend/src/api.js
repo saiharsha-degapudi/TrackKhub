@@ -1,5 +1,5 @@
 /**
- * TracKorbit API client — all fetch calls to /api/... endpoints.
+ * TrackKub API client — all fetch calls to /api/... endpoints.
  */
 
 const BASE = '/api'
