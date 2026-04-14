@@ -178,6 +178,46 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 .milestone-diamond:hover{filter:brightness(1.15)}
 /* backlog badge */
 .backlog-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;background:#f3e8ff;color:#6b21a8;border:1px solid #ddd6fe}
+/* ====== SPRINT BOARD (ClickUp style) ====== */
+.sprint-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;align-items:flex-start}
+.sprint-col{min-width:240px;max-width:260px;flex-shrink:0;background:var(--gray-50);border-radius:10px;border:1.5px solid var(--gray-200)}
+.sprint-col-header{display:flex;align-items:center;gap:8px;padding:10px 14px 8px;border-bottom:1.5px solid var(--gray-200)}
+.sprint-col-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sprint-col-name{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--gray-600);text-transform:uppercase;flex:1}
+.sprint-col-count{background:var(--gray-200);color:var(--gray-600);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700}
+.sprint-col-body{padding:8px;min-height:180px}
+.sprint-group-header{display:flex;align-items:center;gap:6px;padding:6px 8px 4px;margin-bottom:2px;cursor:pointer;border-radius:6px;transition:background .1s}
+.sprint-group-header:hover{background:var(--gray-100)}
+.sprint-group-chevron{font-size:10px;color:var(--gray-400);transition:transform .15s}
+.sprint-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .15s;border-left:3px solid transparent}
+.sprint-card:hover{border-color:var(--blue);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.sprint-card-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;line-height:1.4}
+.sprint-card-footer{display:flex;align-items:center;gap:6px}
+.sprint-card-id{font-size:10px;color:var(--blue);font-weight:700}
+.sprint-priority-bar{display:flex;gap:2px;align-items:center;margin-left:auto}
+.sprint-priority-bar span{display:inline-block;width:14px;height:3px;border-radius:2px}
+.sprint-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;padding:10px 0;border-bottom:1.5px solid var(--gray-200)}
+.sprint-tab-strip{display:flex;gap:0;overflow-x:auto;border-bottom:2px solid var(--gray-200);margin-bottom:0;scrollbar-width:none}
+.sprint-tab-strip::-webkit-scrollbar{display:none}
+.sprint-tab{padding:8px 14px;font-size:12px;font-weight:600;color:var(--gray-500);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s}
+.sprint-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.sprint-tab:hover{color:var(--text)}
+/* ====== WIDGET DASHBOARD ====== */
+.widget-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:20px}
+.widget-card{border-radius:14px;padding:20px;color:#fff;position:relative;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.widget-card:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(0,0,0,.2)}
+.widget-card::after{content:'';position:absolute;top:-20px;right:-20px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.1)}
+.widget-val{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.widget-label{font-size:12px;font-weight:600;opacity:.85}
+.widget-delta{font-size:11px;margin-top:6px;opacity:.8}
+.widget-icon{position:absolute;top:16px;right:18px;font-size:28px;opacity:.35}
+.widget-panel{border:2px dashed var(--gray-200);border-radius:14px;padding:20px;text-align:center;color:var(--gray-400);cursor:pointer;transition:all .15s;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.widget-panel:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+.dash-section-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+/* ====== FILTER LIST VIEW ====== */
+.filter-list-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);transition:background .1s;cursor:default}
+.filter-list-row:hover{background:var(--gray-50)}
+.filter-list-row:last-child{border-bottom:none}
 /* ====== LINEAR-STYLE FILTER BAR ====== */
 .filter-bar{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;padding:8px 0;border-bottom:1.5px solid var(--gray-200)}
 .filter-mode-tabs{display:flex;border:1.5px solid var(--gray-200);border-radius:6px;overflow:hidden;flex-shrink:0}
@@ -220,10 +260,10 @@ const TYPE_COLORS={
 
 let state={
   page:'login',user:null,modal:null,
-  settingsTab:'users',projectTab:'issues',
+  settingsTab:'users',projectTab:'active-sprints',
   activeProject:null,viewTicket:null,prevPage:null,
   ticketSearch:'',typeFilter:[],statusFilter:[],projectFilter:[],assigneeFilter:[],priorityFilter:[],sprintFilter:[],filterDropdownOpen:null,
-  jqlMode:false,jqlQuery:'',filterTab:'search',projectBoards:{},issueSearch:'',activeSprint:null,
+  jqlMode:false,jqlQuery:'',filterTab:'search',projectBoards:{},issueSearch:'',activeSprint:null,boardAssigneeFilter:[],dashTab:'overview',
   roadmapZoom:'month', // month | quarter | year
   roadmapExpanded:{}, // ticketId -> bool
   recentProjects:[],
@@ -323,7 +363,7 @@ function getFilteredTickets(fid){
 function avatarEl(name,sz=28){const s=sz+'px';const ini=(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();const colors=['#1a56db','#7c3aed','#16a34a','#ea580c','#0891b2'];const ci=(name||'').charCodeAt(0)%5;return `<div style="width:${s};height:${s};border-radius:50%;background:${colors[ci]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.38)}px;font-weight:700;flex-shrink:0">${ini}</div>`}
 function nav(p){setState({page:p,activeProject:p==='projects'?null:state.activeProject})}
 function navSettings(tab){setState({page:'settings',settingsTab:tab})}
-function openProject(id){const recents=[id,...state.recentProjects.filter(x=>x!==id)].slice(0,3);setState({page:'projectdetail',activeProject:id,projectTab:'issues',recentProjects:recents});}
+function openProject(id){const recents=[id,...state.recentProjects.filter(x=>x!==id)].slice(0,3);setState({page:'projectdetail',activeProject:id,projectTab:'active-sprints',recentProjects:recents});}
 function toggleProjectsSidebar(){setState({projectsOpen:!state.projectsOpen});}
 function viewTicket(id){setState({page:'ticketview',viewTicket:id,prevPage:state.page})}
 function openModal(type,data,extra){setState({modal:{type,data,extra}})}
@@ -705,24 +745,75 @@ function renderProjects(){
 function renderProjectDetail(){
   const p=projectById(state.activeProject);
   if(!p)return '<div class="page"><div class="empty-state">Project not found</div></div>';
-  const tabLabels={issues:'📋 Issues',board:'🗂 Board',roadmap:'🗺 Roadmap',reports:'📊 Reports'};
-  const tabHtml=Object.keys(tabLabels).map(t=>`<button class="tab ${state.projectTab===t?'active':''}" onclick="setState({projectTab:'${t}'})">${tabLabels[t]}</button>`).join('');
+  const tabs=[
+    {key:'active-sprints',label:'Active Sprints'},
+    {key:'backlog',label:'Backlog'},
+    {key:'issues',label:'List'},
+    {key:'roadmap',label:'Timeline'},
+    {key:'reports',label:'Reports'},
+  ];
   let content='';
-  if(state.projectTab==='issues')content=renderProjectIssues(state.activeProject);
-  else if(state.projectTab==='board')content=renderBoardView(state.activeProject);
-  else if(state.projectTab==='roadmap')content=renderHierarchyRoadmap(state.activeProject);
-  else if(state.projectTab==='reports')content=renderProjectReports(state.activeProject);
-  return `<div class="page">
-    <div class="breadcrumb"><span onclick="nav('projects')">Projects</span><span class="bc-sep">›</span><span>${p.name}</span></div>
-    <div class="page-header">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:36px;height:36px;border-radius:9px;background:${p.color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px">${p.key[0]}</div>
-        <div><div class="page-title">${p.name}</div><div class="page-sub">${p.key} · ${p.description}</div></div>
+  const pt=state.projectTab||'active-sprints';
+  if(pt==='active-sprints')content=renderBoardView(state.activeProject);
+  else if(pt==='backlog')content=renderProjectBacklog(state.activeProject);
+  else if(pt==='issues')content=renderProjectIssues(state.activeProject);
+  else if(pt==='roadmap')content=renderHierarchyRoadmap(state.activeProject);
+  else if(pt==='reports')content=renderProjectReports(state.activeProject);
+  const tks=getTickets(p.id);
+  const allAssignees=[...new Set(tks.map(t=>t.assignee).filter(Boolean))];
+  return `<div class="page" style="padding-bottom:40px">
+    <div class="breadcrumb" style="margin-bottom:10px"><span onclick="nav('projects')" style="cursor:pointer;color:var(--blue)">Spaces</span><span class="bc-sep">›</span><span>${p.name}</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;border-radius:8px;background:${p.color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px">${p.key[0]}</div>
+        <div style="font-size:18px;font-weight:800;color:var(--text)">${p.name} board</div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('createTicket')">+ Create Issue</button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('createTicket')">+ Create</button>
     </div>
-    <div class="tabs">${tabHtml}</div>
+    <div class="sprint-tab-strip" style="margin-bottom:16px">
+      ${tabs.map(t=>`<button class="sprint-tab ${pt===t.key?'active':''}" onclick="setState({projectTab:'${t.key}'})">${t.label}</button>`).join('')}
+    </div>
     ${content}
+  </div>`;
+}
+
+// ---- PROJECT BACKLOG ----
+function renderProjectBacklog(pid){
+  const tks=getTickets(pid);
+  const backlog=tks.filter(t=>!t.sprint||t.status==='To Do');
+  function ticketRows(list,label,labelClass){
+    if(!list.length)return'';
+    return `<tr><td colspan="8" style="padding:6px 14px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;border-top:2px solid var(--gray-200)">
+      <span class="badge ${labelClass}" style="margin-right:6px">${label}</span>${list.length} issues
+    </td></tr>`+list.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+      <td style="font-weight:600;color:var(--blue);padding-left:20px">${t.id}</td>
+      <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
+      <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
+      <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
+      <td>${avatarEl(t.assignee,24)}</td>
+      <td style="font-size:11px;color:var(--gray-400)">${t.sprint||'—'}</td>
+      <td style="font-size:11px;color:var(--gray-400)">${t.dueDate||'—'}</td>
+    </tr>`).join('');
+  }
+  const inProgress=tks.filter(t=>t.status==='In Progress'||t.status==='In Review');
+  const done=tks.filter(t=>t.status==='Done');
+  const blocked=tks.filter(t=>t.status==='Blocked');
+  return `<div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:13px;color:var(--gray-500)">${tks.length} issues total</span>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openModal('createTicket')">+ Create Issue</button>
+    </div>
+    <div class="card" style="padding:0"><table>
+      <thead><tr><th>ID</th><th>Type</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Sprint</th><th>Due Date</th></tr></thead>
+      <tbody>
+        ${ticketRows(tks.filter(t=>t.status==='To Do'),'To Do','s-todo')}
+        ${ticketRows(inProgress,'In Progress / Review','s-inprogress')}
+        ${ticketRows(blocked,'Blocked','s-blocked')}
+        ${ticketRows(done,'Done','s-done')}
+        ${!tks.length?'<tr><td colspan="8"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">📋</div><div>No issues yet.</div></div></td></tr>':''}
+      </tbody>
+    </table></div>
   </div>`;
 }
 
@@ -761,102 +852,90 @@ function renderProjectIssues(pid){
   </div>`;
 }
 
-// ---- BOARD VIEW (Scrum / Kanban selector + board) ----
+// ---- BOARD VIEW (ClickUp-style sprint board) ----
+const COL_COLORS={'To Do':'#64748b','In Progress':'#1d4ed8','In Review':'#7c3aed','Done':'#16a34a','Blocked':'#dc2626'};
+const PRIORITY_COLORS={'Critical':'#dc2626','High':'#ea580c','Medium':'#ca8a04','Low':'#16a34a'};
+function priorityBar(p){const c=PRIORITY_COLORS[p]||'#94a3b8';return `<div class="sprint-priority-bar" title="${p}"><span style="background:${c}"></span><span style="background:${c}"></span><span style="background:${c}"></span></div>`;}
 function renderBoardView(pid){
-  const boards=state.projectBoards||{};
-  const boardType=boards[pid];
-  if(!boardType){
-    return `<div style="max-width:580px;margin:36px auto">
-      <div style="text-align:center;margin-bottom:28px">
-        <div style="font-size:22px;font-weight:700;margin-bottom:6px">Choose a Board Type</div>
-        <div style="font-size:13px;color:var(--gray-500)">Select how you want to manage work in this project</div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="card" style="border:2px solid var(--gray-200);text-align:center;padding:28px 20px;cursor:pointer;transition:all .15s"
-          onmouseover="this.style.borderColor='var(--blue)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.borderColor='var(--gray-200)';this.style.boxShadow='var(--shadow)'"
-          onclick="setBoardType(${pid},'scrum')">
-          <div style="font-size:40px;margin-bottom:12px">🏃</div>
-          <div style="font-size:16px;font-weight:700;margin-bottom:8px">Scrum Board</div>
-          <div style="font-size:12px;color:var(--gray-500);line-height:1.6;margin-bottom:16px">Sprint-based workflow with backlog. Plan sprints, track velocity, manage ceremonies.</div>
-          <button class="btn btn-primary" style="width:100%">Create Scrum Board</button>
-        </div>
-        <div class="card" style="border:2px solid var(--gray-200);text-align:center;padding:28px 20px;cursor:pointer;transition:all .15s"
-          onmouseover="this.style.borderColor='var(--blue)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.borderColor='var(--gray-200)';this.style.boxShadow='var(--shadow)'"
-          onclick="setBoardType(${pid},'kanban')">
-          <div style="font-size:40px;margin-bottom:12px">📋</div>
-          <div style="font-size:16px;font-weight:700;margin-bottom:8px">Kanban Board</div>
-          <div style="font-size:12px;color:var(--gray-500);line-height:1.6;margin-bottom:16px">Continuous flow with no sprints. Visualize work in progress and limit WIP.</div>
-          <button class="btn btn-outline" style="width:100%">Create Kanban Board</button>
-        </div>
-      </div>
-    </div>`;
-  }
-  if(boardType==='kanban'){
-    return `<div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <span style="font-size:13px;font-weight:600;color:var(--gray-600)">📋 Kanban Board</span>
-        <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:11px;color:var(--gray-500)" onclick="setBoardType(${pid},null)">⚙ Change Board Type</button>
-      </div>
-      ${renderKanban(pid)}
-    </div>`;
-  }
-  // Scrum board
   const tks=getTickets(pid);
   const sprints=[...new Set(tks.map(t=>t.sprint).filter(Boolean))];
   const activeSprint=state.activeSprint||(sprints.length?sprints[sprints.length-1]:null);
-  const sprintTks=activeSprint?tks.filter(t=>t.sprint===activeSprint):[];
-  const backlogTks=tks.filter(t=>t.status==='To Do');
-  return `<div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-      <span style="font-size:13px;font-weight:700;color:var(--gray-700)">🏃 Scrum Board</span>
-      ${sprints.length?`<select class="form-select" style="font-size:12px;padding:4px 10px;height:auto;width:auto" onchange="setState({activeSprint:this.value})">
-        ${sprints.map(s=>`<option value="${s}" ${s===activeSprint?'selected':''}>${s}</option>`).join('')}
-      </select>`:'<span style="font-size:12px;color:var(--gray-400)">No sprints yet</span>'}
-      <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:11px;color:var(--gray-500)" onclick="setBoardType(${pid},null)">⚙ Change Board Type</button>
-    </div>
-    ${activeSprint?`
-    <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${activeSprint} · ${sprintTks.length} issues</div>
-    <div class="kanban-board" style="margin-bottom:28px">
-      ${STATUSES.map(status=>{const cards=sprintTks.filter(t=>t.status===status);return`<div class="kanban-col">
-        <div class="kanban-col-header">${status}<span style="background:var(--gray-400);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px">${cards.length}</span></div>
-        <div class="kanban-col-body">
-          ${cards.map(t=>`<div class="kanban-card" onclick="viewTicket('${t.id}')">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <span style="font-size:10px;color:var(--gray-400);font-weight:600">${t.id}</span>
-              <span class="badge ${getTypeColor(t.type)}" style="font-size:10px">${t.type}</span>
-            </div>
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">${t.title}</div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-              <span style="font-size:11px" class="${priorityClass(t.priority)}">${t.priority}</span>
-              ${avatarEl(t.assignee,22)}
-            </div>
-          </div>`).join('')}
-          <div style="text-align:center;padding:8px;font-size:11px;color:var(--gray-400);cursor:pointer" onclick="openModal('createTicket',{status:'${status}'})">+ Add</div>
+  const sprintTks=activeSprint?tks.filter(t=>t.sprint===activeSprint):tks;
+  const allAssignees=[...new Set(tks.map(t=>t.assignee).filter(Boolean))];
+  const boardFilter=state.boardAssigneeFilter||[];
+  const filteredTks=boardFilter.length?sprintTks.filter(t=>boardFilter.includes(t.assignee)):sprintTks;
+  // Group by parent
+  const parents=filteredTks.filter(t=>!t.parent);
+  const orphans=filteredTks.filter(t=>t.parent&&!filteredTks.find(x=>x.id===t.parent));
+  const allGroups=[...parents,...orphans].length?[...new Set([...parents.map(t=>t.id),...orphans.map(t=>t.parent||t.id)])]:[];
+  function renderSprintCol(status){
+    const cards=filteredTks.filter(t=>t.status===status);
+    const col=COL_COLORS[status]||'#94a3b8';
+    // group cards by parent
+    const grouped={};
+    cards.forEach(t=>{const key=t.parent||('__'+t.id);if(!grouped[key])grouped[key]=[];grouped[key].push(t);});
+    const colHtml=Object.entries(grouped).map(([key,items])=>{
+      const parentT=items[0].parent?tks.find(x=>x.id===items[0].parent):null;
+      const groupHeader=parentT?`<div class="sprint-group-header">
+        <span style="font-size:10px;color:var(--gray-400)">▾</span>
+        <span style="color:#16a34a;font-size:14px">🔖</span>
+        <span style="font-size:11px;font-weight:700;color:var(--blue)">${parentT.id}</span>
+        <span style="font-size:11px;color:var(--gray-600);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${parentT.title}</span>
+        <span style="font-size:10px;background:var(--gray-200);border-radius:8px;padding:1px 6px;color:var(--gray-500)">${items.length} subtask${items.length>1?'s':''}</span>
+        <span class="badge ${getStatusClass(parentT.status)}" style="font-size:9px">${parentT.status.toUpperCase()}</span>
+      </div>`:'';
+      return groupHeader+items.map(t=>`<div class="sprint-card" style="border-left-color:${COL_COLORS[t.status]||'transparent'}" onclick="viewTicket('${t.id}')">
+        <div class="sprint-card-title">${t.title}</div>
+        <div class="sprint-card-footer">
+          <span class="sprint-card-id">${t.id}</span>
+          <span class="badge ${getTypeColor(t.type)}" style="font-size:9px;padding:1px 5px">${t.type}</span>
+          ${priorityBar(t.priority)}
+          ${avatarEl(t.assignee,22)}
         </div>
-      </div>`;}).join('')}
-    </div>`:''}
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 0;border-top:2px solid var(--gray-200)">
-      <div style="font-size:14px;font-weight:700">📦 Backlog</div>
-      <span style="font-size:12px;color:var(--gray-500)">${backlogTks.length} issues</span>
-      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="openModal('createTicket')">+ Add to Backlog</button>
+      </div>`).join('');
+    }).join('');
+    return `<div class="sprint-col">
+      <div class="sprint-col-header">
+        <span class="sprint-col-dot" style="background:${col}"></span>
+        <span class="sprint-col-name">${status}</span>
+        <span class="sprint-col-count">${cards.length}</span>
+      </div>
+      <div class="sprint-col-body">
+        ${colHtml||`<div style="text-align:center;padding:20px 0;font-size:12px;color:var(--gray-300)">No issues</div>`}
+        <div style="text-align:center;padding:6px;font-size:11px;color:var(--gray-400);cursor:pointer;border-radius:6px;transition:background .1s" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background=''" onclick="openModal('createTicket',{status:'${status}'})">+ Create</div>
+      </div>
+    </div>`;
+  }
+  return `<div>
+    <div class="sprint-toolbar">
+      <div class="filter-search-box" style="max-width:200px">
+        <span style="color:var(--gray-400);font-size:12px">🔍</span>
+        <input class="filter-search-input" placeholder="Search board" style="font-size:12px"/>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center">
+        ${allAssignees.map(a=>`<div onclick="toggleBoardAssignee('${a}')" title="${a}" style="cursor:pointer;opacity:${boardFilter.length===0||boardFilter.includes(a)?1:.3};transition:opacity .15s;border-radius:50%;outline:${boardFilter.includes(a)?'2px solid var(--blue)':'2px solid transparent'};outline-offset:2px">${avatarEl(a,28)}</div>`).join('')}
+      </div>
+      <div class="filter-chip-wrap" style="font-size:12px">
+        <button class="filter-chip" style="font-size:12px">Type ▾</button>
+      </div>
+      <div class="filter-chip-wrap" style="font-size:12px">
+        <button class="filter-chip" style="font-size:12px">Quick filters ▾</button>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        ${sprints.length?`<select class="form-select" style="font-size:12px;padding:4px 10px;height:auto;width:auto" onchange="setState({activeSprint:this.value})">
+          ${sprints.map(s=>`<option value="${s}" ${s===activeSprint?'selected':''}>${s}</option>`).join('')}
+        </select>`:''}
+        <button class="btn btn-primary btn-sm" style="font-size:12px" onclick="alert('Sprint completed!')">Complete sprint</button>
+        <button class="btn btn-outline btn-sm" style="font-size:12px">Group: Stories</button>
+      </div>
     </div>
-    <div class="card" style="padding:0">
-      <table>
-        <thead><tr><th>ID</th><th>Type</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th></tr></thead>
-        <tbody>
-          ${backlogTks.length?backlogTks.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
-            <td style="font-weight:600;color:var(--blue)">${t.id}</td>
-            <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
-            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
-            <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
-            <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
-            <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,22)}<span style="font-size:12px">${t.assignee||'—'}</span></div></td>
-          </tr>`).join(''):`<tr><td colspan="6"><div class="empty-state" style="padding:16px"><div style="font-size:24px;margin-bottom:6px">📦</div><div>Backlog is empty</div></div></td></tr>`}
-        </tbody>
-      </table>
+    ${activeSprint?`<div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">${activeSprint} · ${filteredTks.length} issues</div>`:''}
+    <div class="sprint-board">
+      ${STATUSES.map(s=>renderSprintCol(s)).join('')}
     </div>
   </div>`;
 }
+function toggleBoardAssignee(a){const cur=state.boardAssigneeFilter||[];setState({boardAssigneeFilter:cur.includes(a)?cur.filter(x=>x!==a):[...cur,a]});}
 function setBoardType(pid,type){setState({projectBoards:{...state.projectBoards,[pid]:type}});}
 
 // ---- KANBAN ----
@@ -959,78 +1038,162 @@ function renderDashboards(){
   const done=tks.filter(t=>t.status==='Done').length;
   const inprog=tks.filter(t=>t.status==='In Progress').length;
   const blocked=tks.filter(t=>t.status==='Blocked').length;
+  const todo=tks.filter(t=>t.status==='To Do').length;
   const byStatus={};STATUSES.forEach(s=>byStatus[s]=tks.filter(t=>t.status===s).length);
   const mx=Math.max(...Object.values(byStatus),1);
   const byAssignee={};tks.forEach(t=>{if(!byAssignee[t.assignee])byAssignee[t.assignee]=0;byAssignee[t.assignee]++});
   const byType={};ISSUE_TYPES.forEach(t=>byType[t]=tks.filter(x=>x.type===t).length);
   const mxT=Math.max(...Object.values(byType),1);
+  const doneP=total?Math.round(done/total*100):0;
+  const dashTab=state.dashTab||'overview';
   return `<div class="page">
-    <div class="page-header">
-      <div><div class="page-title">Dashboards</div><div class="page-sub">All project analytics & KPIs</div></div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        ${state.filters.filter(f=>f.shared).map(f=>`<button class="filter-chip" title="${Object.entries(f.conditions).map(([k,v])=>k+': '+(Array.isArray(v)?v.join(', '):v)).join(' | ')}">${f.name} (${getFilteredTickets(f.id).length})</button>`).join('')}
+    <div class="page-header" style="margin-bottom:8px">
+      <div><div class="page-title">Dashboards</div><div class="page-sub">Live analytics, widgets & KPIs</div></div>
+      <div style="display:flex;align-items:center;gap:8px">
         <button class="btn btn-primary btn-sm" onclick="openModal('createDashboard')">+ New Dashboard</button>
       </div>
     </div>
-    <div class="grid-4" style="margin-bottom:20px">
-      <div class="stat-card"><div class="stat-val">${total}</div><div class="stat-label">Total Tickets</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--green)">${done}</div><div class="stat-label">Done</div><div class="stat-delta delta-up">↑ ${total?Math.round(done/total*100):0}%</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--blue)">${inprog}</div><div class="stat-label">In Progress</div></div>
-      <div class="stat-card"><div class="stat-val" style="color:var(--red)">${blocked}</div><div class="stat-label">Blocked</div>${blocked>0?'<div class="stat-delta delta-down">Needs attention</div>':''}</div>
+    <div class="sprint-tab-strip" style="margin-bottom:20px">
+      <button class="sprint-tab ${dashTab==='overview'?'active':''}" onclick="setState({dashTab:'overview'})">📊 Overview</button>
+      <button class="sprint-tab ${dashTab==='widgets'?'active':''}" onclick="setState({dashTab:'widgets'})">🧩 Widgets</button>
+      <button class="sprint-tab ${dashTab==='custom'?'active':''}" onclick="setState({dashTab:'custom'})">📋 My Dashboards (${state.customDashboards.length})</button>
+    </div>
+
+    ${dashTab==='overview'?`
+    <div class="widget-grid">
+      <div class="widget-card" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)">
+        <div class="widget-icon">🎫</div>
+        <div class="widget-val">${total}</div>
+        <div class="widget-label">Total Issues</div>
+        <div class="widget-delta">Across ${state.projects.length} projects</div>
+      </div>
+      <div class="widget-card" style="background:linear-gradient(135deg,#15803d,#22c55e)">
+        <div class="widget-icon">✅</div>
+        <div class="widget-val">${done}</div>
+        <div class="widget-label">Done</div>
+        <div class="widget-delta">↑ ${doneP}% completion rate</div>
+      </div>
+      <div class="widget-card" style="background:linear-gradient(135deg,#7c3aed,#a855f7)">
+        <div class="widget-icon">⚡</div>
+        <div class="widget-val">${inprog}</div>
+        <div class="widget-label">In Progress</div>
+        <div class="widget-delta">${total?Math.round(inprog/total*100):0}% of all issues</div>
+      </div>
+      <div class="widget-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)">
+        <div class="widget-icon">🚫</div>
+        <div class="widget-val">${blocked}</div>
+        <div class="widget-label">Blocked</div>
+        <div class="widget-delta">${blocked>0?'⚠ Needs attention':'All clear'}</div>
+      </div>
+      <div class="widget-card" style="background:linear-gradient(135deg,#d97706,#f59e0b)">
+        <div class="widget-icon">📥</div>
+        <div class="widget-val">${todo}</div>
+        <div class="widget-label">To Do</div>
+        <div class="widget-delta">Waiting to start</div>
+      </div>
+      <div class="widget-card" style="background:linear-gradient(135deg,#0891b2,#06b6d4)">
+        <div class="widget-icon">👥</div>
+        <div class="widget-val">${Object.keys(byAssignee).length}</div>
+        <div class="widget-label">Team Members</div>
+        <div class="widget-delta">Active contributors</div>
+      </div>
     </div>
     <div class="grid-2" style="margin-bottom:20px">
-      <div class="card"><div class="card-title">Tickets by Status</div>
-        <div class="bar-chart" style="height:130px">${STATUSES.map(s=>`<div class="bar-wrap"><div class="bar-val">${byStatus[s]}</div><div class="bar" style="height:${Math.round(byStatus[s]/mx*90)+10}px;background:${s==='Done'?'var(--green)':s==='Blocked'?'var(--red)':s==='In Progress'?'var(--blue)':'var(--gray-300)'}"></div><div class="bar-label" style="font-size:9px">${s}</div></div>`).join('')}</div>
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>📊 Issues by Status</span>
+          <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;width:120px">
+            ${STATUSES.map(s=>{const c=byStatus[s];const color=s==='Done'?'#22c55e':s==='Blocked'?'#ef4444':s==='In Progress'?'#3b82f6':s==='In Review'?'#a855f7':'#94a3b8';return c?`<div style="flex:${c};background:${color};height:100%" title="${s}: ${c}"></div>`:''}).join('')}
+          </div>
+        </div>
+        <div class="bar-chart" style="height:130px">${STATUSES.map(s=>{const c=byStatus[s];const color=s==='Done'?'#22c55e':s==='Blocked'?'#ef4444':s==='In Progress'?'#3b82f6':s==='In Review'?'#a855f7':'#94a3b8';return`<div class="bar-wrap"><div class="bar-val">${c}</div><div class="bar" style="height:${Math.round(c/mx*90)+10}px;background:${color};border-radius:4px 4px 0 0"></div><div class="bar-label" style="font-size:9px">${s.split(' ')[0]}</div></div>`}).join('')}</div>
       </div>
-      <div class="card"><div class="card-title">Team Workload</div>
-        ${Object.entries(byAssignee).slice(0,5).map(([name,count])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">${avatarEl(name,26)}<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${name}</span><span style="font-weight:700">${count}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(count/total*100)}%"></div></div></div></div>`).join('')}
+      <div class="card">
+        <div class="card-title">👥 Team Workload</div>
+        ${Object.entries(byAssignee).slice(0,5).map(([name,count])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">${avatarEl(name,28)}<div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">${name}</span><span style="font-weight:700;color:var(--blue)">${count}</span></div><div class="progress-bar" style="height:8px;border-radius:4px"><div class="progress-fill" style="width:${Math.round(count/total*100)}%;height:8px;border-radius:4px"></div></div></div></div>`).join('')}
       </div>
     </div>
     <div class="grid-3">
-      <div class="card"><div class="card-title">By Issue Type</div>
-        ${ISSUE_TYPES.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t)}" style="width:80px;justify-content:center">${t}</span><div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="width:${byType[t]?Math.round(byType[t]/mxT*100):0}%"></div></div></div><span style="font-size:12px;font-weight:700;min-width:20px">${byType[t]}</span></div>`).join('')}
+      <div class="card">
+        <div class="card-title">🏷 By Issue Type</div>
+        ${ISSUE_TYPES.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t)}" style="min-width:70px;justify-content:center">${t}</span><div style="flex:1"><div class="progress-bar" style="height:7px;border-radius:4px"><div class="progress-fill" style="width:${byType[t]?Math.round(byType[t]/mxT*100):0}%;height:7px;border-radius:4px"></div></div></div><span style="font-size:12px;font-weight:700;min-width:22px;text-align:right">${byType[t]}</span></div>`).join('')}
       </div>
-      <div class="card"><div class="card-title">Projects Overview</div>
-        ${state.projects.map(p=>{const pt=tks.filter(t=>t.project===p.id);const pd=pt.filter(t=>t.status==='Done').length;return `<div style="padding:8px 0;border-bottom:1px solid var(--gray-100)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${p.color}"></span><span style="font-size:13px;font-weight:600">${p.name}</span></div><span style="font-size:11px;color:var(--gray-400)">${pd}/${pt.length}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pt.length?Math.round(pd/pt.length*100):0}%;background:${p.color}"></div></div></div>`}).join('')}
+      <div class="card">
+        <div class="card-title">🗂 Projects Progress</div>
+        ${state.projects.map(p=>{const pt=tks.filter(t=>t.project===p.id);const pd=pt.filter(t=>t.status==='Done').length;const pct=pt.length?Math.round(pd/pt.length*100):0;return`<div style="padding:8px 0;border-bottom:1px solid var(--gray-100)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px"><div style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0"></span><span style="font-size:13px;font-weight:600">${p.name}</span></div><span style="font-size:11px;font-weight:700;color:${pct===100?'var(--green)':'var(--gray-500)'}">${pct}%</span></div><div class="progress-bar" style="height:8px;border-radius:4px"><div class="progress-fill" style="width:${pct}%;background:${p.color};height:8px;border-radius:4px"></div></div></div>`}).join('')}
       </div>
-      <div class="card"><div class="card-title">Recent Activity</div>
-        ${tks.slice(0,6).map(t=>`<div style="display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t.type)}" style="font-size:10px;margin-top:1px">${t.type[0]}</span><div style="flex:1"><div style="font-size:12px;font-weight:600">${t.id}: ${t.title.slice(0,36)}${t.title.length>36?'...':''}</div><div style="font-size:11px;color:var(--gray-400)">${t.updated} · <span class="badge ${getStatusClass(t.status)}" style="font-size:10px">${t.status}</span></div></div></div>`).join('')}
+      <div class="card">
+        <div class="card-title">🕐 Recent Activity</div>
+        ${tks.slice(0,6).map(t=>`<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-100)"><span class="badge ${getTypeColor(t.type)}" style="font-size:10px;margin-top:1px;flex-shrink:0">${t.type[0]}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.id}: ${t.title}</div><div style="font-size:11px;color:var(--gray-400);margin-top:2px">${t.updated} · <span class="badge ${getStatusClass(t.status)}" style="font-size:10px">${t.status}</span></div></div></div>`).join('')}
       </div>
-    </div>
-    ${renderCustomDashboards()}
+    </div>`:''}
+
+    ${dashTab==='widgets'?`
+    <div class="dash-section-title">🧩 Available Widgets</div>
+    <div class="widget-grid">
+      ${[
+        {icon:'📋',label:'Issue List',desc:'Table of matching tickets',color:'linear-gradient(135deg,#1d4ed8,#3b82f6)'},
+        {icon:'🥧',label:'Status Pie',desc:'Tickets by status breakdown',color:'linear-gradient(135deg,#7c3aed,#a855f7)'},
+        {icon:'🥧',label:'Priority Pie',desc:'Tickets by priority level',color:'linear-gradient(135deg,#d97706,#f59e0b)'},
+        {icon:'📉',label:'Burndown',desc:'Sprint progress chart',color:'linear-gradient(135deg,#dc2626,#ef4444)'},
+        {icon:'⚡',label:'Velocity',desc:'Completed tickets per sprint',color:'linear-gradient(135deg,#15803d,#22c55e)'},
+        {icon:'👥',label:'Workload',desc:'Team member ticket counts',color:'linear-gradient(135deg,#0891b2,#06b6d4)'},
+        {icon:'📊',label:'Created vs Resolved',desc:'Open vs closed over time',color:'linear-gradient(135deg,#be185d,#ec4899)'},
+        {icon:'🗂',label:'Project Progress',desc:'Progress bars per project',color:'linear-gradient(135deg,#065f46,#10b981)'},
+      ].map(w=>`<div class="widget-card" style="background:${w.color}" onclick="openModal('createDashboard')">
+        <div class="widget-icon">${w.icon}</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">${w.label}</div>
+        <div style="font-size:11px;opacity:.85">${w.desc}</div>
+        <div style="margin-top:12px"><button class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:1.5px solid rgba(255,255,255,.4);font-size:11px" onclick="event.stopPropagation();openModal('createDashboard')">+ Add to Dashboard</button></div>
+      </div>`).join('')}
+      <div class="widget-panel" onclick="openModal('createDashboard')">
+        <div style="font-size:32px">+</div>
+        <div style="font-size:13px;font-weight:600">New Dashboard</div>
+        <div style="font-size:11px">Create from a saved filter</div>
+      </div>
+    </div>`:''}
+
+    ${dashTab==='custom'?renderCustomDashboards():''}
   </div>`;
 }
 
 const REPORT_LABELS={'issue-list':'📋 Issue List','pie-status':'🥧 By Status','pie-priority':'🥧 By Priority','pie-type':'🥧 By Issue Type','burndown':'📉 Burndown','velocity':'⚡ Velocity','workload':'👥 Team Workload','created-resolved':'📊 Created vs Resolved'};
 function renderCustomDashboards(){
-  if(!state.customDashboards.length)return'';
-  const cards=state.customDashboards.map(d=>{
+  if(!state.customDashboards.length)return`<div class="empty-state" style="padding:60px"><div style="font-size:40px;margin-bottom:12px">📊</div><div style="font-size:16px;font-weight:700;margin-bottom:6px">No dashboards yet</div><div style="font-size:13px;color:var(--gray-400);margin-bottom:16px">Create a dashboard from a saved filter to track your metrics</div><button class="btn btn-primary" onclick="openModal('createDashboard')">+ Create Dashboard</button></div>`;
+  const DASH_GRADIENTS=['linear-gradient(135deg,#1d4ed8,#3b82f6)','linear-gradient(135deg,#7c3aed,#a855f7)','linear-gradient(135deg,#15803d,#22c55e)','linear-gradient(135deg,#d97706,#f59e0b)','linear-gradient(135deg,#0891b2,#06b6d4)','linear-gradient(135deg,#be185d,#ec4899)'];
+  const cards=state.customDashboards.map((d,i)=>{
     const f=state.filters.find(x=>x.id===d.filterId);
     const res=f?getFilteredTickets(d.filterId):state.tickets;
     const done=res.filter(t=>t.status==='Done').length;
     const inprog=res.filter(t=>t.status==='In Progress').length;
     const blocked=res.filter(t=>t.status==='Blocked').length;
-    return `<div class="card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-size:15px;font-weight:700">${d.name}</div>
-          <div style="font-size:12px;color:var(--gray-500);margin-top:2px">Filter: ${f?f.name:'All Tickets'} · ${REPORT_LABELS[d.reportType||'issue-list']}</div>
+    const grad=DASH_GRADIENTS[i%DASH_GRADIENTS.length];
+    return `<div class="card" style="padding:0;overflow:hidden">
+      <div style="background:${grad};padding:18px 20px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-15px;right:-15px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.1)"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:2px">${d.name}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.75)">Filter: ${f?f.name:'—'} · ${REPORT_LABELS[d.reportType||'issue-list']}</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);font-size:11px" onclick="openModal('editDashboard',${d.id})">✏ Edit</button>
+            <button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);font-size:11px" onclick="deleteCustomDashboard(${d.id})">🗑</button>
+          </div>
         </div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-outline btn-sm" onclick="openModal('editDashboard',${d.id})">✏ Edit Report</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteCustomDashboard(${d.id})">🗑</button>
+        <div style="display:flex;gap:16px;margin-top:14px">
+          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">${res.length}</div><div style="font-size:10px;color:rgba(255,255,255,.7)">Total</div></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">${done}</div><div style="font-size:10px;color:rgba(255,255,255,.7)">Done</div></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">${inprog}</div><div style="font-size:10px;color:rgba(255,255,255,.7)">In Progress</div></div>
+          <div style="text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">${blocked}</div><div style="font-size:10px;color:rgba(255,255,255,.7)">Blocked</div></div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--blue)">${res.length}</div><div style="font-size:11px;color:var(--gray-500)">Total</div></div>
-        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--green)">${done}</div><div style="font-size:11px;color:var(--gray-500)">Done</div></div>
-        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--blue)">${inprog}</div><div style="font-size:11px;color:var(--gray-500)">In Progress</div></div>
-        <div class="stat-card" style="flex:1;padding:10px 12px"><div style="font-size:20px;font-weight:700;color:var(--red)">${blocked}</div><div style="font-size:11px;color:var(--gray-500)">Blocked</div></div>
+      <div style="padding:16px">
+        ${renderDashboardReport(d,res)}
       </div>
-      ${renderDashboardReport(d,res)}
     </div>`;
   }).join('');
-  return `<div style="margin-top:24px"><div style="font-size:16px;font-weight:700;margin-bottom:14px">Custom Dashboards</div><div class="grid-2">${cards}</div></div>`;
+  return `<div><div class="dash-section-title">📋 My Dashboards</div><div class="grid-2">${cards}</div></div>`;
 }
 function renderSegChart(segs,total){
   const bar=segs.map(s=>`<div style="flex:${s.value};background:${s.color};height:100%" title="${s.label}: ${s.value}"></div>`).join('');
@@ -1165,25 +1328,34 @@ function renderFilters(){
       </tbody>
     </table></div>`;
 
-  const savedTab=`<div class="grid-2">
-    ${state.filters.length?state.filters.map(f=>{const res=getFilteredTickets(f.id);return`<div class="card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:15px;font-weight:700">${f.name}</div>
-        <div style="display:flex;gap:4px;align-items:center">
-          ${f.shared?'<span class="badge badge-blue">Shared</span>':'<span class="badge badge-gray">Private</span>'}
-          <button class="btn btn-ghost btn-sm" onclick="deleteFilter(${f.id})">🗑</button>
+  const savedTab=`<div class="card" style="padding:0">
+    ${state.filters.length?`
+      <div style="display:flex;align-items:center;padding:10px 16px;border-bottom:1.5px solid var(--gray-200);background:var(--gray-50);border-radius:10px 10px 0 0">
+        <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;flex:2">Filter Name</span>
+        <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;flex:3">Criteria</span>
+        <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;width:80px;text-align:center">Tickets</span>
+        <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;width:80px">Owner</span>
+        <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;width:60px">Shared</span>
+        <span style="width:200px"></span>
+      </div>
+      ${state.filters.map(f=>{const res=getFilteredTickets(f.id);return`<div class="filter-list-row">
+        <div style="flex:2">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">${f.name}</div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:1px">${f.created}</div>
         </div>
-      </div>
-      <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px">By ${f.owner} · ${f.created}</div>
-      <div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px">
-        ${Object.entries(f.conditions).map(([k,v])=>`<span class="filter-chip active">${k}: ${Array.isArray(v)?v.join(', '):v}</span>`).join('')}
-      </div>
-      <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:12px">${res.length} matching tickets</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="loadFilterToSearch(${f.id})">🔍 View in Search</button>
-        <button class="btn btn-primary btn-sm" onclick="openModal('createDashboard',${f.id})">📊 Create Dashboard</button>
-      </div>
-    </div>`}).join(''):`<div style="grid-column:1/-1"><div class="empty-state"><div style="font-size:32px;margin-bottom:8px">🔍</div><div>No saved filters yet</div><div style="font-size:12px;color:var(--gray-400);margin-top:4px">Go to Search, apply filters, then click "Save as Filter"</div></div></div>`}
+        <div style="flex:3;display:flex;flex-wrap:wrap;gap:4px">
+          ${Object.entries(f.conditions).map(([k,v])=>`<span class="filter-chip active" style="font-size:11px;padding:2px 7px">${k}: ${Array.isArray(v)?v.join(', '):v}</span>`).join('')}
+        </div>
+        <div style="width:80px;text-align:center;font-size:14px;font-weight:700;color:var(--blue)">${res.length}</div>
+        <div style="width:80px;display:flex;align-items:center;gap:5px">${avatarEl(f.owner,22)}<span style="font-size:11px;color:var(--gray-600)">${f.owner.split(' ')[0]}</span></div>
+        <div style="width:60px">${f.shared?'<span class="badge badge-blue" style="font-size:10px">Shared</span>':'<span class="badge badge-gray" style="font-size:10px">Private</span>'}</div>
+        <div style="width:200px;display:flex;gap:6px;justify-content:flex-end">
+          <button class="btn btn-outline btn-sm" style="font-size:11px" onclick="loadFilterToSearch(${f.id})">🔍 Search</button>
+          <button class="btn btn-primary btn-sm" style="font-size:11px" onclick="openModal('createDashboard',${f.id})">📊 Dashboard</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteFilter(${f.id})">🗑</button>
+        </div>
+      </div>`}).join('')}
+    `:`<div class="empty-state" style="padding:40px"><div style="font-size:32px;margin-bottom:8px">🔍</div><div>No saved filters yet</div><div style="font-size:12px;color:var(--gray-400);margin-top:4px">Go to Search, apply filters, then click "Save as Filter"</div></div>`}
   </div>`;
 
   return `<div class="page" onclick="if(state.filterDropdownOpen)setState({filterDropdownOpen:null})">
@@ -1783,6 +1955,7 @@ window.subAU=subAU;window.subEU=subEU;window.subAF=subAF;window.subSimple=subSim
 window.toggleUser=toggleUser;window.removeUser=removeUser;
 window.toggleConnector=toggleConnector;window.deleteFilter=deleteFilter;
 window.setBoardType=setBoardType;window.loadFilterToSearch=loadFilterToSearch;
+window.toggleBoardAssignee=toggleBoardAssignee;
 window.toggleFilterDropdown=toggleFilterDropdown;window.toggleFilterArr=toggleFilterArr;
 window.toggleProjectFilter=toggleProjectFilter;window.clearAllFilters=clearAllFilters;
 window.toggleRoadmapRow=toggleRoadmapRow;
