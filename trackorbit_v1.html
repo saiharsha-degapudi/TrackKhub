@@ -178,6 +178,23 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 .milestone-diamond:hover{filter:brightness(1.15)}
 /* backlog badge */
 .backlog-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;background:#f3e8ff;color:#6b21a8;border:1px solid #ddd6fe}
+/* ====== LINEAR-STYLE FILTER BAR ====== */
+.filter-bar{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap;padding:8px 0;border-bottom:1.5px solid var(--gray-200)}
+.filter-mode-tabs{display:flex;border:1.5px solid var(--gray-200);border-radius:6px;overflow:hidden;flex-shrink:0}
+.filter-mode-btn{padding:4px 10px;font-size:12px;font-weight:600;border:none;background:none;color:var(--gray-500);cursor:pointer;transition:all .15s}
+.filter-mode-btn.active{background:var(--blue);color:#fff}
+.filter-search-box{display:flex;align-items:center;gap:6px;padding:5px 10px;border:1.5px solid var(--gray-200);border-radius:7px;min-width:160px;background:var(--white)}
+.filter-search-input{border:none;background:none;font-size:13px;color:var(--text);width:100%;outline:none}
+.filter-chip-wrap{position:relative;display:inline-block;flex-shrink:0}
+.filter-dropdown{position:absolute;top:calc(100% + 6px);left:0;background:var(--white);border:1.5px solid var(--gray-200);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.13);z-index:500;min-width:210px;padding:6px 0;max-height:280px;overflow-y:auto}
+.filter-dd-search{padding:6px 12px 8px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.filter-dd-search input{border:none;outline:none;font-size:13px;width:100%;background:none;color:var(--text)}
+.filter-dd-item{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:13px;color:var(--text);cursor:pointer;transition:background .1s;user-select:none}
+.filter-dd-item:hover{background:var(--blue-light)}
+.filter-dd-item input[type=checkbox]{accent-color:var(--blue);width:14px;height:14px;flex-shrink:0;cursor:pointer}
+.filter-divider{width:1px;height:20px;background:var(--gray-200);flex-shrink:0}
+.applied-filter-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:5px;font-size:12px;background:var(--blue-light);color:var(--blue);border:1.5px solid var(--blue);font-weight:500}
+.applied-filter-tag button{background:none;border:none;color:var(--blue);font-size:14px;line-height:1;cursor:pointer;padding:0 0 0 2px;font-weight:700}
 </style>
 </head>
 <body>
@@ -203,9 +220,10 @@ const TYPE_COLORS={
 
 let state={
   page:'login',user:null,modal:null,
-  settingsTab:'users',projectTab:'board',
+  settingsTab:'users',projectTab:'issues',
   activeProject:null,viewTicket:null,prevPage:null,
-  ticketSearch:'',typeFilter:'All',statusFilter:'All',projectFilter:'All',
+  ticketSearch:'',typeFilter:[],statusFilter:[],projectFilter:[],assigneeFilter:[],priorityFilter:[],sprintFilter:[],filterDropdownOpen:null,
+  jqlMode:false,jqlQuery:'',filterTab:'search',projectBoards:{},issueSearch:'',activeSprint:null,
   roadmapZoom:'month', // month | quarter | year
   roadmapExpanded:{}, // ticketId -> bool
   recentProjects:[],
@@ -287,11 +305,25 @@ function getStatusClass(s){const m={'To Do':'s-todo','In Progress':'s-inprogress
 function priorityClass(p){return 'p-'+p.toLowerCase()}
 function projectById(id){return state.projects.find(p=>p.id===id)}
 function getTickets(pid){return pid?state.tickets.filter(t=>t.project===pid):state.tickets}
-function getFilteredTickets(fid){const f=state.filters.find(x=>x.id===fid);if(!f)return state.tickets;return state.tickets.filter(t=>{const c=f.conditions;if(c.assignee&&t.assignee!==c.assignee)return false;if(c.status&&!c.status.includes(t.status))return false;if(c.priority&&t.priority!==c.priority)return false;if(c.sprint&&t.sprint!==c.sprint)return false;if(c.type&&!c.type.includes(t.type))return false;return true})}
+function getFilteredTickets(fid){
+  const f=state.filters.find(x=>x.id===fid);if(!f)return state.tickets;
+  const c=f.conditions;
+  if(c.jql)return applyJQL(state.tickets,c.jql);
+  return state.tickets.filter(t=>{
+    if(c.text&&!((t.title||'').toLowerCase().includes(c.text.toLowerCase()||(t.id||'').toLowerCase().includes(c.text.toLowerCase()))))return false;
+    if(c.assignee&&t.assignee!==c.assignee)return false;
+    if(c.status){const sv=Array.isArray(c.status)?c.status:[c.status];if(!sv.includes(t.status))return false;}
+    if(c.priority&&t.priority!==c.priority)return false;
+    if(c.sprint&&t.sprint!==c.sprint)return false;
+    if(c.type){const tv=Array.isArray(c.type)?c.type:[c.type];if(!tv.includes(t.type))return false;}
+    if(c.project){const pv=Array.isArray(c.project)?c.project:[c.project];if(!pv.includes(t.project))return false;}
+    return true;
+  });
+}
 function avatarEl(name,sz=28){const s=sz+'px';const ini=(name||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();const colors=['#1a56db','#7c3aed','#16a34a','#ea580c','#0891b2'];const ci=(name||'').charCodeAt(0)%5;return `<div style="width:${s};height:${s};border-radius:50%;background:${colors[ci]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.38)}px;font-weight:700;flex-shrink:0">${ini}</div>`}
 function nav(p){setState({page:p,activeProject:p==='projects'?null:state.activeProject})}
 function navSettings(tab){setState({page:'settings',settingsTab:tab})}
-function openProject(id){const recents=[id,...state.recentProjects.filter(x=>x!==id)].slice(0,3);setState({page:'projectdetail',activeProject:id,projectTab:'board',recentProjects:recents});}
+function openProject(id){const recents=[id,...state.recentProjects.filter(x=>x!==id)].slice(0,3);setState({page:'projectdetail',activeProject:id,projectTab:'issues',recentProjects:recents});}
 function toggleProjectsSidebar(){setState({projectsOpen:!state.projectsOpen});}
 function viewTicket(id){setState({page:'ticketview',viewTicket:id,prevPage:state.page})}
 function openModal(type,data,extra){setState({modal:{type,data,extra}})}
@@ -303,7 +335,7 @@ function removeUser(id){if(confirm('Remove user?')){setState({users:state.users.
 function toggleConnector(id){const c=state.webConnectors.find(x=>x.id===id);if(c){c.status=c.status==='Connected'?'Disconnected':'Connected';render()}}
 function deleteFilter(id){if(confirm('Delete?')){setState({filters:state.filters.filter(f=>f.id!==id)})}}
 function updateTicket(id,field,val){const t=state.tickets.find(t=>t.id===id);if(t){t[field]=val;t.updated=new Date().toISOString().slice(0,10);render()}}
-function deleteTicketConfirm(id){if(confirm('Delete this ticket?')){setState({tickets:state.tickets.filter(t=>t.id!==id),page:state.prevPage||'alltickets'})}}
+function deleteTicketConfirm(id){if(confirm('Delete this ticket?')){setState({tickets:state.tickets.filter(t=>t.id!==id),page:state.prevPage||'filters'})}}
 
 // ============================================================
 // ROADMAP ENGINE
@@ -577,7 +609,7 @@ function renderLogin(){return `<div class="login-wrap"><div class="login-box">
 </div></div>`}
 
 function renderHeader(){
-  const navItems=[{key:'projects',label:'Projects'},{key:'dashboards',label:'Dashboards'},{key:'filters',label:'Filters'},{key:'alltickets',label:'All Tickets'},{key:'roadmaps',label:'🗺 Roadmaps'},{key:'webconnectors',label:'Web Connectors'}];
+  const navItems=[{key:'projects',label:'Projects'},{key:'dashboards',label:'Dashboards'},{key:'filters',label:'Filters'},{key:'roadmaps',label:'🗺 Roadmaps'},{key:'webconnectors',label:'Web Connectors'}];
   const unread=state.notifications.filter(n=>!n.read).length;
   return `<div class="header">
     <div class="logo"><div class="logo-icon">T</div>TracKorbit</div>
@@ -615,7 +647,6 @@ function renderSidebar(){
       <div class="sidebar-label">Navigation</div>
       <div class="sidebar-item ${state.page==='projects'?'active':''}" onclick="nav('projects')">🏠 Home</div>
       <div class="sidebar-item ${state.page==='dashboards'?'active':''}" onclick="nav('dashboards')">📊 Dashboards</div>
-      <div class="sidebar-item ${state.page==='alltickets'?'active':''}" onclick="nav('alltickets')">🎫 All Tickets</div>
       <div class="sidebar-item ${state.page==='filters'?'active':''}" onclick="nav('filters')">🔍 Filters</div>
       <div class="sidebar-item ${state.page==='roadmaps'?'active':''}" onclick="nav('roadmaps')">🗺 Roadmaps</div>
       <div class="sidebar-item ${state.page==='webconnectors'?'active':''}" onclick="nav('webconnectors')">🔗 Connectors</div>
@@ -635,7 +666,6 @@ function renderPage(){
   if(state.page==='projectdetail')return renderProjectDetail();
   if(state.page==='dashboards')return renderDashboards();
   if(state.page==='filters')return renderFilters();
-  if(state.page==='alltickets')return renderAllTickets();
   if(state.page==='roadmaps')return renderRoadmapsPage();
   if(state.page==='webconnectors')return renderWebConnectors();
   if(state.page==='settings')return renderSettings();
@@ -675,11 +705,11 @@ function renderProjects(){
 function renderProjectDetail(){
   const p=projectById(state.activeProject);
   if(!p)return '<div class="page"><div class="empty-state">Project not found</div></div>';
-  const tabs=['board','backlog','roadmap','reports'];
-  const tabHtml=tabs.map(t=>`<button class="tab ${state.projectTab===t?'active':''}" onclick="setState({projectTab:'${t}'})">${t==='roadmap'?'🗺 Roadmap':t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('');
+  const tabLabels={issues:'📋 Issues',board:'🗂 Board',roadmap:'🗺 Roadmap',reports:'📊 Reports'};
+  const tabHtml=Object.keys(tabLabels).map(t=>`<button class="tab ${state.projectTab===t?'active':''}" onclick="setState({projectTab:'${t}'})">${tabLabels[t]}</button>`).join('');
   let content='';
-  if(state.projectTab==='board')content=renderKanban(state.activeProject);
-  else if(state.projectTab==='backlog')content=renderBacklog(state.activeProject);
+  if(state.projectTab==='issues')content=renderProjectIssues(state.activeProject);
+  else if(state.projectTab==='board')content=renderBoardView(state.activeProject);
   else if(state.projectTab==='roadmap')content=renderHierarchyRoadmap(state.activeProject);
   else if(state.projectTab==='reports')content=renderProjectReports(state.activeProject);
   return `<div class="page">
@@ -689,12 +719,145 @@ function renderProjectDetail(){
         <div style="width:36px;height:36px;border-radius:9px;background:${p.color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px">${p.key[0]}</div>
         <div><div class="page-title">${p.name}</div><div class="page-sub">${p.key} · ${p.description}</div></div>
       </div>
-      <button class="btn btn-primary" onclick="openModal('createTicket')">+ Create Ticket</button>
+      <button class="btn btn-primary" onclick="openModal('createTicket')">+ Create Issue</button>
     </div>
     <div class="tabs">${tabHtml}</div>
     ${content}
   </div>`;
 }
+
+// ---- PROJECT ISSUES (all tickets flat list) ----
+function renderProjectIssues(pid){
+  const tks=getTickets(pid);
+  const q=state.issueSearch||'';
+  let filtered=tks;
+  if(q)filtered=filtered.filter(t=>t.title.toLowerCase().includes(q.toLowerCase())||t.id.toLowerCase().includes(q.toLowerCase()));
+  return `<div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div class="filter-search-box" style="max-width:300px">
+        <span style="color:var(--gray-400);font-size:13px">🔍</span>
+        <input class="filter-search-input" placeholder="Search issues..." value="${q}" oninput="setState({issueSearch:this.value})"/>
+      </div>
+      <span style="font-size:12px;color:var(--gray-500)">${filtered.length} issue${filtered.length!==1?'s':''}</span>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openModal('createTicket')">+ Create Issue</button>
+    </div>
+    <div class="card" style="padding:0">
+      <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Sprint</th><th>Due Date</th></tr></thead>
+        <tbody>
+          ${filtered.length?filtered.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+            <td style="font-weight:600;color:var(--blue)">${t.id}</td>
+            <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
+            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
+            <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
+            <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
+            <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,22)}<span style="font-size:12px">${t.assignee||'—'}</span></div></td>
+            <td style="font-size:11px;color:var(--gray-400)">${t.sprint||'—'}</td>
+            <td style="font-size:11px;color:var(--gray-400)">${t.dueDate||'—'}</td>
+          </tr>`).join(''):`<tr><td colspan="8"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">📋</div><div>No issues yet. Click + Create Issue to start.</div></div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ---- BOARD VIEW (Scrum / Kanban selector + board) ----
+function renderBoardView(pid){
+  const boards=state.projectBoards||{};
+  const boardType=boards[pid];
+  if(!boardType){
+    return `<div style="max-width:580px;margin:36px auto">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="font-size:22px;font-weight:700;margin-bottom:6px">Choose a Board Type</div>
+        <div style="font-size:13px;color:var(--gray-500)">Select how you want to manage work in this project</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card" style="border:2px solid var(--gray-200);text-align:center;padding:28px 20px;cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--blue)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.borderColor='var(--gray-200)';this.style.boxShadow='var(--shadow)'"
+          onclick="setBoardType(${pid},'scrum')">
+          <div style="font-size:40px;margin-bottom:12px">🏃</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">Scrum Board</div>
+          <div style="font-size:12px;color:var(--gray-500);line-height:1.6;margin-bottom:16px">Sprint-based workflow with backlog. Plan sprints, track velocity, manage ceremonies.</div>
+          <button class="btn btn-primary" style="width:100%">Create Scrum Board</button>
+        </div>
+        <div class="card" style="border:2px solid var(--gray-200);text-align:center;padding:28px 20px;cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--blue)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.borderColor='var(--gray-200)';this.style.boxShadow='var(--shadow)'"
+          onclick="setBoardType(${pid},'kanban')">
+          <div style="font-size:40px;margin-bottom:12px">📋</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px">Kanban Board</div>
+          <div style="font-size:12px;color:var(--gray-500);line-height:1.6;margin-bottom:16px">Continuous flow with no sprints. Visualize work in progress and limit WIP.</div>
+          <button class="btn btn-outline" style="width:100%">Create Kanban Board</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(boardType==='kanban'){
+    return `<div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:13px;font-weight:600;color:var(--gray-600)">📋 Kanban Board</span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:11px;color:var(--gray-500)" onclick="setBoardType(${pid},null)">⚙ Change Board Type</button>
+      </div>
+      ${renderKanban(pid)}
+    </div>`;
+  }
+  // Scrum board
+  const tks=getTickets(pid);
+  const sprints=[...new Set(tks.map(t=>t.sprint).filter(Boolean))];
+  const activeSprint=state.activeSprint||(sprints.length?sprints[sprints.length-1]:null);
+  const sprintTks=activeSprint?tks.filter(t=>t.sprint===activeSprint):[];
+  const backlogTks=tks.filter(t=>t.status==='To Do');
+  return `<div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:700;color:var(--gray-700)">🏃 Scrum Board</span>
+      ${sprints.length?`<select class="form-select" style="font-size:12px;padding:4px 10px;height:auto;width:auto" onchange="setState({activeSprint:this.value})">
+        ${sprints.map(s=>`<option value="${s}" ${s===activeSprint?'selected':''}>${s}</option>`).join('')}
+      </select>`:'<span style="font-size:12px;color:var(--gray-400)">No sprints yet</span>'}
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;font-size:11px;color:var(--gray-500)" onclick="setBoardType(${pid},null)">⚙ Change Board Type</button>
+    </div>
+    ${activeSprint?`
+    <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${activeSprint} · ${sprintTks.length} issues</div>
+    <div class="kanban-board" style="margin-bottom:28px">
+      ${STATUSES.map(status=>{const cards=sprintTks.filter(t=>t.status===status);return`<div class="kanban-col">
+        <div class="kanban-col-header">${status}<span style="background:var(--gray-400);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px">${cards.length}</span></div>
+        <div class="kanban-col-body">
+          ${cards.map(t=>`<div class="kanban-card" onclick="viewTicket('${t.id}')">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:10px;color:var(--gray-400);font-weight:600">${t.id}</span>
+              <span class="badge ${getTypeColor(t.type)}" style="font-size:10px">${t.type}</span>
+            </div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">${t.title}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+              <span style="font-size:11px" class="${priorityClass(t.priority)}">${t.priority}</span>
+              ${avatarEl(t.assignee,22)}
+            </div>
+          </div>`).join('')}
+          <div style="text-align:center;padding:8px;font-size:11px;color:var(--gray-400);cursor:pointer" onclick="openModal('createTicket',{status:'${status}'})">+ Add</div>
+        </div>
+      </div>`;}).join('')}
+    </div>`:''}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 0;border-top:2px solid var(--gray-200)">
+      <div style="font-size:14px;font-weight:700">📦 Backlog</div>
+      <span style="font-size:12px;color:var(--gray-500)">${backlogTks.length} issues</span>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="openModal('createTicket')">+ Add to Backlog</button>
+    </div>
+    <div class="card" style="padding:0">
+      <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th></tr></thead>
+        <tbody>
+          ${backlogTks.length?backlogTks.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+            <td style="font-weight:600;color:var(--blue)">${t.id}</td>
+            <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
+            <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
+            <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
+            <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
+            <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,22)}<span style="font-size:12px">${t.assignee||'—'}</span></div></td>
+          </tr>`).join(''):`<tr><td colspan="6"><div class="empty-state" style="padding:16px"><div style="font-size:24px;margin-bottom:6px">📦</div><div>Backlog is empty</div></div></td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+function setBoardType(pid,type){setState({projectBoards:{...state.projectBoards,[pid]:type}});}
 
 // ---- KANBAN ----
 function renderKanban(pid){
@@ -896,74 +1059,306 @@ function renderDashboardReport(d,res){
 
 // ---- FILTERS ----
 function renderFilters(){
-  return `<div class="page">
-    <div class="page-header">
-      <div><div class="page-title">Filters</div><div class="page-sub">Saved filters — shared filters appear on Dashboards</div></div>
-      <button class="btn btn-primary" onclick="openModal('createFilter')">+ New Filter</button>
-    </div>
-    <div class="grid-2">
-      ${state.filters.map(f=>{const res=getFilteredTickets(f.id);return `<div class="card">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:15px;font-weight:700">${f.name}</div>
-          <div style="display:flex;gap:4px">
-            ${f.shared?'<span class="badge badge-blue">Shared</span>':'<span class="badge badge-gray">Private</span>'}
-            <button class="btn btn-ghost btn-sm" onclick="deleteFilter(${f.id})">🗑</button>
-          </div>
+  const q=state.ticketSearch||'';
+  const tf=state.typeFilter||[];
+  const sf=state.statusFilter||[];
+  const pf=state.projectFilter||[];
+  const af=state.assigneeFilter||[];
+  const xf=state.priorityFilter||[];
+  const spf=state.sprintFilter||[];
+  const dd=state.filterDropdownOpen;
+  const jqlMode=state.jqlMode||false;
+  const jqlQuery=state.jqlQuery||'';
+  const filterTab=state.filterTab||'search';
+
+  let tks=state.tickets;
+  if(jqlMode){tks=applyJQL(tks,jqlQuery);}
+  else{
+    if(q)tks=tks.filter(t=>t.title.toLowerCase().includes(q.toLowerCase())||t.id.toLowerCase().includes(q.toLowerCase()));
+    if(tf.length)tks=tks.filter(t=>tf.includes(t.type));
+    if(sf.length)tks=tks.filter(t=>sf.includes(t.status));
+    if(pf.length)tks=tks.filter(t=>pf.includes(t.project));
+    if(af.length)tks=tks.filter(t=>af.includes(t.assignee));
+    if(xf.length)tks=tks.filter(t=>xf.includes(t.priority));
+    if(spf.length)tks=tks.filter(t=>spf.includes(t.sprint));
+  }
+  const hasFilter=jqlMode?!!jqlQuery.trim():(q||tf.length||sf.length||pf.length||af.length||xf.length||spf.length);
+  const allAssignees=[...new Set(state.tickets.map(t=>t.assignee).filter(Boolean))];
+  const allSprints=[...new Set(state.tickets.map(t=>t.sprint).filter(Boolean))];
+
+  function makeDD(key,items,renderItem){return key===dd?`<div class="filter-dropdown" onclick="event.stopPropagation()">${items.map(renderItem).join('')}</div>`:''}
+  const ddProject=makeDD('project',state.projects,p=>`<label class="filter-dd-item"><input type="checkbox" ${pf.includes(p.id)?'checked':''} onchange="toggleProjectFilter(${p.id})"/><span style="width:10px;height:10px;border-radius:2px;background:${p.color};display:inline-block;flex-shrink:0"></span>${p.name}</label>`);
+  const ddAssignee=makeDD('assignee',allAssignees,a=>`<label class="filter-dd-item"><input type="checkbox" ${af.includes(a)?'checked':''} onchange="toggleFilterArr('assigneeFilter','${a}')"/>${avatarEl(a,20)}<span>${a}</span></label>`);
+  const ddType=makeDD('type',ISSUE_TYPES,t=>`<label class="filter-dd-item"><input type="checkbox" ${tf.includes(t)?'checked':''} onchange="toggleFilterArr('typeFilter','${t}')"/><span class="badge ${getTypeColor(t)}" style="font-size:10px">${t}</span></label>`);
+  const ddStatus=makeDD('status',STATUSES,s=>`<label class="filter-dd-item"><input type="checkbox" ${sf.includes(s)?'checked':''} onchange="toggleFilterArr('statusFilter','${s}')"/><span class="badge ${getStatusClass(s)}">${s}</span></label>`);
+  const ddPriority=makeDD('priority',PRIORITIES,p=>`<label class="filter-dd-item"><input type="checkbox" ${xf.includes(p)?'checked':''} onchange="toggleFilterArr('priorityFilter','${p}')"/><span style="font-size:12px" class="${priorityClass(p)}">${p}</span></label>`);
+  const ddSprint=makeDD('sprint',allSprints,s=>`<label class="filter-dd-item"><input type="checkbox" ${spf.includes(s)?'checked':''} onchange="toggleFilterArr('sprintFilter','${s}')"/><span style="font-size:12px">${s}</span></label>`);
+
+  const appliedTags=[
+    ...tf.map(t=>`<span class="applied-filter-tag">Type: ${t} <button onclick="toggleFilterArr('typeFilter','${t}')">×</button></span>`),
+    ...sf.map(s=>`<span class="applied-filter-tag">Status: ${s} <button onclick="toggleFilterArr('statusFilter','${s}')">×</button></span>`),
+    ...pf.map(id=>{const p=state.projects.find(x=>x.id===id);return p?`<span class="applied-filter-tag">Project: ${p.name} <button onclick="toggleProjectFilter(${id})">×</button></span>`:'';}),
+    ...af.map(a=>`<span class="applied-filter-tag">Assignee: ${a.split(' ')[0]} <button onclick="toggleFilterArr('assigneeFilter','${a}')">×</button></span>`),
+    ...xf.map(p=>`<span class="applied-filter-tag">Priority: ${p} <button onclick="toggleFilterArr('priorityFilter','${p}')">×</button></span>`),
+    ...spf.map(s=>`<span class="applied-filter-tag">Sprint: ${s} <button onclick="toggleFilterArr('sprintFilter','${s}')">×</button></span>`),
+  ].join('');
+
+  const searchTab=`
+    <div class="filter-bar" style="margin-bottom:${jqlMode?'4':'12'}px">
+      <div class="filter-mode-tabs">
+        <button class="filter-mode-btn ${!jqlMode?'active':''}" onclick="setState({jqlMode:false})">Basic</button>
+        <button class="filter-mode-btn ${jqlMode?'active':''}" onclick="setState({jqlMode:true})">JQL</button>
+      </div>
+      ${jqlMode?`
+        <div style="flex:1;display:flex;align-items:center;gap:6px;padding:6px 12px;border:1.5px solid var(--blue);border-radius:7px;background:var(--white)">
+          <span style="color:var(--gray-400);font-size:13px">🔍</span>
+          <input style="border:none;background:none;font-size:13px;color:var(--text);width:100%;outline:none;font-family:monospace"
+            placeholder='e.g. project = "TRK" AND status = "In Progress" AND priority = "High"'
+            value="${jqlQuery.replace(/"/g,'&quot;')}"
+            oninput="setState({jqlQuery:this.value})"
+            onkeydown="if(event.key==='Enter')setState({jqlQuery:this.value})"/>
         </div>
-        <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px">By ${f.owner} · ${f.created}</div>
-        <div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px">
-          ${Object.entries(f.conditions).map(([k,v])=>`<span class="filter-chip active">${k}: ${Array.isArray(v)?v.join(', '):v}</span>`).join('')}
+      `:`
+        <div class="filter-search-box" style="flex:1;max-width:320px">
+          <span style="color:var(--gray-400);font-size:13px">🔍</span>
+          <input class="filter-search-input" placeholder="Search by ticket name or ID..." value="${q}" oninput="setState({ticketSearch:this.value})"/>
         </div>
-        <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:10px">${res.length} matching tickets</div>
-        <div class="card" style="padding:0;margin:0"><table>
-          <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Assignee</th></tr></thead>
-          <tbody>${res.slice(0,3).map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
-            <td style="font-weight:600;color:var(--blue)">${t.id}</td>
-            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</td>
-            <td><span class="badge ${getStatusClass(t.status)}" style="font-size:10px">${t.status}</span></td>
-            <td>${avatarEl(t.assignee,22)}</td>
-          </tr>`).join('')}
-          ${res.length>3?`<tr><td colspan="4" style="text-align:center;font-size:11px;color:var(--gray-400);padding:7px">+${res.length-3} more</td></tr>`:''}
-          </tbody>
-        </table></div>
-      </div>`}).join('')}
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${pf.length?'active':''}" onclick="toggleFilterDropdown('project')">Project${pf.length?' ('+pf.length+')':''} ▾</button>${ddProject}
+        </div>
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${af.length?'active':''}" onclick="toggleFilterDropdown('assignee')">Assignee${af.length?' ('+af.length+')':''} ▾</button>${ddAssignee}
+        </div>
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${tf.length?'active':''}" onclick="toggleFilterDropdown('type')">Type${tf.length?' ('+tf.length+')':''} ▾</button>${ddType}
+        </div>
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${sf.length?'active':''}" onclick="toggleFilterDropdown('status')">Status${sf.length?' ('+sf.length+')':''} ▾</button>${ddStatus}
+        </div>
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${xf.length?'active':''}" onclick="toggleFilterDropdown('priority')">Priority${xf.length?' ('+xf.length+')':''} ▾</button>${ddPriority}
+        </div>
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${spf.length?'active':''}" onclick="toggleFilterDropdown('sprint')">Sprint${spf.length?' ('+spf.length+')':''} ▾</button>${ddSprint}
+        </div>
+        ${hasFilter?`<button class="btn btn-ghost btn-sm" style="font-size:12px" onclick="clearAllFilters()">✕ Clear</button>`:''}
+      `}
     </div>
+    ${jqlMode?`<div style="font-size:11px;color:var(--gray-400);padding:0 0 12px 2px">Supported fields: <strong>project</strong>, <strong>status</strong>, <strong>priority</strong>, <strong>assignee</strong>, <strong>issuetype</strong>, <strong>sprint</strong>, <strong>labels</strong>, <strong>text</strong> &nbsp;|&nbsp; Operators: <strong>=</strong>, <strong>!=</strong>, <strong>~</strong>, <strong>IN (...)</strong> &nbsp;|&nbsp; Combine with <strong>AND</strong></div>`:''}
+    ${appliedTags&&!jqlMode?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${appliedTags}</div>`:''}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:12px;color:var(--gray-500)">${tks.length} of ${state.tickets.length} tickets</span>
+      ${hasFilter?`<button class="btn btn-outline btn-sm" onclick="openModal('saveFilter')">💾 Save as Filter</button>`:'<span style="font-size:11px;color:var(--gray-400)">Apply filters above to save & create dashboards</span>'}
+    </div>
+    <div class="card" style="padding:0"><table>
+      <thead><tr><th>ID</th><th>Type</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Project</th><th>Sprint</th></tr></thead>
+      <tbody>${tks.length?tks.map(t=>{const p=projectById(t.project);return`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+        <td style="font-weight:600;color:var(--blue)">${t.id}</td>
+        <td><span class="badge ${getTypeColor(t.type)}" style="font-size:10px">${t.type}</span></td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
+        <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
+        <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
+        <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,22)}<span style="font-size:12px">${t.assignee||'—'}</span></div></td>
+        <td style="font-size:11px">${p?`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:${p.color};display:inline-block"></span>${p.key}</span>`:'—'}</td>
+        <td style="font-size:11px;color:var(--gray-400)">${t.sprint||'—'}</td>
+      </tr>`}).join(''):`<tr><td colspan="8"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">🔍</div><div>No tickets match your search</div></div></td></tr>`}
+      </tbody>
+    </table></div>`;
+
+  const savedTab=`<div class="grid-2">
+    ${state.filters.length?state.filters.map(f=>{const res=getFilteredTickets(f.id);return`<div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:15px;font-weight:700">${f.name}</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          ${f.shared?'<span class="badge badge-blue">Shared</span>':'<span class="badge badge-gray">Private</span>'}
+          <button class="btn btn-ghost btn-sm" onclick="deleteFilter(${f.id})">🗑</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px">By ${f.owner} · ${f.created}</div>
+      <div style="margin-bottom:10px;display:flex;flex-wrap:wrap;gap:4px">
+        ${Object.entries(f.conditions).map(([k,v])=>`<span class="filter-chip active">${k}: ${Array.isArray(v)?v.join(', '):v}</span>`).join('')}
+      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:12px">${res.length} matching tickets</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="loadFilterToSearch(${f.id})">🔍 View in Search</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('createDashboard',${f.id})">📊 Create Dashboard</button>
+      </div>
+    </div>`}).join(''):`<div style="grid-column:1/-1"><div class="empty-state"><div style="font-size:32px;margin-bottom:8px">🔍</div><div>No saved filters yet</div><div style="font-size:12px;color:var(--gray-400);margin-top:4px">Go to Search, apply filters, then click "Save as Filter"</div></div></div>`}
   </div>`;
+
+  return `<div class="page" onclick="if(state.filterDropdownOpen)setState({filterDropdownOpen:null})">
+    <div class="page-header" style="margin-bottom:16px">
+      <div><div class="page-title">Filters</div><div class="page-sub">Search tickets · Save as filter · Create dashboards from filters</div></div>
+    </div>
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--gray-200);margin-bottom:20px">
+      <button class="tab ${filterTab==='search'?'active':''}" onclick="setState({filterTab:'search'})">🔍 Search</button>
+      <button class="tab ${filterTab==='saved'?'active':''}" onclick="setState({filterTab:'saved'})">💾 My Filters (${state.filters.length})</button>
+    </div>
+    ${filterTab==='search'?searchTab:savedTab}
+  </div>`;
+}
+
+// ---- FILTER HELPERS ----
+function toggleFilterDropdown(name){setState({filterDropdownOpen:state.filterDropdownOpen===name?null:name});}
+function toggleFilterArr(key,val){const cur=state[key]||[];setState({[key]:cur.includes(val)?cur.filter(x=>x!==val):[...cur,val]});}
+function toggleProjectFilter(id){const cur=state.projectFilter||[];setState({projectFilter:cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]});}
+function clearAllFilters(){setState({ticketSearch:'',typeFilter:[],statusFilter:[],projectFilter:[],assigneeFilter:[],priorityFilter:[],sprintFilter:[],filterDropdownOpen:null,jqlQuery:''});}
+function loadFilterToSearch(fid){
+  const f=state.filters.find(x=>x.id===fid);if(!f)return;
+  const c=f.conditions;
+  if(c.jql){setState({filterTab:'search',jqlMode:true,jqlQuery:c.jql});}
+  else{setState({filterTab:'search',jqlMode:false,ticketSearch:c.text||'',typeFilter:Array.isArray(c.type)?c.type:(c.type?[c.type]:[]),statusFilter:Array.isArray(c.status)?c.status:(c.status?[c.status]:[]),projectFilter:Array.isArray(c.project)?c.project:(c.project?[c.project]:[]),assigneeFilter:c.assignee?[c.assignee]:[],priorityFilter:c.priority?[c.priority]:[],sprintFilter:c.sprint?[c.sprint]:[]});}
+}
+
+// ---- JQL PARSER ----
+function parseJQL(jql){
+  if(!jql||!jql.trim())return[];
+  const parts=jql.trim().split(/\s+AND\s+/i);
+  const conds=[];
+  for(let p of parts){
+    p=p.trim();
+    let m=p.match(/^(\w+)\s+IN\s*\(([^)]+)\)$/i);
+    if(m){const field=m[1].toLowerCase();const vals=m[2].split(',').map(v=>v.trim().replace(/^["']|["']$/g,''));conds.push({field,op:'in',vals});continue;}
+    m=p.match(/^(\w+)\s*(=|!=|~)\s*["']?(.+?)["']?$/i);
+    if(m){conds.push({field:m[1].toLowerCase(),op:m[2],val:m[3].trim().replace(/^["']|["']$/g,'')});continue;}
+  }
+  return conds;
+}
+function applyJQL(tickets,jql){
+  const conds=parseJQL(jql);
+  if(!conds.length)return tickets;
+  return tickets.filter(t=>conds.every(c=>{
+    let tv='';
+    if(c.field==='project'){const p=state.projects.find(x=>x.id===t.project);tv=p?p.key.toLowerCase():String(t.project);}
+    else if(c.field==='status')tv=(t.status||'').toLowerCase();
+    else if(c.field==='priority')tv=(t.priority||'').toLowerCase();
+    else if(c.field==='assignee')tv=(t.assignee||'').toLowerCase();
+    else if(c.field==='issuetype'||c.field==='type')tv=(t.type||'').toLowerCase();
+    else if(c.field==='sprint')tv=(t.sprint||'').toLowerCase();
+    else if(c.field==='labels')tv=(t.labels||[]).join(',').toLowerCase();
+    else if(c.field==='text'||c.field==='summary')tv=((t.title||'')+(t.desc||'')).toLowerCase();
+    else if(c.field==='id')tv=(t.id||'').toLowerCase();
+    const v=c.val?c.val.toLowerCase():'';
+    if(c.op==='in')return c.vals.some(vv=>tv===vv.toLowerCase()||tv.includes(vv.toLowerCase()));
+    if(c.op==='~')return tv.includes(v);
+    if(c.op==='=')return tv===v;
+    if(c.op==='!=')return tv!==v;
+    return true;
+  }));
 }
 
 // ---- ALL TICKETS ----
 function renderAllTickets(){
-  const q=state.ticketSearch||'',tf=state.typeFilter||'All',sf=state.statusFilter||'All',pf=state.projectFilter||'All';
+  const q=state.ticketSearch||'';
+  const tf=state.typeFilter||[];
+  const sf=state.statusFilter||[];
+  const pf=state.projectFilter||[];
+  const af=state.assigneeFilter||[];
+  const dd=state.filterDropdownOpen;
+
   let tks=state.tickets;
   if(q)tks=tks.filter(t=>t.title.toLowerCase().includes(q.toLowerCase())||t.id.toLowerCase().includes(q.toLowerCase()));
-  if(tf!=='All')tks=tks.filter(t=>t.type===tf);
-  if(sf!=='All')tks=tks.filter(t=>t.status===sf);
-  if(pf!=='All')tks=tks.filter(t=>t.project===parseInt(pf));
-  return `<div class="page">
-    <div class="page-header">
-      <div><div class="page-title">All Tickets</div><div class="page-sub">${tks.length} of ${state.tickets.length} tickets</div></div>
-      <button class="btn btn-primary" onclick="openModal('createTicket')">+ Create Ticket</button>
+  if(tf.length)tks=tks.filter(t=>tf.includes(t.type));
+  if(sf.length)tks=tks.filter(t=>sf.includes(t.status));
+  if(pf.length)tks=tks.filter(t=>pf.includes(t.project));
+  if(af.length)tks=tks.filter(t=>af.includes(t.assignee));
+
+  const hasFilter=q||tf.length||sf.length||pf.length||af.length;
+  const allAssignees=[...new Set(state.tickets.map(t=>t.assignee).filter(Boolean))];
+
+  const ddSpace=dd==='space'?`<div class="filter-dropdown" onclick="event.stopPropagation()">
+    <div class="filter-dd-search"><span style="color:var(--gray-400);font-size:12px">🔍</span><input placeholder="Search spaces..."/></div>
+    ${state.projects.map(p=>`<label class="filter-dd-item"><input type="checkbox" ${pf.includes(p.id)?'checked':''} onchange="toggleProjectFilter(${p.id})"/><span style="width:10px;height:10px;border-radius:2px;background:${p.color};display:inline-block;flex-shrink:0"></span>${p.name}</label>`).join('')}
+  </div>`:'';
+
+  const ddAssignee=dd==='assignee'?`<div class="filter-dropdown" onclick="event.stopPropagation()">
+    <div class="filter-dd-search"><span style="color:var(--gray-400);font-size:12px">🔍</span><input placeholder="Search assignees..."/></div>
+    ${allAssignees.map(a=>`<label class="filter-dd-item"><input type="checkbox" ${af.includes(a)?'checked':''} onchange="toggleFilterArr('assigneeFilter','${a}')"/>${avatarEl(a,20)}<span>${a}</span></label>`).join('')}
+  </div>`:'';
+
+  const ddType=dd==='type'?`<div class="filter-dropdown" onclick="event.stopPropagation()">
+    ${ISSUE_TYPES.map(t=>`<label class="filter-dd-item"><input type="checkbox" ${tf.includes(t)?'checked':''} onchange="toggleFilterArr('typeFilter','${t}')"/><span class="badge ${getTypeColor(t)}" style="font-size:10px">${t}</span></label>`).join('')}
+  </div>`:'';
+
+  const ddStatus=dd==='status'?`<div class="filter-dropdown" onclick="event.stopPropagation()">
+    ${STATUSES.map(s=>`<label class="filter-dd-item"><input type="checkbox" ${sf.includes(s)?'checked':''} onchange="toggleFilterArr('statusFilter','${s}')"/><span class="badge ${getStatusClass(s)}">${s}</span></label>`).join('')}
+  </div>`:'';
+
+  const appliedTags=[
+    ...tf.map(t=>`<span class="applied-filter-tag">Type: ${t} <button onclick="toggleFilterArr('typeFilter','${t}')">×</button></span>`),
+    ...sf.map(s=>`<span class="applied-filter-tag">Status: ${s} <button onclick="toggleFilterArr('statusFilter','${s}')">×</button></span>`),
+    ...pf.map(id=>{const p=state.projects.find(x=>x.id===id);return p?`<span class="applied-filter-tag">Space: ${p.name} <button onclick="toggleProjectFilter(${id})">×</button></span>`:'';}),
+    ...af.map(a=>`<span class="applied-filter-tag">Assignee: ${a.split(' ')[0]} <button onclick="toggleFilterArr('assigneeFilter','${a}')">×</button></span>`),
+  ].join('');
+
+  return `<div class="page" onclick="if(state.filterDropdownOpen)setState({filterDropdownOpen:null})">
+    <div class="page-header" style="margin-bottom:14px">
+      <div class="page-title">All work</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-outline btn-sm">Apps ↓</button>
+        <button class="btn btn-outline btn-sm">Share ↓</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('createTicket')">+ Create Ticket</button>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-      <input class="search-input" placeholder="Search by title or ID..." value="${q}" oninput="setState({ticketSearch:this.value})"/>
-      <select class="form-select" style="width:auto" onchange="setState({typeFilter:this.value})"><option value="All">All Types</option>${ISSUE_TYPES.map(t=>`<option value="${t}" ${tf===t?'selected':''}>${t}</option>`).join('')}</select>
-      <select class="form-select" style="width:auto" onchange="setState({statusFilter:this.value})"><option value="All">All Statuses</option>${STATUSES.map(s=>`<option value="${s}" ${sf===s?'selected':''}>${s}</option>`).join('')}</select>
-      <select class="form-select" style="width:auto" onchange="setState({projectFilter:this.value})"><option value="All">All Projects</option>${state.projects.map(p=>`<option value="${p.id}" ${pf==p.id?'selected':''}>${p.name}</option>`).join('')}</select>
-      ${(q||tf!=='All'||sf!=='All'||pf!=='All')?`<button class="btn btn-ghost" onclick="setState({ticketSearch:'',typeFilter:'All',statusFilter:'All',projectFilter:'All'})">✕ Clear</button>`:''}
+
+    <div class="filter-bar">
+      <button class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--gray-500);gap:4px">✦ Ask AI</button>
+      <div class="filter-divider"></div>
+      <div class="filter-mode-tabs">
+        <button class="filter-mode-btn active">Basic</button>
+        <button class="filter-mode-btn">JQL</button>
+      </div>
+      <div class="filter-search-box">
+        <span style="color:var(--gray-400);font-size:13px">🔍</span>
+        <input class="filter-search-input" placeholder="Search work" value="${q}" oninput="setState({ticketSearch:this.value})"/>
+      </div>
+
+      <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+        <button class="filter-chip ${pf.length?'active':''}" onclick="toggleFilterDropdown('space')">Space${pf.length?' ('+pf.length+')':''} <span style="font-size:10px;margin-left:2px">▾</span></button>
+        ${ddSpace}
+      </div>
+
+      <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+        <button class="filter-chip ${af.length?'active':''}" onclick="toggleFilterDropdown('assignee')">Assignee${af.length?' ('+af.length+')':''} <span style="font-size:10px;margin-left:2px">▾</span></button>
+        ${ddAssignee}
+      </div>
+
+      <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+        <button class="filter-chip ${tf.length?'active':''}" onclick="toggleFilterDropdown('type')">Type${tf.length?' ('+tf.length+')':''} <span style="font-size:10px;margin-left:2px">▾</span></button>
+        ${ddType}
+      </div>
+
+      <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+        <button class="filter-chip ${sf.length?'active':''}" onclick="toggleFilterDropdown('status')">Status${sf.length?' ('+sf.length+')':''} <span style="font-size:10px;margin-left:2px">▾</span></button>
+        ${ddStatus}
+      </div>
+
+      <button class="filter-chip">More filters <span style="font-size:10px;margin-left:2px">▾</span></button>
+      ${hasFilter?`<button class="btn btn-ghost btn-sm" style="font-size:12px" onclick="clearAllFilters()">✕ Clear</button>`:''}
+      <button class="btn btn-ghost btn-sm" style="font-size:12px;color:var(--blue);margin-left:auto" onclick="event.stopPropagation()">Save filter</button>
     </div>
+
+    ${appliedTags?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">${appliedTags}</div>`:''}
+
+    <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">${tks.length} of ${state.tickets.length} work items</div>
+
     <div class="card" style="padding:0"><table>
-      <thead><tr><th>ID</th><th>Type</th><th>Title</th><th>Project</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Start</th><th>Due</th></tr></thead>
-      <tbody>${tks.length?tks.map(t=>`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
-        <td style="font-weight:600;color:var(--blue)">${t.id}</td>
-        <td><span class="badge ${getTypeColor(t.type)}">${t.type}</span></td>
-        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${t.title}</td>
-        <td><span style="font-size:11px;background:var(--blue-light);color:var(--blue);padding:2px 7px;border-radius:4px;font-weight:600">${projectById(t.project)?.key||'-'}</span></td>
-        <td><span class="badge ${getStatusClass(t.status)}">${t.status}</span></td>
-        <td><span style="font-size:12px" class="${priorityClass(t.priority)}">${t.priority}</span></td>
-        <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,22)}<span style="font-size:12px">${t.assignee.split(' ')[0]}</span></div></td>
-        <td style="font-size:11px;color:var(--gray-400)">${t.startDate||'—'}</td>
-        <td style="font-size:11px;color:var(--gray-400)">${t.dueDate||'—'}</td>
-      </tr>`).join(''):`<tr><td colspan="9"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">🔍</div><div>No tickets match filters</div></div></td></tr>`}
+      <thead><tr>
+        <th style="width:32px"><input type="checkbox"/></th>
+        <th>Work</th><th>Original estimate</th><th>Status</th><th>Assignee</th><th>Created</th>
+      </tr></thead>
+      <tbody>${tks.length?tks.map(t=>{const p=projectById(t.project);return`<tr onclick="viewTicket('${t.id}')" style="cursor:pointer">
+        <td onclick="event.stopPropagation()"><input type="checkbox"/></td>
+        <td><div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:${p?.color||'var(--blue)'};font-weight:700;white-space:nowrap">${t.id}</span>
+          <span class="badge ${getTypeColor(t.type)}" style="font-size:10px;padding:1px 5px">${t.type}</span>
+          <span style="font-size:13px;font-weight:500">${t.title}</span>
+        </div></td>
+        <td style="font-size:12px;color:var(--gray-400)">0m</td>
+        <td><span class="badge ${getStatusClass(t.status)}">${t.status.toUpperCase()}</span></td>
+        <td><div style="display:flex;align-items:center;gap:5px">${avatarEl(t.assignee,24)}<span style="font-size:12px">${t.assignee||'Unassigned'}</span></div></td>
+        <td style="font-size:11px;color:var(--gray-400)">${t.created}</td>
+      </tr>`}).join(''):`<tr><td colspan="6"><div class="empty-state"><div style="font-size:28px;margin-bottom:8px">🔍</div><div>No tickets match filters</div></div></td></tr>`}
       </tbody>
     </table></div>
   </div>`;
@@ -977,7 +1372,7 @@ function renderTicketView(){
   const children=state.tickets.filter(x=>x.parent===t.id);
   const parentT=t.parent?state.tickets.find(x=>x.id===t.parent):null;
   return `<div class="page">
-    <div class="breadcrumb"><span onclick="nav(state.prevPage||'alltickets')">← Back</span><span class="bc-sep">›</span><span onclick="openProject(${t.project})">${p?.name}</span><span class="bc-sep">›</span><span>${t.id}</span></div>
+    <div class="breadcrumb"><span onclick="nav(state.prevPage||'filters')">← Back</span><span class="bc-sep">›</span><span onclick="openProject(${t.project})">${p?.name}</span><span class="bc-sep">›</span><span>${t.id}</span></div>
     <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -1137,8 +1532,8 @@ function renderModal(){
   if(m.type==='createTicket')inner=renderCTModal(m.data,m.extra);
   else if(m.type==='editTicket')inner=renderETModal(m.data);
   else if(m.type==='createProject')inner=renderCPModal();
-  else if(m.type==='createFilter')inner=renderCFModal();
-  else if(m.type==='createDashboard')inner=renderCDModal();
+  else if(m.type==='saveFilter')inner=renderSFModal();
+  else if(m.type==='createDashboard')inner=renderCDModal(m.data);
   else if(m.type==='editDashboard')inner=renderEDModal(m.data);
   else if(m.type==='addUser')inner=renderAUModal();
   else if(m.type==='editUser')inner=renderEUModal(m.data);
@@ -1214,7 +1609,7 @@ function subCT(){
   const today=new Date().toISOString().slice(0,10);
   // STATUS IS ALWAYS 'To Do' — goes to backlog
   const t={id,project:pid,type,title,desc,status:'To Do',priority,assignee,reporter:state.user.name,created:today,updated:today,labels,sprint,parent,startDate,dueDate};
-  setState({tickets:[...state.tickets,t],modal:null,activeProject:pid,page:'projectdetail',projectTab:'backlog'});
+  setState({tickets:[...state.tickets,t],modal:null,activeProject:pid,page:'projectdetail',projectTab:'issues'});
 }
 
 function renderETModal(tid){
@@ -1257,44 +1652,57 @@ function renderCPModal(){return `<div>
     <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" onclick="subCP()">Create</button>
   </div></div>`}
-function subCP(){const name=document.getElementById('cp-name').value.trim(),key=document.getElementById('cp-key').value.trim().toUpperCase();if(!name||!key){alert('Name+Key required');return}if(state.projects.find(p=>p.key===key)){alert('Key exists');return}const id=state.projects.length+1;const p={id,key,name,description:document.getElementById('cp-desc').value||'No description',color:document.getElementById('cp-color').value,lead:document.getElementById('cp-lead').value,status:'Active',created:new Date().toISOString().slice(0,10)};state.nextTicketNums[id]=1;setState({projects:[...state.projects,p],modal:null,activeProject:id,page:'projectdetail',projectTab:'backlog'})}
+function subCP(){const name=document.getElementById('cp-name').value.trim(),key=document.getElementById('cp-key').value.trim().toUpperCase();if(!name||!key){alert('Name+Key required');return}if(state.projects.find(p=>p.key===key)){alert('Key exists');return}const id=state.projects.length+1;const p={id,key,name,description:document.getElementById('cp-desc').value||'No description',color:document.getElementById('cp-color').value,lead:document.getElementById('cp-lead').value,status:'Active',created:new Date().toISOString().slice(0,10)};state.nextTicketNums[id]=1;setState({projects:[...state.projects,p],modal:null,activeProject:id,page:'projectdetail',projectTab:'issues'})}
 
-function renderCFModal(){return `<div>
-  <div class="modal-title">Create Filter</div><button class="modal-close" onclick="closeModal()">×</button>
-  <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" placeholder="My Sprint Tasks"/></div>
-  <div class="form-row">
-    <div class="form-group"><label class="form-label">Assignee</label><select class="form-select" id="cf-assignee"><option value="">Any</option>${state.users.map(u=>`<option value="${u.name}">${u.name}</option>`).join('')}</select></div>
-    <div class="form-group"><label class="form-label">Priority</label><select class="form-select" id="cf-priority"><option value="">Any</option>${PRIORITIES.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div>
-  </div>
-  <div class="form-row">
-    <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="cf-status"><option value="">Any</option>${STATUSES.map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
-    <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="cf-type"><option value="">Any</option>${ISSUE_TYPES.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
-  </div>
-  <div class="form-group"><label class="form-label">Sprint</label><select class="form-select" id="cf-sprint"><option value="">Any</option><option>Sprint 1</option><option>Sprint 2</option><option>Sprint 3</option></select></div>
-  <div class="form-group"><div class="toggle-wrap"><div class="toggle on" id="cf-shared-toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div><label class="form-label" style="margin:0">Share with team</label></div></div>
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-    <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="subCF()">Create Filter</button>
-  </div></div>`}
-function subCF(){const name=document.getElementById('cf-name').value.trim();if(!name){alert('Name required');return}const cond={};const a=document.getElementById('cf-assignee').value,p=document.getElementById('cf-priority').value,s=document.getElementById('cf-status').value,t=document.getElementById('cf-type').value,sp=document.getElementById('cf-sprint').value;if(a)cond.assignee=a;if(p)cond.priority=p;if(s)cond.status=[s];if(t)cond.type=[t];if(sp)cond.sprint=sp;const shared=document.getElementById('cf-shared-toggle').classList.contains('on');setState({filters:[...state.filters,{id:state.filters.length+1,name,conditions:cond,owner:state.user.name,shared,created:new Date().toISOString().slice(0,10)}],modal:null})}
+function renderSFModal(){
+  const q=state.ticketSearch||'',tf=state.typeFilter||[],sf=state.statusFilter||[],pf=state.projectFilter||[],af=state.assigneeFilter||[],xf=state.priorityFilter||[],spf=state.sprintFilter||[];
+  const jqlMode=state.jqlMode||false,jqlQuery=state.jqlQuery||'';
+  let condSummary='';
+  if(jqlMode){condSummary=`<div style="font-family:monospace;background:var(--gray-100);padding:8px 12px;border-radius:6px;font-size:12px;margin-bottom:12px;word-break:break-all">${jqlQuery||'(no JQL)'}</div>`;}
+  else{const parts=[];if(q)parts.push(`Text: "${q}"`);tf.forEach(v=>parts.push(`Type: ${v}`));sf.forEach(v=>parts.push(`Status: ${v}`));pf.forEach(id=>{const p=state.projects.find(x=>x.id===id);if(p)parts.push(`Project: ${p.name}`)});af.forEach(v=>parts.push(`Assignee: ${v}`));xf.forEach(v=>parts.push(`Priority: ${v}`));spf.forEach(v=>parts.push(`Sprint: ${v}`));condSummary=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px">${parts.map(p=>`<span class="filter-chip active">${p}</span>`).join('')}</div>`;}
+  return `<div>
+    <div class="modal-title">💾 Save as Filter</div><button class="modal-close" onclick="closeModal()">×</button>
+    <div style="font-size:12px;color:var(--gray-600);margin-bottom:6px">Current search criteria:</div>
+    ${condSummary}
+    <div class="form-group"><label class="form-label">Filter Name *</label><input class="form-input" id="sf-name" placeholder="e.g. My Open Bugs"/></div>
+    <div class="form-group"><div class="toggle-wrap"><div class="toggle on" id="sf-shared-toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div><label class="form-label" style="margin:0">Share with team</label></div></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subSF()">Save Filter</button>
+    </div>
+  </div>`;}
+function subSF(){
+  const name=document.getElementById('sf-name').value.trim();if(!name){alert('Filter name is required');return}
+  const shared=document.getElementById('sf-shared-toggle').classList.contains('on');
+  const jqlMode=state.jqlMode||false,jqlQuery=state.jqlQuery||'';
+  let cond={};
+  if(jqlMode){cond={jql:jqlQuery};}
+  else{const q=state.ticketSearch,tf=state.typeFilter||[],sf=state.statusFilter||[],pf=state.projectFilter||[],af=state.assigneeFilter||[],xf=state.priorityFilter||[],spf=state.sprintFilter||[];if(q)cond.text=q;if(tf.length)cond.type=tf;if(sf.length)cond.status=sf;if(pf.length)cond.project=pf;if(af.length)cond.assignee=af[0];if(xf.length)cond.priority=xf[0];if(spf.length)cond.sprint=spf[0];}
+  setState({filters:[...state.filters,{id:Date.now(),name,conditions:cond,owner:state.user.name,shared,created:new Date().toISOString().slice(0,10)}],modal:null,filterTab:'saved'});
+}
 
-function renderCDModal(){return `<div>
-  <div class="modal-title">Create Dashboard</div><button class="modal-close" onclick="closeModal()">×</button>
+function renderCDModal(preFilterId){
+  const hasFilters=state.filters.length>0;
+  return `<div>
+  <div class="modal-title">📊 Create Dashboard</div><button class="modal-close" onclick="closeModal()">×</button>
   <div class="form-group"><label class="form-label">Dashboard Name *</label><input class="form-input" id="cd-name" placeholder="e.g. My Sprint Dashboard"/></div>
-  <div class="form-group"><label class="form-label">Based on Filter</label>
-    <select class="form-select" id="cd-filter">
-      <option value="">All Tickets (no filter)</option>
-      ${state.filters.map(f=>`<option value="${f.id}">${f.name} — ${getFilteredTickets(f.id).length} tickets</option>`).join('')}
-    </select>
+  <div class="form-group"><label class="form-label">Based on Filter *</label>
+    ${hasFilters?`<select class="form-select" id="cd-filter">
+      <option value="">— Select a filter —</option>
+      ${state.filters.map(f=>`<option value="${f.id}" ${preFilterId===f.id||preFilterId===String(f.id)?'selected':''}>${f.name} — ${getFilteredTickets(f.id).length} tickets</option>`).join('')}
+    </select>`:`<div style="padding:10px 12px;background:#fff3cd;border-radius:7px;font-size:12px;color:#856404;border:1px solid #ffc107">
+      ⚠️ No filters yet. Go to <strong>Filters → Search</strong>, apply criteria and save a filter first.
+      <div style="margin-top:6px"><button class="btn btn-outline btn-sm" onclick="closeModal();setState({page:'filters',filterTab:'search'})">Go to Filters →</button></div>
+    </div>`}
   </div>
   <div style="padding:10px 12px;background:var(--blue-light);border-radius:7px;font-size:12px;color:var(--blue);margin-bottom:12px">
-    💡 The dashboard will show live stats for tickets matching the selected filter.
+    💡 Dashboards show live stats for tickets matching the selected filter.
   </div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
     <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-    <button class="btn btn-primary" onclick="subCD()">Create Dashboard</button>
-  </div></div>`}
-function subCD(){const name=document.getElementById('cd-name').value.trim();if(!name){alert('Name required');return}const fv=document.getElementById('cd-filter').value;const filterId=fv?parseInt(fv):null;setState({customDashboards:[...state.customDashboards,{id:Date.now(),name,filterId,reportType:'issue-list',created:new Date().toISOString().slice(0,10)}],modal:null});}
+    ${hasFilters?`<button class="btn btn-primary" onclick="subCD()">Create Dashboard</button>`:''}
+  </div></div>`;}
+function subCD(){const name=document.getElementById('cd-name').value.trim();if(!name){alert('Name required');return}const fv=document.getElementById('cd-filter').value;if(!fv){alert('Please select a filter');return}const filterId=parseInt(fv);setState({customDashboards:[...state.customDashboards,{id:Date.now(),name,filterId,reportType:'issue-list',created:new Date().toISOString().slice(0,10)}],modal:null});}
 function deleteCustomDashboard(id){setState({customDashboards:state.customDashboards.filter(d=>d.id!==id)});}
 function renderEDModal(id){
   const d=state.customDashboards.find(x=>x.id===id);if(!d)return'<div>Not found</div>';
@@ -1370,10 +1778,13 @@ window.doLogin=doLogin;window.doLogout=doLogout;
 window.openModal=openModal;window.closeModal=closeModal;
 window.openProject=openProject;window.viewTicket=viewTicket;
 window.updateTicket=updateTicket;window.deleteTicketConfirm=deleteTicketConfirm;
-window.subCT=subCT;window.subET=subET;window.subCP=subCP;window.subCF=subCF;
+window.subCT=subCT;window.subET=subET;window.subCP=subCP;window.subSF=subSF;
 window.subAU=subAU;window.subEU=subEU;window.subAF=subAF;window.subSimple=subSimple;
 window.toggleUser=toggleUser;window.removeUser=removeUser;
 window.toggleConnector=toggleConnector;window.deleteFilter=deleteFilter;
+window.setBoardType=setBoardType;window.loadFilterToSearch=loadFilterToSearch;
+window.toggleFilterDropdown=toggleFilterDropdown;window.toggleFilterArr=toggleFilterArr;
+window.toggleProjectFilter=toggleProjectFilter;window.clearAllFilters=clearAllFilters;
 window.toggleRoadmapRow=toggleRoadmapRow;
 window.expandAllRoadmap=expandAllRoadmap;window.collapseAllRoadmap=collapseAllRoadmap;
 window.subCD=subCD;window.deleteCustomDashboard=deleteCustomDashboard;window.toggleProjectsSidebar=toggleProjectsSidebar;
