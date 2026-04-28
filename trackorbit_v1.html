@@ -232,6 +232,37 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 .widget-panel{border:2px dashed var(--gray-200);border-radius:14px;padding:20px;text-align:center;color:var(--gray-400);cursor:pointer;transition:all .15s;min-height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .widget-panel:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
 .dash-section-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+/* === NEW STATUS CLASSES === */
+.s-readytest{background:#fef9c3;color:#854d0e}
+.s-intesting{background:#ede9fe;color:#5b21b6}
+/* === JIRA GROUPED SPRINT BOARD === */
+.jira-board-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;padding:10px 0;border-bottom:1.5px solid var(--gray-200)}
+.jira-sprint-banner{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:linear-gradient(90deg,#eef2ff,#f5f3ff);border:1.5px solid #c7d2fe;border-radius:10px;margin-bottom:10px}
+.jira-board-outer{overflow-x:auto;border-radius:10px;border:1.5px solid var(--gray-200);background:var(--white)}
+.jira-col-strip{display:flex;background:var(--white);border-bottom:2px solid var(--gray-200)}
+.jira-col-hdr{flex:1;min-width:155px;padding:9px 10px;text-align:center;border-right:1px solid var(--gray-100)}
+.jira-col-hdr:last-child{border-right:none}
+.jira-story-group{border-bottom:1px solid var(--gray-200)}
+.jira-story-group:last-child{border-bottom:none}
+.jira-story-hdr{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--gray-50);cursor:pointer;transition:background .12s;flex-wrap:nowrap;min-height:44px}
+.jira-story-hdr:hover{background:#eef2ff}
+.jira-chevron{font-size:10px;color:var(--gray-400);transition:transform .15s;width:14px;flex-shrink:0;display:inline-block}
+.jira-story-grid{display:flex;border-top:1px solid var(--gray-100)}
+.jira-story-cell{flex:1;min-width:155px;padding:7px 7px;border-right:1px solid var(--gray-100);min-height:72px;background:var(--white)}
+.jira-story-cell:last-child{border-right:none}
+.jira-story-cell.drag-over{background:rgba(26,86,219,.06);outline:2px dashed var(--blue);outline-offset:-3px;border-radius:4px}
+.jira-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:7px;padding:9px 10px;margin-bottom:5px;cursor:pointer;transition:all .12s;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.jira-card:hover{border-color:var(--blue);box-shadow:0 3px 10px rgba(26,86,219,.13);transform:translateY(-1px)}
+.jira-card.dragging{opacity:.4;transform:scale(.96)}
+.jira-card-title{font-size:12px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:7px}
+.jira-card-meta{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.jira-add-row{padding:4px 8px;font-size:11px;color:var(--gray-400);cursor:pointer;text-align:center;border-radius:5px;transition:background .1s;margin-top:3px}
+.jira-add-row:hover{background:var(--gray-100);color:var(--blue)}
+.blocked-strip{background:#fff1f2;border:1.5px solid #fecaca;border-radius:8px;padding:7px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* === WORKFLOW BUILDER === */
+.wf-status-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:default;border:1.5px solid transparent}
+.wf-transition-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;margin-bottom:3px;background:var(--gray-50)}
+.wf-arrow{font-size:14px;color:var(--gray-400)}
 /* ====== FILTER LIST VIEW ====== */
 .filter-list-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);transition:background .1s;cursor:default}
 .filter-list-row:hover{background:var(--gray-50)}
@@ -265,9 +296,17 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 const ISSUE_TYPES=['Feature','Initiative','Epic','Story','Task','Sub-task'];
 const ISSUE_TYPE_PARENT={'Initiative':'Feature','Epic':'Initiative','Story':'Epic','Task':'Story','Sub-task':'Task'};
 const TYPE_DEPTH={'Feature':0,'Initiative':1,'Epic':2,'Story':3,'Task':4,'Sub-task':5};
-const STATUSES=['To Do','In Progress','In Review','Done','Blocked'];
+const STATUSES=['To Do','In Progress','Ready for Testing','In Testing','Done','Blocked'];
 const PRIORITIES=['Critical','High','Medium','Low'];
 const WORKFLOWS=['Default Workflow','Bug Workflow','Sprint Workflow'];
+const DEFAULT_WF_STATUSES=[
+  {name:'To Do',color:'#64748b',category:'todo'},
+  {name:'In Progress',color:'#1d4ed8',category:'inprogress'},
+  {name:'Ready for Testing',color:'#7c3aed',category:'inprogress'},
+  {name:'In Testing',color:'#ea580c',category:'inprogress'},
+  {name:'Done',color:'#16a34a',category:'done'},
+  {name:'Blocked',color:'#dc2626',category:'todo'},
+];
 const SCREENS=['Create Screen','Edit Screen','View Screen'];
 
 // Type colours for roadmap bars
@@ -281,7 +320,7 @@ let state={
   settingsTab:'users',projectTab:'active-sprints',
   activeProject:null,viewTicket:null,prevPage:null,
   ticketSearch:'',typeFilter:[],statusFilter:[],projectFilter:[],assigneeFilter:[],priorityFilter:[],sprintFilter:[],filterDropdownOpen:null,
-  jqlMode:false,jqlQuery:'',filterTab:'search',projectBoards:{},issueSearch:'',activeSprint:null,boardAssigneeFilter:[],dashTab:'overview',boardSubTab:'scrum',
+  jqlMode:false,jqlQuery:'',filterTab:'search',projectBoards:{},issueSearch:'',activeSprint:null,boardAssigneeFilter:[],dashTab:'overview',boardSubTab:'scrum',boardGroupCollapsed:{},boardEpicFilter:'',boardTypeFilter:'',
   roadmapZoom:'month', // month | quarter | year
   roadmapExpanded:{}, // ticketId -> bool
   recentProjects:[],
@@ -300,6 +339,13 @@ let state={
   ],
   groups:['Engineering','Design','Product','QA','Management'],
   roles:['Admin','Manager','Developer','Viewer'],
+  teams:[
+    {id:'tm1',name:'Frontend Team',description:'UI/UX and frontend development',color:'#1a56db',lead:2,members:[2,3]},
+    {id:'tm2',name:'Backend Team',description:'API and server-side engineering',color:'#7c3aed',lead:1,members:[1,5]},
+    {id:'tm3',name:'QA Team',description:'Quality assurance and testing',color:'#16a34a',lead:5,members:[4,5]},
+    {id:'tm4',name:'Product Team',description:'Product management and roadmap',color:'#ea580c',lead:4,members:[4,1]},
+  ],
+  teamFilter:[],
 
   projects:[
     {id:1,key:'TRK',name:'TrackKub Platform',description:'Core platform development',color:'#1a56db',lead:'Harsha',status:'Active',created:'2024-01-10',icon:'🚀'},
@@ -323,7 +369,7 @@ let state={
     {id:'TRK-3',project:1,type:'Epic',title:'Dashboard Analytics',desc:'Full dashboard and reporting suite.',status:'In Progress',priority:'High',assignee:'Sara Lee',reporter:'Harsha',created:'2024-02-01',updated:'2024-03-18',labels:['analytics'],sprint:'Sprint 2',parent:'TRK-2',startDate:'2024-02-01',dueDate:'2024-04-30'},
     {id:'TRK-8',project:1,type:'Epic',title:'Performance Optimisation',desc:'Reduce p95 latency below 200ms.',status:'To Do',priority:'High',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-01',updated:'2024-03-18',labels:['perf'],sprint:'Sprint 3',parent:'TRK-2',startDate:'2024-04-01',dueDate:'2024-06-30'},
     // TRK Stories
-    {id:'TRK-4',project:1,type:'Story',title:'Create ticket form UX',desc:'Design and build create ticket form.',status:'In Review',priority:'Medium',assignee:'Mike Chen',reporter:'Sara Lee',created:'2024-02-10',updated:'2024-03-20',labels:['UX'],sprint:'Sprint 2',parent:'TRK-3',startDate:'2024-02-10',dueDate:'2024-03-20'},
+    {id:'TRK-4',project:1,type:'Story',title:'Create ticket form UX',desc:'Design and build create ticket form.',status:'Ready for Testing',priority:'Medium',assignee:'Mike Chen',reporter:'Sara Lee',created:'2024-02-10',updated:'2024-03-20',labels:['UX'],sprint:'Sprint 2',parent:'TRK-3',startDate:'2024-02-10',dueDate:'2024-03-20'},
     {id:'TRK-9',project:1,type:'Story',title:'Dashboard charts & widgets',desc:'Build chart widgets for dashboards.',status:'To Do',priority:'Medium',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-10',updated:'2024-03-18',labels:['analytics'],sprint:'Sprint 3',parent:'TRK-3',startDate:'2024-03-20',dueDate:'2024-04-25'},
     // TRK Tasks
     {id:'TRK-5',project:1,type:'Task',title:'Implement ticket API endpoint',desc:'POST /api/tickets with validation.',status:'Done',priority:'High',assignee:'Sara Lee',reporter:'Harsha',created:'2024-02-15',updated:'2024-03-12',labels:['backend'],sprint:'Sprint 1',parent:'TRK-4',startDate:'2024-02-15',dueDate:'2024-03-05'},
@@ -340,14 +386,14 @@ let state={
     // ---- TRK Project extra tickets ----
     {id:'TRK-10',project:1,type:'Epic',title:'Notification System',desc:'In-app and email notification engine.',status:'In Progress',priority:'High',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-05',updated:'2024-03-25',labels:['notifications'],sprint:'Sprint 3',parent:'TRK-2',startDate:'2024-03-05',dueDate:'2024-05-10'},
     {id:'TRK-11',project:1,type:'Story',title:'Email digest for daily updates',desc:'Send daily digest emails to users.',status:'To Do',priority:'Medium',assignee:'Sara Lee',reporter:'Tom Wilson',created:'2024-03-06',updated:'2024-03-22',labels:['email','notifications'],sprint:'Sprint 3',parent:'TRK-10',startDate:'2024-04-01',dueDate:'2024-04-20'},
-    {id:'TRK-12',project:1,type:'Story',title:'In-app notification bell',desc:'Build notification dropdown UI.',status:'In Review',priority:'Medium',assignee:'Mike Chen',reporter:'Tom Wilson',created:'2024-03-07',updated:'2024-03-28',labels:['UX','notifications'],sprint:'Sprint 3',parent:'TRK-10',startDate:'2024-03-15',dueDate:'2024-04-05'},
+    {id:'TRK-12',project:1,type:'Story',title:'In-app notification bell',desc:'Build notification dropdown UI.',status:'Ready for Testing',priority:'Medium',assignee:'Mike Chen',reporter:'Tom Wilson',created:'2024-03-07',updated:'2024-03-28',labels:['UX','notifications'],sprint:'Sprint 3',parent:'TRK-10',startDate:'2024-03-15',dueDate:'2024-04-05'},
     {id:'TRK-13',project:1,type:'Task',title:'Notification preferences settings page',desc:'Allow users to toggle notification types.',status:'To Do',priority:'Low',assignee:'Tom Wilson',reporter:'Sara Lee',created:'2024-03-08',updated:'2024-03-22',labels:['settings'],sprint:'Sprint 3',parent:'TRK-10',startDate:'2024-04-10',dueDate:'2024-04-28'},
     {id:'TRK-14',project:1,type:'Sub-task',title:'Write notification service unit tests',desc:'Cover edge cases for notification dispatch.',status:'To Do',priority:'Medium',assignee:'Tom Wilson',reporter:'Tom Wilson',created:'2024-03-09',updated:'2024-03-22',labels:['testing'],sprint:'Sprint 3',parent:'TRK-13',startDate:'2024-04-15',dueDate:'2024-04-25'},
     {id:'TRK-15',project:1,type:'Feature',title:'Dark Mode Support',desc:'System-wide dark theme toggle.',status:'To Do',priority:'Low',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-12',updated:'2024-03-20',labels:['UX','design'],sprint:'Sprint 4',parent:null,startDate:'2024-05-01',dueDate:'2024-06-01'},
     {id:'TRK-16',project:1,type:'Epic',title:'Search & Filtering Engine',desc:'Global full-text search across all entities.',status:'In Progress',priority:'High',assignee:'Harsha',reporter:'Harsha',created:'2024-03-14',updated:'2024-04-01',labels:['search','backend'],sprint:'Sprint 3',parent:'TRK-2',startDate:'2024-03-14',dueDate:'2024-05-15'},
     {id:'TRK-17',project:1,type:'Story',title:'Elasticsearch integration',desc:'Index tickets into Elasticsearch cluster.',status:'In Progress',priority:'High',assignee:'Harsha',reporter:'Sara Lee',created:'2024-03-15',updated:'2024-04-02',labels:['search','infrastructure'],sprint:'Sprint 3',parent:'TRK-16',startDate:'2024-03-15',dueDate:'2024-04-30'},
     {id:'TRK-18',project:1,type:'Story',title:'Search autocomplete UI',desc:'Typeahead suggestions in global search bar.',status:'To Do',priority:'Medium',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-16',updated:'2024-03-25',labels:['UX','search'],sprint:'Sprint 4',parent:'TRK-16',startDate:'2024-05-01',dueDate:'2024-05-20'},
-    {id:'TRK-19',project:1,type:'Task',title:'Add Redis caching layer',desc:'Cache hot queries to reduce DB load.',status:'In Review',priority:'High',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-18',updated:'2024-04-03',labels:['backend','performance'],sprint:'Sprint 3',parent:'TRK-8',startDate:'2024-03-18',dueDate:'2024-04-10'},
+    {id:'TRK-19',project:1,type:'Task',title:'Add Redis caching layer',desc:'Cache hot queries to reduce DB load.',status:'Ready for Testing',priority:'High',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-18',updated:'2024-04-03',labels:['backend','performance'],sprint:'Sprint 3',parent:'TRK-8',startDate:'2024-03-18',dueDate:'2024-04-10'},
     {id:'TRK-20',project:1,type:'Task',title:'DB query optimisation for ticket list',desc:'Add indexes and rewrite slow queries.',status:'Done',priority:'High',assignee:'Harsha',reporter:'Mike Chen',created:'2024-02-20',updated:'2024-03-30',labels:['backend','perf'],sprint:'Sprint 2',parent:'TRK-8',startDate:'2024-02-20',dueDate:'2024-03-28'},
     {id:'TRK-21',project:1,type:'Sub-task',title:'Profile-based caching strategy',desc:'Per-user vs shared cache buckets.',status:'To Do',priority:'Medium',assignee:'Sara Lee',reporter:'Sara Lee',created:'2024-03-20',updated:'2024-03-25',labels:['backend'],sprint:'Sprint 3',parent:'TRK-19',startDate:'2024-04-05',dueDate:'2024-04-15'},
     {id:'TRK-22',project:1,type:'Feature',title:'Two-Factor Authentication',desc:'TOTP-based 2FA for all user accounts.',status:'To Do',priority:'Critical',assignee:'Harsha',reporter:'Harsha',created:'2024-03-22',updated:'2024-03-22',labels:['security'],sprint:'Sprint 4',parent:null,startDate:'2024-05-05',dueDate:'2024-06-05'},
@@ -359,7 +405,7 @@ let state={
     {id:'MOB-4',project:2,type:'Epic',title:'Offline Mode Support',desc:'Allow app to function without connectivity.',status:'To Do',priority:'High',assignee:'Priya Patel',reporter:'Mike Chen',created:'2024-03-02',updated:'2024-03-20',labels:['mobile','offline'],sprint:'Sprint 2',parent:'MOB-1',startDate:'2024-04-01',dueDate:'2024-06-01'},
     {id:'MOB-5',project:2,type:'Story',title:'Local data sync engine',desc:'Sync local SQLite with backend on reconnect.',status:'To Do',priority:'High',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-03-04',updated:'2024-03-22',labels:['mobile','sync'],sprint:'Sprint 2',parent:'MOB-4',startDate:'2024-04-05',dueDate:'2024-05-15'},
     {id:'MOB-6',project:2,type:'Story',title:'Offline indicator banner',desc:'Show connectivity status bar to user.',status:'In Progress',priority:'Medium',assignee:'Priya Patel',reporter:'Sara Lee',created:'2024-03-06',updated:'2024-04-01',labels:['UX','mobile'],sprint:'Sprint 2',parent:'MOB-4',startDate:'2024-03-25',dueDate:'2024-04-15'},
-    {id:'MOB-7',project:2,type:'Task',title:'Implement biometric login (Face ID / Touch ID)',desc:'Native biometric auth flow for iOS and Android.',status:'In Review',priority:'High',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-03-08',updated:'2024-04-02',labels:['security','mobile'],sprint:'Sprint 2',parent:'MOB-2',startDate:'2024-03-08',dueDate:'2024-04-10'},
+    {id:'MOB-7',project:2,type:'Task',title:'Implement biometric login (Face ID / Touch ID)',desc:'Native biometric auth flow for iOS and Android.',status:'Ready for Testing',priority:'High',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-03-08',updated:'2024-04-02',labels:['security','mobile'],sprint:'Sprint 2',parent:'MOB-2',startDate:'2024-03-08',dueDate:'2024-04-10'},
     {id:'MOB-8',project:2,type:'Task',title:'Deep linking support',desc:'Universal links for in-app navigation from web.',status:'To Do',priority:'Medium',assignee:'Priya Patel',reporter:'Mike Chen',created:'2024-03-10',updated:'2024-03-22',labels:['mobile'],sprint:'Sprint 2',parent:'MOB-2',startDate:'2024-04-12',dueDate:'2024-05-01'},
     {id:'MOB-9',project:2,type:'Story',title:'App onboarding carousel',desc:'3-step illustrated onboarding screens.',status:'Done',priority:'Medium',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-02-20',updated:'2024-03-28',labels:['UX','design'],sprint:'Sprint 1',parent:'MOB-3',startDate:'2024-02-20',dueDate:'2024-03-20'},
     {id:'MOB-10',project:2,type:'Sub-task',title:'Onboarding analytics events',desc:'Track onboarding step completion in Mixpanel.',status:'Done',priority:'Low',assignee:'Priya Patel',reporter:'Mike Chen',created:'2024-02-25',updated:'2024-03-22',labels:['analytics'],sprint:'Sprint 1',parent:'MOB-9',startDate:'2024-03-05',dueDate:'2024-03-18'},
@@ -372,7 +418,7 @@ let state={
     {id:'API-2',project:3,type:'Epic',title:'API Versioning Strategy',desc:'Design v2 API with backward compatibility.',status:'In Progress',priority:'High',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-03',updated:'2024-04-01',labels:['api','architecture'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-03',dueDate:'2024-05-30'},
     {id:'API-3',project:3,type:'Story',title:'Version routing middleware',desc:'Route /v1 and /v2 requests via Express middleware.',status:'In Progress',priority:'High',assignee:'Harsha',reporter:'Mike Chen',created:'2024-03-05',updated:'2024-04-02',labels:['api','backend'],sprint:'Sprint 2',parent:'API-2',startDate:'2024-03-05',dueDate:'2024-04-15'},
     {id:'API-4',project:3,type:'Story',title:'Deprecation notice headers',desc:'Inject Sunset and Deprecation headers on v1 responses.',status:'To Do',priority:'Medium',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-07',updated:'2024-03-22',labels:['api'],sprint:'Sprint 2',parent:'API-2',startDate:'2024-04-10',dueDate:'2024-04-28'},
-    {id:'API-5',project:3,type:'Task',title:'OAuth2 scope enforcement',desc:'Validate JWT scopes per endpoint.',status:'In Review',priority:'Critical',assignee:'Harsha',reporter:'Mike Chen',created:'2024-03-08',updated:'2024-04-03',labels:['security','api'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-08',dueDate:'2024-04-05'},
+    {id:'API-5',project:3,type:'Task',title:'OAuth2 scope enforcement',desc:'Validate JWT scopes per endpoint.',status:'Ready for Testing',priority:'Critical',assignee:'Harsha',reporter:'Mike Chen',created:'2024-03-08',updated:'2024-04-03',labels:['security','api'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-08',dueDate:'2024-04-05'},
     {id:'API-6',project:3,type:'Task',title:'API key rotation mechanism',desc:'Allow developers to rotate keys without downtime.',status:'To Do',priority:'High',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-10',updated:'2024-03-25',labels:['security','api'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-04-05',dueDate:'2024-04-25'},
     {id:'API-7',project:3,type:'Sub-task',title:'Rate limit redis store implementation',desc:'Use sorted sets in Redis for sliding window.',status:'In Progress',priority:'High',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-12',updated:'2024-04-04',labels:['backend','redis'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-12',dueDate:'2024-04-10'},
     {id:'API-8',project:3,type:'Feature',title:'GraphQL Gateway Layer',desc:'Add GraphQL endpoint alongside REST.',status:'To Do',priority:'Medium',assignee:'Tom Wilson',reporter:'Mike Chen',created:'2024-03-15',updated:'2024-03-15',labels:['api','graphql'],sprint:'Sprint 3',parent:null,startDate:'2024-05-01',dueDate:'2024-06-30'},
@@ -381,18 +427,18 @@ let state={
     {id:'API-11',project:3,type:'Task',title:'Webhook delivery retry logic',desc:'Exponential backoff for failed webhook calls.',status:'In Progress',priority:'High',assignee:'Harsha',reporter:'Sara Lee',created:'2024-03-18',updated:'2024-04-05',labels:['backend','webhooks'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-18',dueDate:'2024-04-20'},
     {id:'API-12',project:3,type:'Sub-task',title:'Dead-letter queue for failed webhooks',desc:'Route permanently failed webhooks to DLQ.',status:'To Do',priority:'Medium',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-20',updated:'2024-03-25',labels:['backend'],sprint:'Sprint 2',parent:'API-11',startDate:'2024-04-10',dueDate:'2024-04-22'},
     {id:'API-13',project:3,type:'Story',title:'API analytics dashboard',desc:'Track usage, latency, error rates per endpoint.',status:'To Do',priority:'High',assignee:'Sara Lee',reporter:'Mike Chen',created:'2024-03-22',updated:'2024-03-22',labels:['analytics','api'],sprint:'Sprint 3',parent:'API-2',startDate:'2024-05-10',dueDate:'2024-06-15'},
-    {id:'API-14',project:3,type:'Task',title:'Load testing with k6',desc:'Simulate 10k RPS and identify bottlenecks.',status:'In Review',priority:'High',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-25',updated:'2024-04-04',labels:['perf','testing'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-25',dueDate:'2024-04-15'},
+    {id:'API-14',project:3,type:'Task',title:'Load testing with k6',desc:'Simulate 10k RPS and identify bottlenecks.',status:'Ready for Testing',priority:'High',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-25',updated:'2024-04-04',labels:['perf','testing'],sprint:'Sprint 2',parent:'API-1',startDate:'2024-03-25',dueDate:'2024-04-15'},
     // ---- DSG Design System ----
     {id:'DSG-1',project:4,type:'Feature',title:'Design token system',desc:'Global color, spacing, typography tokens.',status:'In Progress',priority:'High',assignee:'Mike Chen',reporter:'Sara Lee',created:'2024-03-10',updated:'2024-04-01',labels:['design'],sprint:'Sprint 1',parent:null,startDate:'2024-03-10',dueDate:'2024-05-01'},
     {id:'DSG-2',project:4,type:'Epic',title:'Core component library',desc:'Buttons, inputs, modals, tables.',status:'In Progress',priority:'High',assignee:'Mike Chen',reporter:'Mike Chen',created:'2024-03-12',updated:'2024-04-02',labels:['components'],sprint:'Sprint 1',parent:'DSG-1',startDate:'2024-03-12',dueDate:'2024-05-15'},
     {id:'DSG-3',project:4,type:'Story',title:'Button component variants',desc:'Primary, secondary, ghost, danger variants.',status:'Done',priority:'Medium',assignee:'Sara Lee',reporter:'Mike Chen',created:'2024-03-14',updated:'2024-04-01',labels:['components'],sprint:'Sprint 1',parent:'DSG-2',startDate:'2024-03-14',dueDate:'2024-03-28'},
-    {id:'DSG-4',project:4,type:'Story',title:'Form input components',desc:'Text, select, checkbox, radio, date picker.',status:'In Review',priority:'High',assignee:'Mike Chen',reporter:'Sara Lee',created:'2024-03-16',updated:'2024-04-03',labels:['components','forms'],sprint:'Sprint 1',parent:'DSG-2',startDate:'2024-03-16',dueDate:'2024-04-10'},
+    {id:'DSG-4',project:4,type:'Story',title:'Form input components',desc:'Text, select, checkbox, radio, date picker.',status:'Ready for Testing',priority:'High',assignee:'Mike Chen',reporter:'Sara Lee',created:'2024-03-16',updated:'2024-04-03',labels:['components','forms'],sprint:'Sprint 1',parent:'DSG-2',startDate:'2024-03-16',dueDate:'2024-04-10'},
     {id:'DSG-5',project:4,type:'Task',title:'Storybook documentation',desc:'Document all components in Storybook.',status:'To Do',priority:'Medium',assignee:'Sara Lee',reporter:'Mike Chen',created:'2024-03-18',updated:'2024-03-25',labels:['docs'],sprint:'Sprint 2',parent:'DSG-2',startDate:'2024-04-10',dueDate:'2024-05-01'},
     {id:'DSG-6',project:4,type:'Sub-task',title:'Dark mode token overrides',desc:'Define dark palette token values.',status:'To Do',priority:'Low',assignee:'Mike Chen',reporter:'Mike Chen',created:'2024-03-20',updated:'2024-03-25',labels:['design','dark-mode'],sprint:'Sprint 2',parent:'DSG-1',startDate:'2024-04-15',dueDate:'2024-05-05'},
     // ---- DAT Data Analytics ----
     {id:'DAT-1',project:5,type:'Feature',title:'Real-time analytics pipeline',desc:'Kafka + Flink streaming pipeline.',status:'In Progress',priority:'Critical',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-12',updated:'2024-04-03',labels:['data','streaming'],sprint:'Sprint 1',parent:null,startDate:'2024-03-12',dueDate:'2024-06-01'},
     {id:'DAT-2',project:5,type:'Epic',title:'KPI Dashboard v2',desc:'Redesign executive dashboard with live data.',status:'In Progress',priority:'High',assignee:'Sara Lee',reporter:'Sara Lee',created:'2024-03-14',updated:'2024-04-04',labels:['analytics','dashboard'],sprint:'Sprint 1',parent:'DAT-1',startDate:'2024-03-14',dueDate:'2024-05-20'},
-    {id:'DAT-3',project:5,type:'Story',title:'Revenue funnel chart',desc:'Visualise acquisition → retention funnel.',status:'In Review',priority:'High',assignee:'Tom Wilson',reporter:'Sara Lee',created:'2024-03-16',updated:'2024-04-02',labels:['charts'],sprint:'Sprint 1',parent:'DAT-2',startDate:'2024-03-16',dueDate:'2024-04-15'},
+    {id:'DAT-3',project:5,type:'Story',title:'Revenue funnel chart',desc:'Visualise acquisition → retention funnel.',status:'Ready for Testing',priority:'High',assignee:'Tom Wilson',reporter:'Sara Lee',created:'2024-03-16',updated:'2024-04-02',labels:['charts'],sprint:'Sprint 1',parent:'DAT-2',startDate:'2024-03-16',dueDate:'2024-04-15'},
     {id:'DAT-4',project:5,type:'Story',title:'Cohort retention analysis',desc:'Weekly cohort retention heatmap.',status:'To Do',priority:'Medium',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-18',updated:'2024-03-25',labels:['analytics'],sprint:'Sprint 2',parent:'DAT-2',startDate:'2024-04-20',dueDate:'2024-05-15'},
     {id:'DAT-5',project:5,type:'Task',title:'Data warehouse migration to BigQuery',desc:'Move from Redshift to BigQuery.',status:'Blocked',priority:'High',assignee:'Harsha',reporter:'Tom Wilson',created:'2024-03-20',updated:'2024-04-01',labels:['infra','data'],sprint:'Sprint 1',parent:'DAT-1',startDate:'2024-03-20',dueDate:'2024-04-28'},
     {id:'DAT-6',project:5,type:'Task',title:'dbt model for user activity',desc:'Build dbt models for daily active users.',status:'Done',priority:'Medium',assignee:'Tom Wilson',reporter:'Sara Lee',created:'2024-03-10',updated:'2024-03-30',labels:['dbt','data'],sprint:'Sprint 1',parent:'DAT-1',startDate:'2024-03-10',dueDate:'2024-03-28'},
@@ -400,14 +446,14 @@ let state={
     {id:'OPS-1',project:6,type:'Feature',title:'Kubernetes cluster upgrade',desc:'Upgrade EKS to 1.29 with zero downtime.',status:'In Progress',priority:'Critical',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-14',updated:'2024-04-04',labels:['k8s','infra'],sprint:'Sprint 1',parent:null,startDate:'2024-03-14',dueDate:'2024-04-20'},
     {id:'OPS-2',project:6,type:'Epic',title:'Observability stack',desc:'Prometheus + Grafana + Loki + Tempo.',status:'In Progress',priority:'High',assignee:'Tom Wilson',reporter:'Tom Wilson',created:'2024-03-16',updated:'2024-04-05',labels:['monitoring'],sprint:'Sprint 1',parent:'OPS-1',startDate:'2024-03-16',dueDate:'2024-05-15'},
     {id:'OPS-3',project:6,type:'Story',title:'Grafana alerting rules',desc:'Set up PagerDuty-integrated alert rules.',status:'Done',priority:'High',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-18',updated:'2024-04-01',labels:['monitoring','alerting'],sprint:'Sprint 1',parent:'OPS-2',startDate:'2024-03-18',dueDate:'2024-04-05'},
-    {id:'OPS-4',project:6,type:'Story',title:'Distributed tracing with Tempo',desc:'Instrument all services with OpenTelemetry.',status:'In Review',priority:'High',assignee:'Harsha',reporter:'Tom Wilson',created:'2024-03-20',updated:'2024-04-03',labels:['tracing'],sprint:'Sprint 1',parent:'OPS-2',startDate:'2024-03-20',dueDate:'2024-04-18'},
+    {id:'OPS-4',project:6,type:'Story',title:'Distributed tracing with Tempo',desc:'Instrument all services with OpenTelemetry.',status:'Ready for Testing',priority:'High',assignee:'Harsha',reporter:'Tom Wilson',created:'2024-03-20',updated:'2024-04-03',labels:['tracing'],sprint:'Sprint 1',parent:'OPS-2',startDate:'2024-03-20',dueDate:'2024-04-18'},
     {id:'OPS-5',project:6,type:'Task',title:'Terraform module for ECS services',desc:'Reusable Terraform for all ECS deployments.',status:'To Do',priority:'Medium',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-22',updated:'2024-03-25',labels:['terraform','infra'],sprint:'Sprint 2',parent:'OPS-1',startDate:'2024-04-20',dueDate:'2024-05-10'},
     {id:'OPS-6',project:6,type:'Sub-task',title:'Cost optimisation — right-size EC2',desc:'Review and resize over-provisioned instances.',status:'To Do',priority:'Low',assignee:'Tom Wilson',reporter:'Tom Wilson',created:'2024-03-24',updated:'2024-03-25',labels:['cost','infra'],sprint:'Sprint 2',parent:'OPS-5',startDate:'2024-04-25',dueDate:'2024-05-08'},
     // ---- CUS Customer Portal ----
     {id:'CUS-1',project:7,type:'Feature',title:'Customer self-service portal',desc:'Account management + billing portal.',status:'In Progress',priority:'High',assignee:'Priya Patel',reporter:'Sara Lee',created:'2024-03-16',updated:'2024-04-04',labels:['portal'],sprint:'Sprint 1',parent:null,startDate:'2024-03-16',dueDate:'2024-06-01'},
     {id:'CUS-2',project:7,type:'Epic',title:'Billing & invoices',desc:'View invoices, download PDFs, manage plans.',status:'In Progress',priority:'High',assignee:'Priya Patel',reporter:'Priya Patel',created:'2024-03-18',updated:'2024-04-05',labels:['billing'],sprint:'Sprint 1',parent:'CUS-1',startDate:'2024-03-18',dueDate:'2024-05-10'},
     {id:'CUS-3',project:7,type:'Story',title:'Invoice PDF download',desc:'Generate and download invoice PDFs.',status:'Done',priority:'Medium',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-03-20',updated:'2024-04-01',labels:['billing'],sprint:'Sprint 1',parent:'CUS-2',startDate:'2024-03-20',dueDate:'2024-04-05'},
-    {id:'CUS-4',project:7,type:'Story',title:'Plan upgrade / downgrade flow',desc:'Seamless plan change with proration.',status:'In Review',priority:'High',assignee:'Priya Patel',reporter:'Sara Lee',created:'2024-03-22',updated:'2024-04-03',labels:['billing','UX'],sprint:'Sprint 1',parent:'CUS-2',startDate:'2024-03-22',dueDate:'2024-04-20'},
+    {id:'CUS-4',project:7,type:'Story',title:'Plan upgrade / downgrade flow',desc:'Seamless plan change with proration.',status:'Ready for Testing',priority:'High',assignee:'Priya Patel',reporter:'Sara Lee',created:'2024-03-22',updated:'2024-04-03',labels:['billing','UX'],sprint:'Sprint 1',parent:'CUS-2',startDate:'2024-03-22',dueDate:'2024-04-20'},
     {id:'CUS-5',project:7,type:'Task',title:'SSO via SAML 2.0',desc:'Enterprise SSO integration for portal.',status:'To Do',priority:'High',assignee:'Harsha',reporter:'Priya Patel',created:'2024-03-24',updated:'2024-03-25',labels:['security','sso'],sprint:'Sprint 2',parent:'CUS-1',startDate:'2024-04-20',dueDate:'2024-05-15'},
     {id:'CUS-6',project:7,type:'Sub-task',title:'Portal accessibility audit (WCAG 2.1)',desc:'Ensure AA compliance across all portal pages.',status:'To Do',priority:'Medium',assignee:'Mike Chen',reporter:'Priya Patel',created:'2024-03-25',updated:'2024-03-25',labels:['a11y'],sprint:'Sprint 2',parent:'CUS-1',startDate:'2024-04-25',dueDate:'2024-05-10'},
     // ---- SEC Security ----
@@ -420,7 +466,7 @@ let state={
     {id:'PAY-1',project:10,type:'Feature',title:'Stripe checkout integration',desc:'One-click checkout with Stripe Elements.',status:'In Progress',priority:'Critical',assignee:'Sara Lee',reporter:'Harsha',created:'2024-03-22',updated:'2024-04-04',labels:['payments','stripe'],sprint:'Sprint 1',parent:null,startDate:'2024-03-22',dueDate:'2024-05-15'},
     {id:'PAY-2',project:10,type:'Epic',title:'Subscription billing engine',desc:'Recurring billing with proration & trials.',status:'In Progress',priority:'High',assignee:'Sara Lee',reporter:'Sara Lee',created:'2024-03-24',updated:'2024-04-05',labels:['billing'],sprint:'Sprint 1',parent:'PAY-1',startDate:'2024-03-24',dueDate:'2024-05-30'},
     {id:'PAY-3',project:10,type:'Story',title:'Failed payment recovery flow',desc:'Smart dunning emails + retry logic.',status:'To Do',priority:'High',assignee:'Priya Patel',reporter:'Sara Lee',created:'2024-03-25',updated:'2024-03-25',labels:['payments','email'],sprint:'Sprint 2',parent:'PAY-2',startDate:'2024-04-20',dueDate:'2024-05-10'},
-    {id:'PAY-4',project:10,type:'Task',title:'PCI DSS compliance checklist',desc:'Ensure PCI scope is minimal via Stripe.js.',status:'In Review',priority:'Critical',assignee:'Harsha',reporter:'Sara Lee',created:'2024-03-25',updated:'2024-04-03',labels:['security','compliance'],sprint:'Sprint 1',parent:'PAY-1',startDate:'2024-03-25',dueDate:'2024-04-20'},
+    {id:'PAY-4',project:10,type:'Task',title:'PCI DSS compliance checklist',desc:'Ensure PCI scope is minimal via Stripe.js.',status:'Ready for Testing',priority:'Critical',assignee:'Harsha',reporter:'Sara Lee',created:'2024-03-25',updated:'2024-04-03',labels:['security','compliance'],sprint:'Sprint 1',parent:'PAY-1',startDate:'2024-03-25',dueDate:'2024-04-20'},
 
     // ---- Search Platform (SRH) tickets ----
     {id:'SRH-1',project:9,type:'Feature',title:'Global full-text search engine',desc:'Build Elasticsearch-backed global search for all entities.',status:'In Progress',priority:'Critical',assignee:'Mike Chen',reporter:'Harsha',created:'2024-03-20',updated:'2024-04-05',labels:['search','elasticsearch'],sprint:'Sprint 1',parent:null,startDate:'2024-03-20',dueDate:'2024-06-01'},
@@ -433,7 +479,7 @@ let state={
     {id:'ADM-1',project:11,type:'Feature',title:'Admin user management panel',desc:'CRUD for users, roles, and permissions.',status:'In Progress',priority:'High',assignee:'Tom Wilson',reporter:'Tom Wilson',created:'2024-03-25',updated:'2024-04-05',labels:['admin','auth'],sprint:'Sprint 1',parent:null,startDate:'2024-03-25',dueDate:'2024-05-15'},
     {id:'ADM-2',project:11,type:'Epic',title:'Audit trail & activity logs',desc:'Immutable audit log for all admin actions.',status:'In Progress',priority:'High',assignee:'Tom Wilson',reporter:'Harsha',created:'2024-03-27',updated:'2024-04-04',labels:['audit','admin'],sprint:'Sprint 1',parent:'ADM-1',startDate:'2024-03-27',dueDate:'2024-05-10'},
     {id:'ADM-3',project:11,type:'Story',title:'Role-based access control UI',desc:'UI for assigning roles and managing permissions.',status:'To Do',priority:'Medium',assignee:'Mike Chen',reporter:'Tom Wilson',created:'2024-03-28',updated:'2024-03-28',labels:['admin','rbac'],sprint:'Sprint 2',parent:'ADM-1',startDate:'2024-04-15',dueDate:'2024-05-20'},
-    {id:'ADM-4',project:11,type:'Task',title:'System health dashboard',desc:'CPU, memory, DB query time metrics for ops.',status:'In Review',priority:'Medium',assignee:'Tom Wilson',reporter:'Tom Wilson',created:'2024-03-29',updated:'2024-04-03',labels:['ops','monitoring'],sprint:'Sprint 1',parent:'ADM-2',startDate:'2024-03-29',dueDate:'2024-04-18'},
+    {id:'ADM-4',project:11,type:'Task',title:'System health dashboard',desc:'CPU, memory, DB query time metrics for ops.',status:'Ready for Testing',priority:'Medium',assignee:'Tom Wilson',reporter:'Tom Wilson',created:'2024-03-29',updated:'2024-04-03',labels:['ops','monitoring'],sprint:'Sprint 1',parent:'ADM-2',startDate:'2024-03-29',dueDate:'2024-04-18'},
     {id:'ADM-5',project:11,type:'Task',title:'Bulk ticket operations panel',desc:'Bulk status change, assignment, and deletion.',status:'To Do',priority:'Low',assignee:'Sara Lee',reporter:'Tom Wilson',created:'2024-04-01',updated:'2024-04-01',labels:['admin'],sprint:'Sprint 2',parent:'ADM-1',startDate:'2024-04-25',dueDate:'2024-05-30'},
   ],
 
@@ -444,9 +490,61 @@ let state={
     {id:4,name:'Blocked Items',conditions:{status:['Blocked']},owner:'Harsha',shared:true,created:'2024-03-10'},
   ],
   customFields:[
-    {id:1,name:'Story Points',type:'Number',applyTo:['Story','Task','Sub-task'],required:false},
-    {id:2,name:'Due Date',type:'Date',applyTo:['Feature','Epic','Story','Task'],required:false},
-    {id:3,name:'Business Value',type:'Select',applyTo:['Feature','Initiative'],options:['Low','Medium','High'],required:false},
+    {id:1,name:'Story Points',type:'Number',applyTo:['Story','Task','Sub-task'],required:false,projects:[1,2,3,4,5,6,7,8,9,10,11]},
+    {id:2,name:'Due Date',type:'Date',applyTo:['Feature','Epic','Story','Task'],required:false,projects:[1,2,3]},
+    {id:3,name:'Business Value',type:'Select',applyTo:['Feature','Initiative'],options:['Low','Medium','High'],required:false,projects:[1,4,5]},
+    {id:4,name:'Environment',type:'Select',applyTo:['Task','Sub-task'],options:['Dev','Staging','Production'],required:false,projects:[1,3,6]},
+    {id:5,name:'Test Cases',type:'Text',applyTo:['Story','Task'],required:false,projects:[1,2]},
+  ],
+  workflowDefs:[
+    {id:'wf1',name:'Default Workflow',isDefault:true,
+      statuses:[
+        {name:'To Do',color:'#64748b',category:'todo'},
+        {name:'In Progress',color:'#1d4ed8',category:'inprogress'},
+        {name:'Ready for Testing',color:'#7c3aed',category:'inprogress'},
+        {name:'In Testing',color:'#ea580c',category:'inprogress'},
+        {name:'Done',color:'#16a34a',category:'done'},
+        {name:'Blocked',color:'#dc2626',category:'blocked'},
+      ],
+      transitions:[
+        {from:'To Do',to:['In Progress','Blocked']},
+        {from:'In Progress',to:['Ready for Testing','Blocked','To Do']},
+        {from:'Ready for Testing',to:['In Testing','In Progress']},
+        {from:'In Testing',to:['Done','In Progress']},
+        {from:'Done',to:['In Progress']},
+        {from:'Blocked',to:['To Do','In Progress']},
+      ]
+    },
+    {id:'wf2',name:'Bug Workflow',isDefault:false,
+      statuses:[
+        {name:'Open',color:'#64748b',category:'todo'},
+        {name:'In Progress',color:'#1d4ed8',category:'inprogress'},
+        {name:'Ready for Testing',color:'#7c3aed',category:'inprogress'},
+        {name:'Verified',color:'#16a34a',category:'done'},
+        {name:'Closed',color:'#334155',category:'done'},
+        {name:'Reopened',color:'#dc2626',category:'todo'},
+      ],
+      transitions:[
+        {from:'Open',to:['In Progress']},
+        {from:'In Progress',to:['Ready for Testing','Open']},
+        {from:'Ready for Testing',to:['Verified','In Progress']},
+        {from:'Verified',to:['Closed','Reopened']},
+        {from:'Closed',to:['Reopened']},
+        {from:'Reopened',to:['In Progress']},
+      ]
+    },
+    {id:'wf3',name:'Sprint Workflow',isDefault:false,
+      statuses:[
+        {name:'To Do',color:'#64748b',category:'todo'},
+        {name:'In Progress',color:'#1d4ed8',category:'inprogress'},
+        {name:'Done',color:'#16a34a',category:'done'},
+      ],
+      transitions:[
+        {from:'To Do',to:['In Progress']},
+        {from:'In Progress',to:['Done','To Do']},
+        {from:'Done',to:['In Progress']},
+      ]
+    },
   ],
   webConnectors:[
     {id:1,name:'Slack',icon:'💬',status:'Connected',events:['Ticket Created','Status Changed'],url:'https://hooks.slack.com/...'},
@@ -466,7 +564,7 @@ let state={
 let render;
 function setState(p){Object.assign(state,p);render();}
 function getTypeColor(t){const m={'Feature':'badge-blue','Initiative':'badge-purple','Epic':'badge-pink','Story':'badge-green','Task':'badge-yellow','Sub-task':'badge-orange'};return m[t]||'badge-gray'}
-function getStatusClass(s){const m={'To Do':'s-todo','In Progress':'s-inprogress','In Review':'s-review','Done':'s-done','Blocked':'s-blocked'};return m[s]||'s-todo'}
+function getStatusClass(s){const m={'To Do':'s-todo','In Progress':'s-inprogress','In Review':'s-readytest','Ready for Testing':'s-readytest','In Testing':'s-intesting','Done':'s-done','Blocked':'s-blocked'};return m[s]||'s-todo'}
 function priorityClass(p){return 'p-'+p.toLowerCase()}
 function projectById(id){return state.projects.find(p=>p.id===id)}
 function getTickets(pid){return pid?state.tickets.filter(t=>t.project===pid):state.tickets}
@@ -1000,18 +1098,18 @@ function renderProjectIssues(pid){
   </div>`;
 }
 
-// ---- BOARD VIEW (Scrum + Kanban sub-tabs with drag-and-drop) ----
-const COL_COLORS={'To Do':'#64748b','In Progress':'#1d4ed8','In Review':'#7c3aed','Done':'#16a34a','Blocked':'#dc2626'};
+// ---- BOARD VIEW (Jira grouped + Kanban) ----
+const COL_COLORS={'To Do':'#64748b','In Progress':'#1d4ed8','Ready for Testing':'#7c3aed','In Testing':'#ea580c','Done':'#16a34a','Blocked':'#dc2626'};
 const PRIORITY_COLORS={'Critical':'#dc2626','High':'#ea580c','Medium':'#ca8a04','Low':'#16a34a'};
-function priorityBar(p){const c=PRIORITY_COLORS[p]||'#94a3b8';return `<div class="sprint-priority-bar" title="${p}"><span style="background:${c}"></span><span style="background:${c}"></span><span style="background:${c}"></span></div>`;}
+const BOARD_COLS=['To Do','In Progress','Ready for Testing','In Testing','Done'];
 
+function priorityBar(p){const c=PRIORITY_COLORS[p]||'#94a3b8';return `<div class="sprint-priority-bar" title="${p}"><span style="background:${c}"></span><span style="background:${c}"></span><span style="background:${c}"></span></div>`;}
 function dragStart(e,ticketId){e.dataTransfer.setData('ticketId',ticketId);e.target.classList.add('dragging');}
 function dragEnd(e){document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));}
 function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
 function dragLeave(e){e.currentTarget.classList.remove('drag-over');}
 function dropTicket(e,newStatus){
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
+  e.preventDefault();e.currentTarget.classList.remove('drag-over');
   const ticketId=e.dataTransfer.getData('ticketId');
   const idx=state.tickets.findIndex(t=>t.id===ticketId);
   if(idx!==-1&&state.tickets[idx].status!==newStatus){
@@ -1020,6 +1118,8 @@ function dropTicket(e,newStatus){
     setState({tickets:updated});
   }
 }
+function toggleBoardGroup(gid){const c={...state.boardGroupCollapsed};c[gid]=!c[gid];setState({boardGroupCollapsed:c});}
+function completeSprint(sprintName){if(!sprintName)return;if(!confirm('Complete sprint "'+sprintName+'"? Unfinished issues will move to backlog.'))return;const updated=state.tickets.map(t=>t.sprint===sprintName&&t.status!=='Done'?{...t,sprint:null,status:'To Do'}:t);setState({tickets:updated,activeSprint:null});}
 
 function renderBoardView(pid){
   const bst=state.boardSubTab||'scrum';
@@ -1028,78 +1128,154 @@ function renderBoardView(pid){
   const activeSprint=state.activeSprint||(sprints.length?sprints[sprints.length-1]:null);
   const allAssignees=[...new Set(tks.map(t=>t.assignee).filter(Boolean))];
   const boardFilter=state.boardAssigneeFilter||[];
+  const boardGroupCollapsed=state.boardGroupCollapsed||{};
+  const epicFilter=state.boardEpicFilter||'';
+  const typeFilter=state.boardTypeFilter||'';
+  const allEpics=tks.filter(t=>t.type==='Epic'||t.type==='Story');
 
-  // ---- Shared toolbar ----
-  const toolbar=`<div class="sprint-toolbar">
-    <div class="filter-search-box" style="max-width:200px">
+  const toolbar=`<div class="jira-board-toolbar">
+    <div class="filter-search-box" style="max-width:180px">
       <span style="color:var(--gray-400);font-size:12px">🔍</span>
-      <input class="filter-search-input" placeholder="Search board" style="font-size:12px" oninput="setState({boardSearch:this.value})" value="${state.boardSearch||''}"/>
+      <input class="filter-search-input" placeholder="Search board..." style="font-size:12px" oninput="setState({boardSearch:this.value})" value="${state.boardSearch||''}"/>
     </div>
-    <div style="display:flex;gap:4px;align-items:center">
-      ${allAssignees.map(a=>`<div onclick="toggleBoardAssignee('${a}')" title="${a}" style="cursor:pointer;opacity:${boardFilter.length===0||boardFilter.includes(a)?1:.3};transition:opacity .15s;border-radius:50%;outline:${boardFilter.includes(a)?'2px solid var(--blue)':'2px solid transparent'};outline-offset:2px">${avatarEl(a,28)}</div>`).join('')}
+    <div style="display:flex;gap:3px;align-items:center">
+      ${allAssignees.map(a=>`<div onclick="toggleBoardAssignee('${a}')" title="${a}" style="cursor:pointer;opacity:${boardFilter.length===0||boardFilter.includes(a)?1:.3};transition:opacity .15s;border-radius:50%;outline:${boardFilter.includes(a)?'2.5px solid var(--blue)':'2px solid transparent'};outline-offset:2px">${avatarEl(a,28)}</div>`).join('')}
     </div>
+    <div style="width:1px;height:22px;background:var(--gray-200);flex-shrink:0;margin:0 2px"></div>
+    <select class="form-select" style="font-size:12px;padding:5px 8px;width:auto;height:auto" onchange="setState({boardEpicFilter:this.value})">
+      <option value="">Epic / Story ▾</option>
+      ${allEpics.map(e=>`<option value="${e.id}" ${epicFilter===e.id?'selected':''}>${e.id}: ${e.title.slice(0,22)}</option>`).join('')}
+    </select>
+    <select class="form-select" style="font-size:12px;padding:5px 8px;width:auto;height:auto" onchange="setState({boardTypeFilter:this.value})">
+      <option value="">Type ▾</option>
+      ${ISSUE_TYPES.map(t=>`<option value="${t}" ${typeFilter===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+    ${bst==='scrum'&&sprints.length?`<select class="form-select" style="font-size:12px;padding:5px 8px;width:auto;height:auto" onchange="setState({activeSprint:this.value})">
+      ${sprints.map(s=>`<option value="${s}" ${s===activeSprint?'selected':''}>${s}</option>`).join('')}
+    </select>`:''}
     <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-      ${bst==='scrum'&&sprints.length?`<select class="form-select" style="font-size:12px;padding:4px 10px;height:auto;width:auto" onchange="setState({activeSprint:this.value})">
-        ${sprints.map(s=>`<option value="${s}" ${s===activeSprint?'selected':''}>${s}</option>`).join('')}
-      </select>`:''}
-      <button class="btn btn-primary btn-sm" style="font-size:12px" onclick="openModal('createTicket')">+ Create</button>
+      ${bst==='scrum'&&activeSprint?`<button class="btn btn-sm" style="background:#16a34a;color:#fff;font-size:12px;font-weight:600;border:none;border-radius:6px;padding:6px 13px" onclick="completeSprint('${activeSprint}')">✓ Complete Sprint</button>`:''}
+      <button class="btn btn-outline btn-sm" style="font-size:12px" onclick="openModal('createTicket')">+ Create Issue</button>
     </div>
   </div>`;
 
-  // ---- Scrum board ----
-  function renderScrumBoard(){
-    const sprintTks=activeSprint?tks.filter(t=>t.sprint===activeSprint):tks;
-    let filtered=boardFilter.length?sprintTks.filter(t=>boardFilter.includes(t.assignee)):sprintTks;
-    const q=(state.boardSearch||'').toLowerCase();
-    if(q)filtered=filtered.filter(t=>t.title.toLowerCase().includes(q)||t.id.toLowerCase().includes(q));
-    function renderSprintCol(status){
-      const cards=filtered.filter(t=>t.status===status);
-      const col=COL_COLORS[status]||'#94a3b8';
-      const grouped={};
-      cards.forEach(t=>{const key=t.parent||('__'+t.id);if(!grouped[key])grouped[key]=[];grouped[key].push(t);});
-      const colHtml=Object.entries(grouped).map(([key,items])=>{
-        const parentT=items[0].parent?tks.find(x=>x.id===items[0].parent):null;
-        const groupHeader=parentT?`<div class="sprint-group-header">
-          <span style="font-size:10px;color:var(--gray-400)">▾</span>
-          <span style="color:#16a34a;font-size:13px">🔖</span>
-          <span style="font-size:11px;font-weight:700;color:var(--blue)">${parentT.id}</span>
-          <span style="font-size:11px;color:var(--gray-600);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${parentT.title}</span>
-          <span style="font-size:10px;background:var(--gray-200);border-radius:8px;padding:1px 6px;color:var(--gray-500)">${items.length}</span>
-        </div>`:'';
-        return groupHeader+items.map(t=>`<div class="sprint-card" draggable="true"
-          ondragstart="dragStart(event,'${t.id}')" ondragend="dragEnd(event)"
-          style="border-left-color:${COL_COLORS[t.status]||'transparent'}"
-          onclick="viewTicket('${t.id}')">
-          <div class="sprint-card-title">${t.title}</div>
-          <div class="sprint-card-footer">
-            <span class="sprint-card-id">${t.id}</span>
-            <span class="badge ${getTypeColor(t.type)}" style="font-size:9px;padding:1px 5px">${t.type}</span>
-            ${priorityBar(t.priority)}
-            ${avatarEl(t.assignee,22)}
-          </div>
-        </div>`).join('');
-      }).join('');
-      return `<div class="sprint-col">
-        <div class="sprint-col-header">
-          <span class="sprint-col-dot" style="background:${col}"></span>
-          <span class="sprint-col-name">${status}</span>
-          <span class="sprint-col-count">${cards.length}</span>
+  function renderJiraCard(t){
+    const pc=PRIORITY_COLORS[t.priority]||'#94a3b8';
+    return `<div class="jira-card" draggable="true"
+      ondragstart="dragStart(event,'${t.id}')" ondragend="dragEnd(event)"
+      onclick="viewTicket('${t.id}')">
+      <div class="jira-card-title">${t.title}</div>
+      <div class="jira-card-meta">
+        <div style="display:flex;align-items:center;gap:4px">
+          <span class="badge ${getTypeColor(t.type)}" style="font-size:9px;padding:1px 5px">${t.type}</span>
+          <span style="font-size:10px;color:var(--blue);font-weight:700">${t.id}</span>
         </div>
-        <div class="sprint-col-body" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropTicket(event,'${status}')">
-          ${colHtml||`<div style="text-align:center;padding:20px 0;font-size:12px;color:var(--gray-300)">Drop here</div>`}
-          <div style="text-align:center;padding:6px;font-size:11px;color:var(--gray-400);cursor:pointer;border-radius:6px;transition:background .1s" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background=''" onclick="openModal('createTicket',{status:'${status}'})">+ Create</div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${pc};flex-shrink:0" title="${t.priority}"></span>
+          ${avatarEl(t.assignee,20)}
         </div>
-      </div>`;
-    }
-    return `<div>
-      ${activeSprint?`<div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">🏃 ${activeSprint} · ${filtered.length} issues</div>`:''}
-      <div class="sprint-board">${STATUSES.map(s=>renderSprintCol(s)).join('')}</div>
+      </div>
     </div>`;
   }
 
-  // ---- Kanban board ----
+  function renderGroup(parent,children){
+    const gid=parent?parent.id:'__ungrouped';
+    const isCollapsed=boardGroupCollapsed[gid];
+    const childrenByStatus={};
+    BOARD_COLS.forEach(s=>{childrenByStatus[s]=children.filter(t=>t.status===s);});
+    const doneCount=children.filter(t=>t.status==='Done').length;
+    const donePct=children.length?Math.round(doneCount/children.length*100):0;
+
+    const hdr=parent?`
+      <span class="jira-chevron" style="transform:${isCollapsed?'rotate(0deg)':'rotate(90deg)'}">${isCollapsed?'▶':'▼'}</span>
+      <span style="color:#16a34a;font-size:13px;flex-shrink:0">🔖</span>
+      <span style="color:var(--blue);font-size:12px;font-weight:700;flex-shrink:0">${parent.id}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px" title="${parent.title}">${parent.title}</span>
+      <span style="font-size:11px;color:var(--gray-400);flex-shrink:0">(${children.length} ${children.length===1?'item':'items'})</span>
+      ${children.length?`<div style="width:60px;height:5px;background:var(--gray-200);border-radius:3px;overflow:hidden;flex-shrink:0"><div style="height:100%;width:${donePct}%;background:#16a34a;border-radius:3px"></div></div><span style="font-size:10px;color:var(--gray-500);flex-shrink:0">${donePct}%</span>`:''}
+      <span class="badge ${getStatusClass(parent.status)}" style="font-size:10px;flex-shrink:0">${parent.status}</span>
+      ${parent.sprint?`<span style="font-size:10px;background:var(--gray-100);padding:2px 7px;border-radius:10px;color:var(--gray-500);flex-shrink:0">${parent.sprint}</span>`:''}
+      ${avatarEl(parent.assignee,22)}
+      <button class="btn btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid var(--gray-200);border-radius:5px;flex-shrink:0" onclick="event.stopPropagation();openModal('createTicket',null,'${parent.id}')">+ Add</button>`
+    :`<span style="font-size:12px;font-weight:700;color:var(--gray-500)">📌 Ungrouped</span><span style="font-size:11px;color:var(--gray-400)">(${children.length} items)</span>`;
+
+    return `<div class="jira-story-group">
+      <div class="jira-story-hdr" onclick="${parent?`toggleBoardGroup('${gid}')`:''}" style="${!parent?'cursor:default':''}">
+        ${hdr}
+      </div>
+      ${isCollapsed?'':`<div class="jira-story-grid">
+        ${BOARD_COLS.map(s=>`<div class="jira-story-cell"
+          ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropTicket(event,'${s}')">
+          ${childrenByStatus[s].map(t=>renderJiraCard(t)).join('')}
+          ${!childrenByStatus[s].length?`<div style="padding:14px 0;text-align:center;font-size:11px;color:var(--gray-200)">—</div>`:''}
+          <div class="jira-add-row" onclick="event.stopPropagation();openModal('createTicket',{status:'${s}'}${parent?`,'${parent.id}'`:''})">+ Create</div>
+        </div>`).join('')}
+      </div>`}
+    </div>`;
+  }
+
+  function renderJiraBoard(){
+    const sprintTks=activeSprint?tks.filter(t=>t.sprint===activeSprint):tks;
+    let filtered=boardFilter.length?sprintTks.filter(t=>boardFilter.includes(t.assignee)):sprintTks;
+    if(epicFilter)filtered=filtered.filter(t=>t.id===epicFilter||t.parent===epicFilter||tks.find(p=>p.id===t.parent&&p.parent===epicFilter));
+    if(typeFilter)filtered=filtered.filter(t=>t.type===typeFilter);
+    const q=(state.boardSearch||'').toLowerCase();
+    if(q)filtered=filtered.filter(t=>t.title.toLowerCase().includes(q)||t.id.toLowerCase().includes(q));
+
+    const blockedItems=filtered.filter(t=>t.status==='Blocked');
+    const blockedBanner=blockedItems.length?`<div class="blocked-strip">
+      <span style="font-weight:700;font-size:13px;color:#991b1b">🚫 ${blockedItems.length} Blocked:</span>
+      ${blockedItems.slice(0,5).map(t=>`<span onclick="viewTicket('${t.id}')" style="cursor:pointer;font-size:12px;color:var(--blue);text-decoration:underline">${t.id}</span>`).join('')}
+      ${blockedItems.length>5?`<span style="font-size:11px;color:var(--gray-400)">+${blockedItems.length-5} more</span>`:''}
+    </div>`:'';
+
+    const childTickets=filtered.filter(t=>t.parent);
+    const parentIds=[...new Set(childTickets.map(t=>t.parent))];
+    const groups=parentIds.map(parentId=>{
+      const parent=tks.find(t=>t.id===parentId);
+      const children=filtered.filter(t=>t.parent===parentId);
+      return {parent,children};
+    }).filter(g=>g.parent);
+
+    const groupedChildIds=new Set(childTickets.map(t=>t.id));
+    const ungrouped=filtered.filter(t=>!t.parent||!tks.find(p=>p.id===t.parent));
+
+    const doneTotal=filtered.filter(t=>t.status==='Done').length;
+    const sprintBanner=`<div class="jira-sprint-banner">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:14px;font-weight:800;color:var(--blue)">🏃 ${activeSprint||'All Sprints'}</span>
+        <span style="font-size:12px;color:var(--gray-500)">${filtered.length} issues</span>
+        <span style="font-size:12px;color:#16a34a;font-weight:600">${doneTotal} done</span>
+        ${filtered.length?`<div style="width:100px;height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.round(doneTotal/filtered.length*100)}%;background:#16a34a;border-radius:3px"></div></div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${BOARD_COLS.map(s=>`<span style="font-size:11px;color:${COL_COLORS[s]};font-weight:600">${s.split(' ')[0]}: ${filtered.filter(t=>t.status===s).length}</span>`).join('<span style="color:var(--gray-300)">·</span>')}
+      </div>
+    </div>`;
+
+    const colStrip=`<div class="jira-col-strip">
+      ${BOARD_COLS.map(s=>`<div class="jira-col-hdr">
+        <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:${COL_COLORS[s]}">${s}</span>
+        <span style="background:${COL_COLORS[s]};color:#fff;border-radius:10px;padding:0 7px;font-size:10px;font-weight:700;margin-left:5px">${filtered.filter(t=>t.status===s).length}</span>
+      </div>`).join('')}
+    </div>`;
+
+    return `<div>
+      ${sprintBanner}${blockedBanner}
+      <div class="jira-board-outer">
+        ${colStrip}
+        <div>
+          ${groups.map(g=>renderGroup(g.parent,g.children)).join('')}
+          ${ungrouped.filter(t=>t.status!=='Blocked').length?renderGroup(null,ungrouped.filter(t=>t.status!=='Blocked')):''}
+          ${!groups.length&&!ungrouped.filter(t=>t.status!=='Blocked').length?`<div style="text-align:center;padding:40px;color:var(--gray-300);font-size:14px">No issues in this sprint</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+
   function renderKanbanBoard(){
     let filtered=boardFilter.length?tks.filter(t=>boardFilter.includes(t.assignee)):tks;
+    if(typeFilter)filtered=filtered.filter(t=>t.type===typeFilter);
     const q=(state.boardSearch||'').toLowerCase();
     if(q)filtered=filtered.filter(t=>t.title.toLowerCase().includes(q)||t.id.toLowerCase().includes(q));
     return `<div class="kanban-board">
@@ -1135,10 +1311,10 @@ function renderBoardView(pid){
   return `<div>
     ${toolbar}
     <div class="board-subtab-bar">
-      <button class="board-subtab ${bst==='scrum'?'active':''}" onclick="setState({boardSubTab:'scrum'})">🏃 Scrum</button>
+      <button class="board-subtab ${bst==='scrum'?'active':''}" onclick="setState({boardSubTab:'scrum'})">🏃 Active Sprint</button>
       <button class="board-subtab ${bst==='kanban'?'active':''}" onclick="setState({boardSubTab:'kanban'})">📋 Kanban</button>
     </div>
-    ${bst==='scrum'?renderScrumBoard():renderKanbanBoard()}
+    ${bst==='scrum'?renderJiraBoard():renderKanbanBoard()}
   </div>`;
 }
 function toggleBoardAssignee(a){const cur=state.boardAssigneeFilter||[];setState({boardAssigneeFilter:cur.includes(a)?cur.filter(x=>x!==a):[...cur,a]});}
@@ -1411,6 +1587,7 @@ function renderFilters(){
   const af=state.assigneeFilter||[];
   const xf=state.priorityFilter||[];
   const spf=state.sprintFilter||[];
+  const tmf=state.teamFilter||[];
   const dd=state.filterDropdownOpen;
   const jqlMode=state.jqlMode||false;
   const jqlQuery=state.jqlQuery||'';
@@ -1426,8 +1603,12 @@ function renderFilters(){
     if(af.length)tks=tks.filter(t=>af.includes(t.assignee));
     if(xf.length)tks=tks.filter(t=>xf.includes(t.priority));
     if(spf.length)tks=tks.filter(t=>spf.includes(t.sprint));
+    if(tmf.length){
+      const teamMemberNames=tmf.flatMap(tid=>{const tm=state.teams.find(t=>t.id===tid);return tm?state.users.filter(u=>tm.members.includes(u.id)).map(u=>u.name):[];});
+      tks=tks.filter(t=>teamMemberNames.includes(t.assignee));
+    }
   }
-  const hasFilter=jqlMode?!!jqlQuery.trim():(q||tf.length||sf.length||pf.length||af.length||xf.length||spf.length);
+  const hasFilter=jqlMode?!!jqlQuery.trim():(q||tf.length||sf.length||pf.length||af.length||xf.length||spf.length||tmf.length);
   const allAssignees=[...new Set(state.tickets.map(t=>t.assignee).filter(Boolean))];
   const allSprints=[...new Set(state.tickets.map(t=>t.sprint).filter(Boolean))];
 
@@ -1438,6 +1619,7 @@ function renderFilters(){
   const ddStatus=makeDD('status',STATUSES,s=>`<label class="filter-dd-item"><input type="checkbox" ${sf.includes(s)?'checked':''} onchange="toggleFilterArr('statusFilter','${s}')"/><span class="badge ${getStatusClass(s)}">${s}</span></label>`);
   const ddPriority=makeDD('priority',PRIORITIES,p=>`<label class="filter-dd-item"><input type="checkbox" ${xf.includes(p)?'checked':''} onchange="toggleFilterArr('priorityFilter','${p}')"/><span style="font-size:12px" class="${priorityClass(p)}">${p}</span></label>`);
   const ddSprint=makeDD('sprint',allSprints,s=>`<label class="filter-dd-item"><input type="checkbox" ${spf.includes(s)?'checked':''} onchange="toggleFilterArr('sprintFilter','${s}')"/><span style="font-size:12px">${s}</span></label>`);
+  const ddTeam=makeDD('team',state.teams,t=>`<label class="filter-dd-item"><input type="checkbox" ${tmf.includes(t.id)?'checked':''} onchange="toggleTeamFilter('${t.id}')"/><span style="width:10px;height:10px;border-radius:50%;background:${t.color};display:inline-block;flex-shrink:0"></span><span>${t.name}</span></label>`);
 
   const appliedTags=[
     ...tf.map(t=>`<span class="applied-filter-tag">Type: ${t} <button onclick="toggleFilterArr('typeFilter','${t}')">×</button></span>`),
@@ -1446,6 +1628,7 @@ function renderFilters(){
     ...af.map(a=>`<span class="applied-filter-tag">Assignee: ${a.split(' ')[0]} <button onclick="toggleFilterArr('assigneeFilter','${a}')">×</button></span>`),
     ...xf.map(p=>`<span class="applied-filter-tag">Priority: ${p} <button onclick="toggleFilterArr('priorityFilter','${p}')">×</button></span>`),
     ...spf.map(s=>`<span class="applied-filter-tag">Sprint: ${s} <button onclick="toggleFilterArr('sprintFilter','${s}')">×</button></span>`),
+    ...tmf.map(id=>{const tm=state.teams.find(t=>t.id===id);return tm?`<span class="applied-filter-tag">Team: ${tm.name} <button onclick="toggleTeamFilter('${id}')">×</button></span>`:'';}),
   ].join('');
 
   const searchTab=`
@@ -1485,6 +1668,9 @@ function renderFilters(){
         </div>
         <div class="filter-chip-wrap" onclick="event.stopPropagation()">
           <button class="filter-chip ${spf.length?'active':''}" onclick="toggleFilterDropdown('sprint')">Sprint${spf.length?' ('+spf.length+')':''} ▾</button>${ddSprint}
+        </div>
+        <div class="filter-chip-wrap" onclick="event.stopPropagation()">
+          <button class="filter-chip ${tmf.length?'active':''}" onclick="toggleFilterDropdown('team')">Team${tmf.length?' ('+tmf.length+')':''} ▾</button>${ddTeam}
         </div>
         ${hasFilter?`<button class="btn btn-ghost btn-sm" style="font-size:12px" onclick="clearAllFilters()">✕ Clear</button>`:''}
       `}
@@ -1556,7 +1742,8 @@ function renderFilters(){
 function toggleFilterDropdown(name){setState({filterDropdownOpen:state.filterDropdownOpen===name?null:name});}
 function toggleFilterArr(key,val){const cur=state[key]||[];setState({[key]:cur.includes(val)?cur.filter(x=>x!==val):[...cur,val]});}
 function toggleProjectFilter(id){const cur=state.projectFilter||[];setState({projectFilter:cur.includes(id)?cur.filter(x=>x!==id):[...cur,id]});}
-function clearAllFilters(){setState({ticketSearch:'',typeFilter:[],statusFilter:[],projectFilter:[],assigneeFilter:[],priorityFilter:[],sprintFilter:[],filterDropdownOpen:null,jqlQuery:''});}
+function clearAllFilters(){setState({ticketSearch:'',typeFilter:[],statusFilter:[],projectFilter:[],assigneeFilter:[],priorityFilter:[],sprintFilter:[],teamFilter:[],filterDropdownOpen:null,jqlQuery:''});}
+function toggleTeamFilter(tid){const f=state.teamFilter||[];setState({teamFilter:f.includes(tid)?f.filter(x=>x!==tid):[...f,tid],filterDropdownOpen:null});}
 function loadFilterToSearch(fid){
   const f=state.filters.find(x=>x.id===fid);if(!f)return;
   const c=f.conditions;
@@ -1837,16 +2024,35 @@ function renderWebConnectors(){
 
 // ---- SETTINGS ----
 function renderSettings(){
-  const tabs={users:'Users',roles:'Roles & Groups',permissions:'Permissions',fields:'Custom Fields',workflows:'Workflows',screens:'Screens',app:'App Settings'};
-  const content={users:rSUsers,roles:rSRoles,permissions:rSPerms,fields:rSFields,workflows:rSWorkflows,screens:rSScreens,app:rSApp};
+  const tabs={
+    profile:'Profile',notifications_settings:'Notifications',
+    system:'System',spaces:'Projects & Spaces',apps_integrations:'Apps & Integrations',marketplace:'Marketplace',
+    work_types:'Work Type Hierarchy',fields:'Custom Fields',workflows:'Workflows',screens:'Screens',
+    users:'Users',roles:'Roles & Groups',permissions:'Permissions',teams:'Teams',
+    app:'App Settings'
+  };
+  const content={
+    profile:rSProfile,notifications_settings:rSNotifSettings,
+    system:rSSystem,spaces:rSSpaces,apps_integrations:rSAppsInt,marketplace:rSMarketplace,
+    work_types:rSWorkTypes,fields:rSFields,workflows:rSWorkflows,screens:rSScreens,
+    users:rSUsers,roles:rSRoles,permissions:rSPerms,teams:rSTeams,
+    app:rSApp
+  };
   const fn=content[state.settingsTab]||rSUsers;
+  const ni=(k)=>`<div class="settings-nav-item ${state.settingsTab===k?'active':''}" onclick="navSettings('${k}')">${tabs[k]}</div>`;
   return `<div class="page"><div class="page-header"><div class="page-title">Settings</div></div>
     <div class="settings-layout">
       <div class="settings-nav">
-        <div class="settings-nav-group">Admin</div>
-        ${['users','roles','permissions'].map(k=>`<div class="settings-nav-item ${state.settingsTab===k?'active':''}" onclick="navSettings('${k}')">${tabs[k]}</div>`).join('')}
-        <div class="settings-nav-group">App</div>
-        ${['fields','workflows','screens','app'].map(k=>`<div class="settings-nav-item ${state.settingsTab===k?'active':''}" onclick="navSettings('${k}')">${tabs[k]}</div>`).join('')}
+        <div class="settings-nav-group">Personal</div>
+        ${['profile','notifications_settings'].map(ni).join('')}
+        <div class="settings-nav-group">Admin Settings</div>
+        ${['system','spaces','apps_integrations','marketplace'].map(ni).join('')}
+        <div class="settings-nav-group">Work Items</div>
+        ${['work_types','fields','workflows','screens'].map(ni).join('')}
+        <div class="settings-nav-group">Users & Access</div>
+        ${['users','roles','permissions','teams'].map(ni).join('')}
+        <div class="settings-nav-group">Configuration</div>
+        ${['app'].map(ni).join('')}
       </div>
       <div>${fn()}</div>
     </div>
@@ -1866,8 +2072,93 @@ function rSRoles(){return `<div><div style="font-size:16px;font-weight:700;margi
   <div class="card"><div class="card-title">Groups</div>${state.groups.map(g=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--gray-100)"><span class="tag">${g}</span><span style="font-size:12px;color:var(--gray-500)">${state.users.filter(u=>u.group===g).length} members</span></div>`).join('')}<button class="btn btn-outline btn-sm w-full" style="margin-top:10px" onclick="openModal('addGroup')">+ New Group</button></div>
   </div></div>`}
 function rSPerms(){const perms=['Create Tickets','Edit Tickets','Delete Tickets','Manage Projects','Manage Users','View Reports','Admin Settings'];return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Permissions</div><div class="card" style="padding:0"><table><thead><tr><th>Permission</th>${state.roles.map(r=>`<th>${r}</th>`).join('')}</tr></thead><tbody>${perms.map(perm=>`<tr><td style="font-weight:500">${perm}</td>${state.roles.map(r=>{const has=['Create Tickets','Edit Tickets','View Reports'].includes(perm)||(r==='Admin')||(['Manage Projects','Delete Tickets'].includes(perm)&&['Admin','Manager'].includes(r));return `<td style="text-align:center">${has?'✅':'—'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div></div>`}
-function rSFields(){return `<div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:16px;font-weight:700">Custom Fields</div><button class="btn btn-primary btn-sm" onclick="openModal('addField')">+ Add Field</button></div><div class="card" style="padding:0"><table><thead><tr><th>Field</th><th>Type</th><th>Applies To</th><th>Required</th><th>Actions</th></tr></thead><tbody>${state.customFields.map(f=>`<tr><td style="font-weight:600">${f.name}</td><td><span class="badge badge-blue">${f.type}</span></td><td>${f.applyTo.map(t=>`<span class="badge ${getTypeColor(t)}" style="margin:1px">${t}</span>`).join('')}</td><td>${f.required?'<span class="badge badge-red">Yes</span>':'<span class="badge badge-gray">No</span>'}</td><td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm">✏</button><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></div></td></tr>`).join('')}</tbody></table></div></div>`}
-function rSWorkflows(){const tr=[{from:'To Do',to:['In Progress']},{from:'In Progress',to:['In Review','Blocked','To Do']},{from:'In Review',to:['Done','In Progress']},{from:'Blocked',to:['To Do','In Progress']}];return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Workflows</div>${WORKFLOWS.map((w,i)=>`<div class="card" style="margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:14px;font-weight:700">${w}</div><span class="badge ${i===0?'badge-green':'badge-gray'}">${i===0?'Active':'Draft'}</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px">${STATUSES.map(s=>`<span class="badge ${getStatusClass(s)}">${s}</span>`).join('')}</div>${tr.map(t=>`<div style="font-size:12px;color:var(--gray-600);padding:3px 0"><span class="badge ${getStatusClass(t.from)}" style="font-size:10px">${t.from}</span><span style="margin:0 5px;color:var(--gray-400)">→</span>${t.to.map(x=>`<span class="badge ${getStatusClass(x)}" style="font-size:10px">${x}</span>`).join(' ')}</div>`).join('')}</div>`).join('')}</div>`}
+function rSFields(){
+  return `<div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div><div style="font-size:16px;font-weight:700">Custom Fields</div><div style="font-size:13px;color:var(--gray-500);margin-top:2px">Global field registry — assign fields to specific projects</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('addField')">+ Create Field</button>
+  </div>
+  <div class="card" style="padding:0">
+    <table>
+      <thead><tr><th>Field Name</th><th>Type</th><th>Applies To</th><th>Required</th><th>Projects Using</th><th>Actions</th></tr></thead>
+      <tbody>
+        ${state.customFields.map(f=>`<tr>
+          <td><div style="font-weight:700;font-size:13px">${f.name}</div></td>
+          <td><span class="badge badge-blue">${f.type}</span></td>
+          <td><div style="display:flex;gap:2px;flex-wrap:wrap">${f.applyTo.map(t=>`<span class="badge ${getTypeColor(t)}" style="font-size:10px">${t}</span>`).join('')}</div></td>
+          <td>${f.required?'<span class="badge badge-red">Yes</span>':'<span class="badge badge-gray">No</span>'}</td>
+          <td>
+            <div style="display:flex;gap:3px;flex-wrap:wrap">
+              ${(f.projects||[]).slice(0,3).map(pid=>{const p=state.projects.find(x=>x.id===pid);return p?`<span style="font-size:10px;background:${p.color}20;color:${p.color};padding:1px 6px;border-radius:8px;font-weight:600">${p.key}</span>`:''}).join('')}
+              ${(f.projects||[]).length>3?`<span style="font-size:10px;color:var(--gray-400)">+${(f.projects||[]).length-3}</span>`:''}
+              <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:1px 6px" onclick="openModal('assignField',${f.id})">Assign...</button>
+            </div>
+          </td>
+          <td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm">✏</button><button class="btn btn-ghost btn-sm" style="color:var(--red)">🗑</button></div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="card" style="margin-top:14px;background:var(--blue-light);border-color:var(--blue)">
+    <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:6px">💡 How it works</div>
+    <div style="font-size:12px;color:var(--gray-600);line-height:1.6">
+      Create fields globally here, then assign them to specific projects using <strong>Assign...</strong>.
+      Fields assigned to a project will appear in the Create / Edit ticket forms for that project.
+      Use the <strong>Screens</strong> tab to control which fields appear on Create, Edit, and View screens.
+    </div>
+  </div>
+  </div>`;
+}
+function rSWorkflows(){
+  const wfs=state.workflowDefs||[];
+  const activeWf=state.settingsWfId||(wfs[0]&&wfs[0].id);
+  const wf=wfs.find(w=>w.id===activeWf)||wfs[0];
+  return `<div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div><div style="font-size:16px;font-weight:700">Workflows</div><div style="font-size:13px;color:var(--gray-500);margin-top:2px">Define status flows for your issue types</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('createWorkflow')">+ Create Workflow</button>
+  </div>
+  <div class="grid-2" style="gap:16px;align-items:start">
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Workflows</div>
+      ${wfs.map(w=>`<div onclick="setState({settingsWfId:'${w.id}'})" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;margin-bottom:5px;cursor:pointer;border:1.5px solid ${activeWf===w.id?'var(--blue)':'var(--gray-200)'};background:${activeWf===w.id?'var(--blue-light)':'var(--white)'}">
+        <div>
+          <div style="font-weight:600;font-size:13px;color:${activeWf===w.id?'var(--blue)':'var(--text)'}">${w.name}</div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:2px">${w.statuses.length} statuses · ${w.transitions.length} transitions</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${w.isDefault?'<span class="badge badge-green" style="font-size:10px">Default</span>':''}
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openModal('editWorkflow','${w.id}')">✏</button>
+          ${!w.isDefault?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="event.stopPropagation();deleteWorkflow('${w.id}')">🗑</button>`:''}
+        </div>
+      </div>`).join('')}
+    </div>
+    ${wf?`<div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+        ${wf.name}
+        ${wf.isDefault?'<span class="badge badge-green" style="font-size:10px">Default</span>':''}
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Statuses</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px">
+        ${wf.statuses.map(s=>`<span class="wf-status-pill" style="background:${s.color}18;color:${s.color};border-color:${s.color}40">
+          <span style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0"></span>${s.name}
+        </span>`).join('')}
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Transitions</div>
+      ${wf.transitions.map(tr=>`<div class="wf-transition-row">
+        <span class="wf-status-pill" style="font-size:11px;background:${(wf.statuses.find(s=>s.name===tr.from)||{color:'#94a3b8'}).color}18;color:${(wf.statuses.find(s=>s.name===tr.from)||{color:'#94a3b8'}).color};border-color:${(wf.statuses.find(s=>s.name===tr.from)||{color:'#94a3b8'}).color}40">${tr.from}</span>
+        <span class="wf-arrow">→</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          ${tr.to.map(toS=>`<span class="wf-status-pill" style="font-size:11px;background:${(wf.statuses.find(s=>s.name===toS)||{color:'#94a3b8'}).color}18;color:${(wf.statuses.find(s=>s.name===toS)||{color:'#94a3b8'}).color};border-color:${(wf.statuses.find(s=>s.name===toS)||{color:'#94a3b8'}).color}40">${toS}</span>`).join('')}
+        </div>
+      </div>`).join('')}
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--gray-100);display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="openModal('editWorkflow','${wf.id}')">✏ Edit Workflow</button>
+        ${!wf.isDefault?`<button class="btn btn-ghost btn-sm" onclick="setDefaultWorkflow('${wf.id}')">Set as Default</button>`:''}
+      </div>
+    </div>`:''}
+  </div></div>`;
+}
 function rSScreens(){const fields=['Summary','Description','Assignee','Reporter','Priority','Status','Sprint','Labels','Start Date','Due Date','Story Points'];return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Screens</div>${['Create Screen','Edit Screen','View Screen'].map(s=>`<div class="card" style="margin-bottom:12px"><div style="font-size:14px;font-weight:700;margin-bottom:10px">${s}</div><div style="display:flex;gap:6px;flex-wrap:wrap">${fields.map(f=>`<span onclick="this.style.background=this.style.background==='var(--blue-light)'?'var(--gray-50)':'var(--blue-light)';this.style.borderColor=this.style.background==='var(--blue-light)'?'var(--blue)':'var(--gray-200)'" style="padding:5px 11px;border-radius:6px;font-size:12px;border:1.5px solid var(--gray-200);background:var(--gray-50);cursor:pointer">${f}</span>`).join('')}</div></div>`).join('')}</div>`}
 function rSApp(){const s=state.appSettings;return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">App Settings</div><div class="card" style="max-width:480px">
   <div class="form-group"><label class="form-label">Application Name</label><input class="form-input" value="${s.appName}" oninput="state.appSettings.appName=this.value"/></div>
@@ -1876,6 +2167,180 @@ function rSApp(){const s=state.appSettings;return `<div><div style="font-size:16
   ${[['emailNotif','Email Notifications'],['slackNotif','Slack Notifications'],['allowSignup','Allow Self Signup']].map(([k,l])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${l}</span><div class="toggle ${s[k]?'on':''}" onclick="state.appSettings['${k}']=!state.appSettings['${k}'];render()"><div class="toggle-knob"></div></div></div>`).join('')}
   <button class="btn btn-primary w-full" style="margin-top:14px" onclick="alert('✅ Settings saved!')">Save Settings</button>
   </div></div>`}
+
+function rSProfile(){
+  const u=state.user||{name:'Harsha',email:'harsha@trackkub.io',role:'Admin'};
+  return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Profile</div>
+  <div class="card" style="max-width:500px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--gray-200)">
+      ${avatarEl(u.name,56)}<div><div style="font-weight:700;font-size:16px">${u.name}</div><div style="color:var(--gray-500);font-size:13px">${u.email}</div><span class="badge badge-blue" style="margin-top:5px">${u.role}</span></div>
+    </div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" value="${u.name}"/></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="${u.email}"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Language</label><select class="form-select"><option selected>English (US)</option><option>English (UK)</option><option>Spanish</option><option>French</option></select></div>
+      <div class="form-group"><label class="form-label">Timezone</label><select class="form-select">${['UTC','US/Eastern','US/Pacific','Europe/London','Asia/Kolkata'].map(tz=>`<option ${tz==='Asia/Kolkata'?'selected':''}>${tz}</option>`).join('')}</select></div>
+    </div>
+    <button class="btn btn-primary w-full" style="margin-top:4px" onclick="alert('✅ Profile saved!')">Save Profile</button>
+  </div></div>`;
+}
+function rSNotifSettings(){
+  return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Notification Settings</div>
+  <div class="card" style="max-width:500px">
+    <div style="font-size:13px;font-weight:600;color:var(--gray-600);margin-bottom:10px">Email Notifications</div>
+    ${[['Ticket assigned to me',true],['Someone mentions me',true],['Comments on my tickets',true],['Status changes on my tickets',false],['Due date reminders',true],['Sprint start/end alerts',false]].map(([l,on])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${l}</span><div class="toggle ${on?'on':''}" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div></div>`).join('')}
+    <div style="font-size:13px;font-weight:600;color:var(--gray-600);margin:16px 0 10px">In-App Notifications</div>
+    ${[['Board updates',true],['Sprint changes',true],['Project announcements',false],['Team mentions',true]].map(([l,on])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${l}</span><div class="toggle ${on?'on':''}" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div></div>`).join('')}
+    <button class="btn btn-primary w-full" style="margin-top:14px" onclick="alert('✅ Preferences saved!')">Save Preferences</button>
+  </div></div>`;
+}
+function rSSystem(){
+  return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">System</div>
+  <div class="grid-2" style="gap:14px">
+    <div class="card"><div class="card-title">General Configuration</div>
+      <div class="form-group"><label class="form-label">Site Name</label><input class="form-input" value="TrackKub"/></div>
+      <div class="form-group"><label class="form-label">Base URL</label><input class="form-input" value="https://trackkub.io"/></div>
+      <div class="form-group"><label class="form-label">Support Email</label><input class="form-input" value="support@trackkub.io"/></div>
+      <button class="btn btn-primary btn-sm" onclick="alert('✅ Saved!')">Save</button>
+    </div>
+    <div class="card"><div class="card-title">Security</div>
+      ${[['Two-Factor Authentication','Enabled','badge-green'],['SSO / SAML','Disabled','badge-gray'],['Session Timeout','30 minutes','badge-blue'],['IP Allowlist','Not configured','badge-gray'],['Audit Logging','Enabled','badge-green']].map(([k,v,cls])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${k}</span><span class="badge ${cls}">${v}</span></div>`).join('')}
+      <button class="btn btn-outline btn-sm" style="margin-top:10px">Configure Security</button>
+    </div>
+    <div class="card"><div class="card-title">Automation Rules</div>
+      ${[{n:'Auto-assign on ticket create',s:'Active'},{n:'Close stale tickets (30 days)',s:'Active'},{n:'Sprint rollover unfinished items',s:'Inactive'},{n:'Notify on overdue tickets',s:'Active'}].map(r=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${r.n}</span><span class="badge ${r.s==='Active'?'badge-green':'badge-gray'}">${r.s}</span></div>`).join('')}
+      <button class="btn btn-outline btn-sm" style="margin-top:10px">+ Add Rule</button>
+    </div>
+    <div class="card"><div class="card-title">User Interface Defaults</div>
+      ${[['Default Board View','Scrum'],['Items Per Page','50'],['Date Format','MM/DD/YYYY'],['Default Language','English (US)'],['Theme','Light']].map(([k,v])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-100)"><span style="font-size:13px">${k}</span><span style="font-size:12px;color:var(--gray-500)">${v}</span></div>`).join('')}
+      <button class="btn btn-outline btn-sm" style="margin-top:10px">Edit Defaults</button>
+    </div>
+  </div></div>`;
+}
+function rSSpaces(){
+  return `<div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div style="font-size:16px;font-weight:700">Projects & Spaces</div></div>
+  <div class="card" style="padding:0"><table><thead><tr><th>Project</th><th>Key</th><th>Lead</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>
+  ${state.projects.map(p=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:7px;background:${p.color}20;display:flex;align-items:center;justify-content:center;font-size:16px">${p.icon}</div><div><div style="font-weight:600;font-size:13px">${p.name}</div><div style="font-size:11px;color:var(--gray-400)">${p.description}</div></div></div></td>
+    <td><span class="badge badge-blue">${p.key}</span></td>
+    <td style="font-size:13px">${p.lead}</td>
+    <td><span class="badge ${p.status==='Active'?'badge-green':p.status==='On Hold'?'badge-yellow':'badge-gray'}">${p.status}</span></td>
+    <td style="font-size:12px;color:var(--gray-400)">${p.created}</td>
+    <td><div style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm">✏</button><button class="btn btn-ghost btn-sm">⚙</button></div></td>
+  </tr>`).join('')}</tbody></table></div></div>`;
+}
+function rSAppsInt(){
+  const apps=[
+    {name:'Slack',desc:'Send notifications to Slack channels',icon:'💬',status:'Connected',color:'#4a154b'},
+    {name:'GitHub',desc:'Link commits and PRs to tickets',icon:'🐙',status:'Connected',color:'#24292f'},
+    {name:'Figma',desc:'Embed design files in tickets',icon:'🎨',status:'Not Connected',color:'#f24e1e'},
+    {name:'Google Drive',desc:'Attach Drive files to tickets',icon:'📁',status:'Not Connected',color:'#1a73e8'},
+    {name:'Jenkins',desc:'CI/CD pipeline integration',icon:'🔧',status:'Connected',color:'#d33833'},
+    {name:'PagerDuty',desc:'Incident management alerts',icon:'🚨',status:'Not Connected',color:'#06ac38'},
+    {name:'Datadog',desc:'Monitor app performance metrics',icon:'🐕',status:'Not Connected',color:'#632ca6'},
+    {name:'Zoom',desc:'Start meetings from ticket context',icon:'📹',status:'Not Connected',color:'#2d8cff'},
+  ];
+  return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Apps & Integrations</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+    ${apps.map(a=>`<div class="card"><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:${a.color}18;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${a.icon}</div>
+      <div><div style="font-weight:700">${a.name}</div><div style="font-size:11px;color:var(--gray-500)">${a.desc}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="badge ${a.status==='Connected'?'badge-green':'badge-gray'}">${a.status}</span>
+      <button class="btn ${a.status==='Connected'?'btn-outline':'btn-primary'} btn-sm">${a.status==='Connected'?'Configure':'Connect'}</button>
+    </div></div>`).join('')}
+  </div></div>`;
+}
+function rSMarketplace(){
+  const apps=[
+    {name:'Advanced Roadmaps',desc:'Enterprise roadmap planning and portfolio management',icon:'🗺',price:'Free',installs:'10k+'},
+    {name:'Time Tracker Pro',desc:'Log work hours directly on tickets with reports',icon:'⏱',price:'$5/mo',installs:'8k+'},
+    {name:'Sprint Insights AI',desc:'AI-powered sprint retrospective and forecasting',icon:'🤖',price:'$3/mo',installs:'5k+'},
+    {name:'Bulk Ticket Import',desc:'Import tickets from CSV, Excel or Jira exports',icon:'📥',price:'Free',installs:'12k+'},
+    {name:'Custom Charts',desc:'Build advanced visualization widgets and dashboards',icon:'📈',price:'$8/mo',installs:'3k+'},
+    {name:'Confluence Wiki',desc:'Link documentation pages to your tickets',icon:'📝',price:'Free',installs:'20k+'},
+  ];
+  return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Marketplace</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+    ${apps.map(a=>`<div class="card"><div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+      <div style="width:46px;height:46px;border-radius:10px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${a.icon}</div>
+      <div><div style="font-weight:700">${a.name}</div><div style="font-size:11px;color:var(--gray-500);margin-top:3px">${a.desc}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div><span class="badge ${a.price==='Free'?'badge-green':'badge-blue'}">${a.price}</span><span style="font-size:11px;color:var(--gray-400);margin-left:6px">${a.installs} installs</span></div>
+      <button class="btn btn-primary btn-sm">Install</button>
+    </div></div>`).join('')}
+  </div></div>`;
+}
+function rSWorkTypes(){
+  const hier=[
+    {type:'Feature',color:'#1a56db',parent:null},
+    {type:'Initiative',color:'#7c3aed',parent:'Feature'},
+    {type:'Epic',color:'#9333ea',parent:'Initiative'},
+    {type:'Story',color:'#16a34a',parent:'Epic'},
+    {type:'Task',color:'#ca8a04',parent:'Story'},
+    {type:'Sub-task',color:'#ea580c',parent:'Task'},
+  ];
+  return `<div><div style="font-size:16px;font-weight:700;margin-bottom:16px">Work Type Hierarchy</div>
+  <div class="grid-2" style="gap:14px">
+    <div class="card"><div class="card-title">Issue Hierarchy</div>
+      ${hier.map((h,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--gray-100)">
+        <span style="display:inline-block;width:${i*14}px;flex-shrink:0"></span>
+        ${i>0?`<span style="color:var(--gray-300);font-size:14px;flex-shrink:0">└</span>`:''}
+        <span class="badge" style="background:${h.color}18;color:${h.color};border:1px solid ${h.color}35">${h.type}</span>
+        <span style="font-size:11px;color:var(--gray-400)">${h.parent?`child of ${h.parent}`:'Top level'}</span>
+      </div>`).join('')}
+      <button class="btn btn-outline btn-sm" style="margin-top:10px">+ Add Work Type</button>
+    </div>
+    <div class="card"><div class="card-title">Work Type Settings</div>
+      ${ISSUE_TYPES.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-100)">
+        <span class="badge ${getTypeColor(t)}">${t}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:11px;color:var(--gray-400)">${state.tickets.filter(tk=>tk.type===t).length} tickets</span>
+          <button class="btn btn-ghost btn-sm">✏</button>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div></div>`;
+}
+function rSTeams(){
+  return `<div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div><div style="font-size:16px;font-weight:700">Teams</div><div style="font-size:13px;color:var(--gray-500);margin-top:2px">Organise users into teams for assignment and filtering</div></div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('createTeam')">+ Create Team</button>
+  </div>
+  ${state.teams.length===0?`<div class="card" style="text-align:center;padding:40px;color:var(--gray-400)">No teams yet. Create your first team.</div>`:''}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
+    ${state.teams.map(tm=>{
+      const lead=state.users.find(u=>u.id===tm.lead);
+      const members=state.users.filter(u=>tm.members.includes(u.id));
+      return `<div class="card" style="border-left:4px solid ${tm.color}">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${tm.color};flex-shrink:0"></div><span style="font-weight:700;font-size:15px">${tm.name}</span></div>
+            <div style="font-size:12px;color:var(--gray-500);margin-top:4px">${tm.description||''}</div>
+          </div>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-ghost btn-sm" onclick="openModal('editTeam','${tm.id}')">✏</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeTeam('${tm.id}')">🗑</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+          <span style="font-size:11px;color:var(--gray-500)">Lead:</span>
+          ${lead?`<div style="display:flex;align-items:center;gap:5px">${avatarEl(lead.name,22)}<span style="font-size:12px;font-weight:600">${lead.name}</span></div>`:`<span style="font-size:12px;color:var(--gray-400)">Unassigned</span>`}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:var(--gray-500)">Members (${members.length}):</span>
+          <div style="display:flex;gap:3px">${members.map(u=>`<div title="${u.name}">${avatarEl(u.name,26)}</div>`).join('')}</div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-100);display:flex;gap:6px">
+          <span style="font-size:11px;color:var(--gray-400)">${state.tickets.filter(t=>t.team===tm.id).length} tickets assigned</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div></div>`;
+}
 
 // ============================================================
 // MODALS
@@ -1895,6 +2360,11 @@ function renderModal(){
   else if(m.type==='notifications')inner=renderNotifsModal();
   else if(m.type==='addGroup')inner=rSimple('Add Group','Group Name','addGroup');
   else if(m.type==='addRole')inner=rSimple('Add Role','Role Name','addRole');
+  else if(m.type==='createTeam')inner=renderCTeamModal();
+  else if(m.type==='editTeam')inner=renderETeamModal(m.data);
+  else if(m.type==='createWorkflow')inner=renderCWFModal();
+  else if(m.type==='editWorkflow')inner=renderEWFModal(m.data);
+  else if(m.type==='assignField')inner=renderAssignFieldModal(m.data);
   else inner=`<div class="modal-title">Coming Soon</div>`;
   return `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal">${inner}</div></div>`;
 }
@@ -1932,7 +2402,11 @@ function renderCTModal(init,parentId){
       <div class="form-group"><label class="form-label">Sprint</label>
         <select class="form-select" id="ct-sprint"><option>Sprint 1</option><option selected>Sprint 2</option><option>Sprint 3</option></select></div>
     </div>
-    <div class="form-group"><label class="form-label">Labels (comma separated)</label><input class="form-input" id="ct-labels" placeholder="e.g. bug, ux"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Team</label>
+        <select class="form-select" id="ct-team"><option value="">No team</option>${state.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Labels (comma separated)</label><input class="form-input" id="ct-labels" placeholder="e.g. bug, ux"/></div>
+    </div>
     <div style="padding:10px 12px;background:#f0fdf4;border-radius:7px;border:1px solid #bbf7d0;font-size:12px;color:#166534;margin-bottom:12px">
       ✅ Ticket will be created with status <strong>To Do</strong> and placed in the <strong>Backlog</strong>
     </div>
@@ -1956,13 +2430,13 @@ function subCT(){
   const startDate=document.getElementById('ct-start').value||null;
   const dueDate=document.getElementById('ct-due').value||null;
   const labels=document.getElementById('ct-labels').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const team=document.getElementById('ct-team').value||null;
   const p=projectById(pid);
   const num=state.nextTicketNums[pid]||1;
   const id=`${p.key}-${num}`;
   state.nextTicketNums[pid]=num+1;
   const today=new Date().toISOString().slice(0,10);
-  // STATUS IS ALWAYS 'To Do' — goes to backlog
-  const t={id,project:pid,type,title,desc,status:'To Do',priority,assignee,reporter:state.user.name,created:today,updated:today,labels,sprint,parent,startDate,dueDate};
+  const t={id,project:pid,type,title,desc,status:'To Do',priority,assignee,reporter:state.user.name,created:today,updated:today,labels,sprint,parent,startDate,dueDate,team};
   setState({tickets:[...state.tickets,t],modal:null,activeProject:pid,page:'projectdetail',projectTab:'issues'});
 }
 
@@ -2121,6 +2595,190 @@ function rSimple(title,ph,action){return `<div><div class="modal-title">${title}
 function subSimple(action){const val=document.getElementById('sm-val').value.trim();if(!val)return;if(action==='addGroup')setState({groups:[...state.groups,val],modal:null});else if(action==='addRole')setState({roles:[...state.roles,val],modal:null})}
 
 // ============================================================
+// WORKFLOW MODALS
+// ============================================================
+function renderCWFModal(){
+  return `<div>
+    <div class="modal-title">Create Workflow</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-group"><label class="form-label">Workflow Name *</label><input class="form-input" id="cwf-name" placeholder="e.g. Design Workflow"/></div>
+    <div class="form-group"><label class="form-label">Statuses (one per line, format: Name #color)</label>
+      <textarea class="form-textarea" id="cwf-statuses" rows="6" placeholder="To Do #64748b&#10;In Progress #1d4ed8&#10;Done #16a34a">To Do #64748b
+In Progress #1d4ed8
+Ready for Testing #7c3aed
+Done #16a34a
+Blocked #dc2626</textarea>
+    </div>
+    <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px">Transitions will be generated automatically. You can edit them after creation.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subCreateWorkflow()">Create Workflow</button>
+    </div>
+  </div>`;
+}
+function renderEWFModal(wfid){
+  const wf=state.workflowDefs.find(w=>w.id===wfid);if(!wf)return'';
+  return `<div>
+    <div class="modal-title">Edit: ${wf.name}</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-group"><label class="form-label">Workflow Name *</label><input class="form-input" id="ewf-name" value="${wf.name}"/></div>
+    <div class="form-group"><label class="form-label">Statuses</label>
+      <div style="display:flex;flex-direction:column;gap:6px" id="ewf-status-list">
+        ${wf.statuses.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:7px;background:var(--white)">
+          <input type="color" value="${s.color}" id="ewf-sc-${i}" style="width:28px;height:28px;border:none;border-radius:50%;cursor:pointer;flex-shrink:0"/>
+          <input class="form-input" value="${s.name}" id="ewf-sn-${i}" style="margin:0"/>
+          <select class="form-select" id="ewf-scat-${i}" style="width:auto;margin:0">
+            ${['todo','inprogress','done','blocked'].map(c=>`<option value="${c}" ${s.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>`).join('')}
+      </div>
+      <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="addWfStatusRow(${wf.statuses.length})">+ Add Status</button>
+    </div>
+    <div class="form-group"><label class="form-label">Transitions (from → to, one per line)</label>
+      <textarea class="form-textarea" id="ewf-transitions" rows="6">${wf.transitions.map(t=>t.from+' → '+t.to.join(', ')).join('\n')}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subEditWorkflow('${wfid}',${wf.statuses.length})">Save Workflow</button>
+    </div>
+  </div>`;
+}
+function renderAssignFieldModal(fieldId){
+  const f=state.customFields.find(x=>x.id===fieldId);if(!f)return'';
+  return `<div>
+    <div class="modal-title">Assign "${f.name}" to Projects</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div style="font-size:13px;color:var(--gray-500);margin-bottom:14px">Select which projects will use this field in their ticket forms.</div>
+    <div style="display:flex;flex-direction:column;gap:5px;max-height:300px;overflow-y:auto">
+      ${state.projects.map(p=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:7px;cursor:pointer" onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
+        <input type="checkbox" id="af-p-${p.id}" ${(f.projects||[]).includes(p.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--blue)"/>
+        <span style="font-size:16px">${p.icon}</span>
+        <span style="font-weight:600;font-size:13px">${p.name}</span>
+        <span class="badge badge-blue" style="font-size:10px;margin-left:auto">${p.key}</span>
+      </label>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subAssignField(${fieldId})">Save Assignment</button>
+    </div>
+  </div>`;
+}
+function subCreateWorkflow(){
+  const name=document.getElementById('cwf-name').value.trim();
+  if(!name){alert('Name required');return;}
+  const lines=document.getElementById('cwf-statuses').value.split('\n').filter(Boolean);
+  const statuses=lines.map(l=>{const parts=l.trim().split(' ');const color=parts.find(p=>p.startsWith('#'))||'#64748b';const n=parts.filter(p=>!p.startsWith('#')).join(' ');return{name:n,color,category:'inprogress'};});
+  const transitions=statuses.slice(0,-1).map((s,i)=>({from:s.name,to:[statuses[i+1].name]}));
+  if(statuses.length){transitions[0]&&(transitions[transitions.length-1].to.push('Blocked'));}
+  setState({workflowDefs:[...state.workflowDefs,{id:'wf'+Date.now(),name,isDefault:false,statuses,transitions}],modal:null});
+}
+function subEditWorkflow(wfid,statusCount){
+  const name=document.getElementById('ewf-name').value.trim();if(!name){alert('Name required');return;}
+  const statuses=[];
+  for(let i=0;i<statusCount+5;i++){const el=document.getElementById('ewf-sn-'+i);if(!el)break;statuses.push({name:el.value,color:document.getElementById('ewf-sc-'+i).value,category:document.getElementById('ewf-scat-'+i).value});}
+  const trLines=document.getElementById('ewf-transitions').value.split('\n').filter(Boolean);
+  const transitions=trLines.map(l=>{const [from,toStr]=l.split('→');if(!from||!toStr)return null;return{from:from.trim(),to:toStr.split(',').map(s=>s.trim()).filter(Boolean)};}).filter(Boolean);
+  setState({workflowDefs:state.workflowDefs.map(w=>w.id===wfid?{...w,name,statuses,transitions}:w),modal:null});
+}
+function deleteWorkflow(wfid){if(!confirm('Delete this workflow?'))return;setState({workflowDefs:state.workflowDefs.filter(w=>w.id!==wfid)});}
+function setDefaultWorkflow(wfid){setState({workflowDefs:state.workflowDefs.map(w=>({...w,isDefault:w.id===wfid}))});}
+function subAssignField(fieldId){
+  const projects=state.projects.map(p=>p.id).filter(id=>document.getElementById('af-p-'+id)?.checked);
+  setState({customFields:state.customFields.map(f=>f.id===fieldId?{...f,projects}:f),modal:null});
+}
+
+// ============================================================
+// TEAMS
+// ============================================================
+function renderCTeamModal(){
+  const TEAM_COLORS=['#1a56db','#7c3aed','#16a34a','#dc2626','#ea580c','#ca8a04','#ec4899','#0891b2'];
+  return `<div>
+    <div class="modal-title">Create Team</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-group"><label class="form-label">Team Name *</label><input class="form-input" id="ctm-name" placeholder="e.g. Frontend Team"/></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="ctm-desc" placeholder="What does this team work on?"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Team Color</label>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:6px" id="ctm-color-picker">
+          ${TEAM_COLORS.map((c,i)=>`<div onclick="document.getElementById('ctm-color').value='${c}';document.querySelectorAll('#ctm-color-picker .cp-dot').forEach(x=>{x.style.outline='none';x.style.transform='scale(1)'});this.style.outline='2.5px solid var(--gray-700)';this.style.transform='scale(1.2)'" class="cp-dot" style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;transition:all .12s;outline:${i===0?'2.5px solid var(--gray-700)':'none'};transform:${i===0?'scale(1.2)':'scale(1)'}"></div>`).join('')}
+          <input type="hidden" id="ctm-color" value="${TEAM_COLORS[0]}"/>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Team Lead</label>
+        <select class="form-select" id="ctm-lead"><option value="">No lead</option>${state.users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Members</label>
+      <div style="display:flex;flex-direction:column;gap:4px;max-height:170px;overflow-y:auto;border:1.5px solid var(--gray-200);border-radius:7px;padding:8px">
+        ${state.users.map(u=>`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 7px;border-radius:6px" onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
+          <input type="checkbox" id="ctm-m-${u.id}" value="${u.id}" style="width:14px;height:14px;flex-shrink:0"/>
+          ${avatarEl(u.name,24)}<span style="font-size:13px;font-weight:500">${u.name}</span><span style="font-size:11px;color:var(--gray-400);margin-left:auto">${u.role}</span>
+        </label>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subCreateTeam()">Create Team</button>
+    </div>
+  </div>`;
+}
+function renderETeamModal(tmid){
+  const tm=state.teams.find(t=>t.id===tmid);if(!tm)return'<div>Not found</div>';
+  const TEAM_COLORS=['#1a56db','#7c3aed','#16a34a','#dc2626','#ea580c','#ca8a04','#ec4899','#0891b2'];
+  return `<div>
+    <div class="modal-title">Edit Team</div>
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="form-group"><label class="form-label">Team Name *</label><input class="form-input" id="etm-name" value="${tm.name}"/></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="etm-desc" value="${tm.description||''}"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Team Color</label>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:6px" id="etm-color-picker">
+          ${TEAM_COLORS.map(c=>`<div onclick="document.getElementById('etm-color').value='${c}';document.querySelectorAll('#etm-color-picker .cp-dot').forEach(x=>{x.style.outline='none';x.style.transform='scale(1)'});this.style.outline='2.5px solid var(--gray-700)';this.style.transform='scale(1.2)'" class="cp-dot" style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;transition:all .12s;outline:${c===tm.color?'2.5px solid var(--gray-700)':'none'};transform:${c===tm.color?'scale(1.2)':'scale(1)'}"></div>`).join('')}
+          <input type="hidden" id="etm-color" value="${tm.color}"/>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Team Lead</label>
+        <select class="form-select" id="etm-lead"><option value="">No lead</option>${state.users.map(u=>`<option value="${u.id}" ${u.id===tm.lead?'selected':''}>${u.name}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Members</label>
+      <div style="display:flex;flex-direction:column;gap:4px;max-height:170px;overflow-y:auto;border:1.5px solid var(--gray-200);border-radius:7px;padding:8px">
+        ${state.users.map(u=>`<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 7px;border-radius:6px" onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''">
+          <input type="checkbox" id="etm-m-${u.id}" value="${u.id}" ${tm.members.includes(u.id)?'checked':''} style="width:14px;height:14px;flex-shrink:0"/>
+          ${avatarEl(u.name,24)}<span style="font-size:13px;font-weight:500">${u.name}</span><span style="font-size:11px;color:var(--gray-400);margin-left:auto">${u.role}</span>
+        </label>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="subEditTeam('${tmid}')">Save Changes</button>
+    </div>
+  </div>`;
+}
+function subCreateTeam(){
+  const name=document.getElementById('ctm-name').value.trim();
+  if(!name){alert('Team name required');return;}
+  const desc=document.getElementById('ctm-desc').value;
+  const color=document.getElementById('ctm-color').value;
+  const lead=parseInt(document.getElementById('ctm-lead').value)||null;
+  const members=state.users.map(u=>u.id).filter(id=>document.getElementById(`ctm-m-${id}`)?.checked);
+  setState({teams:[...state.teams,{id:'tm'+Date.now(),name,description:desc,color,lead,members}],modal:null});
+}
+function subEditTeam(tmid){
+  const name=document.getElementById('etm-name').value.trim();
+  if(!name){alert('Team name required');return;}
+  const desc=document.getElementById('etm-desc').value;
+  const color=document.getElementById('etm-color').value;
+  const lead=parseInt(document.getElementById('etm-lead').value)||null;
+  const members=state.users.map(u=>u.id).filter(id=>document.getElementById(`etm-m-${id}`)?.checked);
+  setState({teams:state.teams.map(t=>t.id===tmid?{...t,name,description:desc,color,lead,members}:t),modal:null});
+}
+function removeTeam(tmid){
+  if(!confirm('Delete this team?'))return;
+  setState({teams:state.teams.filter(t=>t.id!==tmid)});
+}
+
+// ============================================================
 // BOOTSTRAP
 // ============================================================
 render=function(){
@@ -2139,7 +2797,11 @@ window.toggleConnector=toggleConnector;window.deleteFilter=deleteFilter;
 window.setBoardType=setBoardType;window.loadFilterToSearch=loadFilterToSearch;
 window.toggleBoardAssignee=toggleBoardAssignee;
 window.toggleFilterDropdown=toggleFilterDropdown;window.toggleFilterArr=toggleFilterArr;
-window.toggleProjectFilter=toggleProjectFilter;window.clearAllFilters=clearAllFilters;
+window.toggleProjectFilter=toggleProjectFilter;window.clearAllFilters=clearAllFilters;window.toggleTeamFilter=toggleTeamFilter;
+window.subCreateTeam=subCreateTeam;window.subEditTeam=subEditTeam;window.removeTeam=removeTeam;
+window.toggleBoardGroup=toggleBoardGroup;window.completeSprint=completeSprint;
+window.subCreateWorkflow=subCreateWorkflow;window.subEditWorkflow=subEditWorkflow;window.deleteWorkflow=deleteWorkflow;window.setDefaultWorkflow=setDefaultWorkflow;
+window.subAssignField=subAssignField;
 window.toggleRoadmapRow=toggleRoadmapRow;
 window.expandAllRoadmap=expandAllRoadmap;window.collapseAllRoadmap=collapseAllRoadmap;
 window.subCD=subCD;window.deleteCustomDashboard=deleteCustomDashboard;window.toggleProjectsSidebar=toggleProjectsSidebar;
