@@ -5,7 +5,8 @@ export default function Sidebar() {
   const {
     page, projects, activeProject, recentProjects, projectsOpen,
     projectSearch, nav, openProject, openModal,
-    setProjectsOpen, setProjectSearch
+    setProjectsOpen, setProjectSearch,
+    projectTab, setProjectTab
   } = useApp()
 
   const q = (projectSearch || '').toLowerCase()
@@ -19,6 +20,13 @@ export default function Sidebar() {
       ? recentProjects
       : projects.slice(0, 3).map(p => p.id)
     shownProjects = recIds.map(id => projects.find(p => p.id === id)).filter(Boolean)
+  }
+
+  const activeProj = activeProject ? projects.find(p => p.id === activeProject) : null
+
+  const goTab = (tab) => {
+    setProjectTab(tab)
+    if (page !== 'projectdetail') nav('projectdetail')
   }
 
   return (
@@ -102,6 +110,40 @@ export default function Sidebar() {
           </>
         )}
       </div>
+
+      {/* Project Settings section — appears when a project is selected */}
+      {activeProj && (
+        <div className="sidebar-section">
+          <div className="sidebar-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: activeProj.color, flexShrink: 0, display: 'inline-block'
+            }} />
+            <span style={{
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              maxWidth: 130
+            }}>
+              {activeProj.name}
+            </span>
+          </div>
+
+          {[
+            { key: 'board',      icon: '📋', label: 'Board' },
+            { key: 'backlog',    icon: '📃', label: 'Backlog' },
+            { key: 'roadmap',    icon: '🗺',  label: 'Roadmap' },
+            { key: 'reports',    icon: '📊', label: 'Reports' },
+            { key: 'psettings',  icon: '⚙',  label: 'Project Settings' },
+          ].map(({ key, icon, label }) => (
+            <div
+              key={key}
+              className={`sidebar-item ${page === 'projectdetail' && projectTab === key ? 'active' : ''}`}
+              onClick={() => goTab(key)}
+            >
+              {icon} {label}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

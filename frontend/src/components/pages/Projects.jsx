@@ -1,18 +1,9 @@
 import React from 'react'
 import { useApp } from '../../context/AppContext'
-import ProgressBar from '../common/ProgressBar'
 import Avatar from '../common/Avatar'
-import { getStatusClass } from '../common/Badge'
-
-const STATUSES = ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
-
-function statusBadgeClass(s) {
-  const m = { 'To Do': 's-todo', 'In Progress': 's-inprogress', 'In Review': 's-review', Done: 's-done', Blocked: 's-blocked' }
-  return m[s] || 's-todo'
-}
 
 export default function Projects() {
-  const { projects, tickets, openProject, openModal } = useApp()
+  const { projects, openProject, openModal } = useApp()
 
   return (
     <div className="page">
@@ -23,48 +14,62 @@ export default function Projects() {
         </div>
         <button className="btn btn-primary" onClick={() => openModal('createProject')}>+ New Project</button>
       </div>
-      <div className="grid-3">
-        {projects.map(p => {
-          const tks = tickets.filter(t => t.project === p.id)
-          const done = tks.filter(t => t.status === 'Done').length
-          const pct = tks.length ? Math.round(done / tks.length * 100) : 0
-          return (
-            <div
-              key={p.id}
-              className="card"
-              style={{ cursor: 'pointer', borderLeft: `4px solid ${p.color}` }}
-              onClick={() => openProject(p.id)}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 600, marginTop: 2 }}>{p.key}</div>
-                </div>
-                <span className={`badge ${p.status === 'Active' ? 'badge-green' : 'badge-orange'}`}>{p.status}</span>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 12 }}>{p.description}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Avatar name={p.lead} size={24} />
-                <span style={{ fontSize: 12, color: 'var(--gray-500)' }}>{p.lead}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--gray-500)', marginBottom: 4 }}>
-                <span>{tks.length} tickets</span>
-                <span>{pct}% done</span>
-              </div>
-              <ProgressBar pct={pct} />
-              <div style={{ marginTop: 10, display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                {STATUSES.map(s => {
-                  const c = tks.filter(t => t.status === s).length
-                  return c ? (
-                    <span key={s} className={`badge ${statusBadgeClass(s)}`} style={{ fontSize: 10 }}>
-                      {s}: {c}
-                    </span>
-                  ) : null
-                })}
-              </div>
-            </div>
-          )
-        })}
+
+      <div className="card" style={{ padding: 0 }}>
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: '45%' }}>Project Name</th>
+              <th style={{ width: '20%' }}>Key</th>
+              <th style={{ width: '35%' }}>Lead</th>
+            </tr>
+          </thead>
+          <tbody>
+            {projects.map(p => (
+              <tr
+                key={p.id}
+                style={{ cursor: 'pointer' }}
+                onClick={() => openProject(p.id)}
+              >
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: p.color, flexShrink: 0, display: 'inline-block'
+                    }} />
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</span>
+                  </div>
+                </td>
+                <td>
+                  <span style={{
+                    fontFamily: 'monospace', fontSize: 12,
+                    color: 'var(--blue)', fontWeight: 700,
+                    background: 'var(--gray-50)', padding: '2px 8px',
+                    borderRadius: 4, border: '1px solid var(--gray-200)'
+                  }}>
+                    {p.key}
+                  </span>
+                </td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Avatar name={p.lead} size={26} />
+                    <span style={{ fontSize: 13 }}>{p.lead}</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!projects.length && (
+              <tr>
+                <td colSpan={3}>
+                  <div className="empty-state">
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>📁</div>
+                    <div>No projects yet. Click + New Project to get started.</div>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

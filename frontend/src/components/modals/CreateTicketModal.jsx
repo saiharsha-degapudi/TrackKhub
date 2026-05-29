@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
 
 const ISSUE_TYPES = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
 const ISSUE_TYPE_PARENT = { Initiative: 'Feature', Epic: 'Initiative', Story: 'Epic', Task: 'Story', 'Sub-task': 'Task' }
 const PRIORITIES = ['Critical', 'High', 'Medium', 'Low']
-const SPRINTS = ['Sprint 1', 'Sprint 2', 'Sprint 3']
+const SPRINTS = ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4', 'Sprint 5']
 
 export default function CreateTicketModal({ data, extra }) {
-  const { projects, tickets, users, activeProject, user, closeModal, doCreateTicket } = useApp()
+  const { projects, tickets, users, teams, activeProject, user, closeModal, doCreateTicket } = useApp()
   const parentId = extra || null
   const pTicket = parentId ? tickets.find(t => t.id === parentId) : null
   const defType = pTicket
@@ -20,12 +20,37 @@ export default function CreateTicketModal({ data, extra }) {
   const [title, setTitle] = useState('')
   const [desc, setDesc] = useState('')
   const [priority, setPriority] = useState('Medium')
-  const [assignee, setAssignee] = useState(users[0]?.name || '')
   const [startDate, setStartDate] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [parent, setParent] = useState(parentId || '')
   const [sprint, setSprint] = useState('Sprint 2')
   const [labels, setLabels] = useState('')
+
+  // Resolve assignable users based on the team linked to the selected project
+  const assignableUsers = useMemo(() => {
+    const numPid = parseInt(pid)
+    // Try to find a team whose project matches, or project has a team field
+    const selectedProject = projects.find(p => p.id === numPid)
+    let team = null
+    if (selectedProject?.team) {
+      team = teams.find(t => t.id === selectedProject.team)
+    }
+    if (!team) {
+      team = teams.find(t => t.project === numPid)
+    }
+    if (team && team.members && team.members.length > 0) {
+      const teamUsers = users.filter(u => team.members.includes(u.id))
+      return teamUsers.length > 0 ? teamUsers : users
+    }
+    return users
+  }, [pid, projects, teams, users])
+
+  const [assignee, setAssignee] = useState(assignableUsers[0]?.name || '')
+
+  // Reset assignee when project changes
+  const handleProjectChange = (newPid) => {
+    setPid(newPid)
+  }
 
   const projectTickets = tickets.filter(t => t.project === parseInt(pid))
 
@@ -37,7 +62,7 @@ export default function CreateTicketModal({ data, extra }) {
       title: title.trim(),
       desc,
       priority,
-      assignee,
+      assignee: assignee || assignableUsers[0]?.name || '',
       reporter: user?.name || '',
       startDate: startDate || null,
       dueDate: dueDate || null,
@@ -55,7 +80,7 @@ export default function CreateTicketModal({ data, extra }) {
       <div className="form-row">
         <div className="form-group">
           <label className="form-label">Project *</label>
-          <select className="form-select" value={pid} onChange={e => setPid(e.target.value)}>
+          <select className="form-select" value={pid} onChange={e => handleProjectChange(e.target.value)}>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.key})</option>)}
           </select>
         </div>
@@ -86,9 +111,16 @@ export default function CreateTicketModal({ data, extra }) {
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">Assignee</label>
+          <label className="form-label">
+            Assignee
+            {assignableUsers.length < users.length && (
+              <span style={{ fontSize: 10, color: 'var(--blue)', marginLeft: 6 }}>
+                (team members only)
+              </span>
+            )}
+          </label>
           <select className="form-select" value={assignee} onChange={e => setAssignee(e.target.value)}>
-            {users.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+            {assignableUsers.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
           </select>
         </div>
       </div>

@@ -132,6 +132,12 @@ export function AppProvider({ children }) {
     return p
   }, [])
 
+  const doUpdateProject = useCallback(async (id, data) => {
+    const p = await api.updateProject(id, data)
+    setProjects(prev => prev.map(x => x.id === id ? p : x))
+    return p
+  }, [])
+
   // ── Tickets ───────────────────────────────────────────────────────────────
   const doCreateTicket = useCallback(async (data) => {
     const t = await api.createTicket(data)
@@ -362,7 +368,7 @@ export function AppProvider({ children }) {
     // Actions
     doLogin, doLogout, nav, navSettings, openProject, openTicketView,
     openModal, closeModal,
-    doCreateProject, doCreateTicket, doUpdateTicket, doDeleteTicket,
+    doCreateProject, doUpdateProject, doCreateTicket, doUpdateTicket, doDeleteTicket,
     doCreateFilter, doDeleteFilter,
     doCreateUser, doUpdateUser, doDeleteUser, doToggleUser,
     doToggleConnector,
