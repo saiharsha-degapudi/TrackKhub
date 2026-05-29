@@ -39,6 +39,8 @@ state = {
     "workflowDefs": copy.deepcopy(seed.WORKFLOW_DEFS),
     "boards": copy.deepcopy(seed.BOARDS),
     "nextBoardId": seed.NEXT_BOARD_ID,
+    "sprints": copy.deepcopy(seed.SPRINTS),
+    "nextSprintId": seed.NEXT_SPRINT_ID,
 }
 
 
@@ -526,3 +528,93 @@ def update_board(bid: int, body: Dict[str, Any]):
 def delete_board(bid: int):
     state["boards"] = [b for b in state["boards"] if b["id"] != bid]
     return {"ok": True}
+
+
+# ── Sprints ───────────────────────────────────────────────────────────────────
+@app.get("/api/sprints")
+def get_sprints(project: Optional[int] = None):
+    sprints = state["sprints"]
+    if project is not None:
+        sprints = [s for s in sprints if s["project"] == project]
+    return sorted(sprints, key=lambda s: s.get("order", 0))
+
+
+@app.post("/api/sprints")
+def create_sprint(body: Dict[str, Any]):
+    project = body.get("project")
+    name = body.get("name", "").strip()
+    if not name or not project:
+        raise HTTPException(400, "name and project required")
+    proj_sprints = [s for s in state["sprints"] if s["project"] == int(project)]
+    order = max((s.get("order", 0) for s in proj_sprints), default=0) + 1
+    sid = state["nextSprintId"]
+    state["nextSprintId"] += 1
+    sprint = {
+        "id": sid,
+        "project": int(project),
+        "name": name,
+        "goal": body.get("goal", ""),
+        "status": "planning",
+        "startDate": None,
+        "endDate": None,
+        "order": order,
+    }
+    state["sprints"].append(sprint)
+    return sprint
+
+
+@app.put("/api/sprints/{sid}")
+def update_sprint(sid: int, body: Dict[str, Any]):
+    sprint = next((s for s in state["sprints"] if s["id"] == sid), None)
+    if not sprint:
+        raise HTTPException(404, "Sprint not found")
+    for k, v in body.items():
+        if k != "id":
+            sprint[k] = v
+    return sprint
+
+
+@app.delete("/api/sprints/{sid}")
+def delete_sprint(sid: int):
+    sprint = next((s for s in state["sprints"] if s["id"] == sid), None)
+    if not sprint:
+        raise HTTPException(404, "Sprint not found")
+    if sprint["status"] == "active":
+        raise HTTPException(400, "Cannot delete an active sprint — complete it first")
+    sprint_name = sprint["name"]
+    for t in state["tickets"]:
+        if t.get("sprint") == sprint_name:
+            t["sprint"] = None
+    state["sprints"] = [s for s in state["sprints"] if s["id"] != sid]
+    return {"ok": True}
+
+
+@app.post("/api/sprints/{sid}/start")
+def start_sprint(sid: int, body: Dict[str, Any]):
+    sprint = next((s for s in state["sprints"] if s["id"] == sid), None)
+    if not sprint:
+        raise HTTPException(404, "Sprint not found")
+    active = next((s for s in state["sprints"] if s["project"] == sprint["project"] and s["status"] == "active"), None)
+    if active:
+        raise HTTPException(400, f"'{active['name']}' is already active — complete it first")
+    sprint["status"] = "active"
+    sprint["startDate"] = body.get("startDate") or today_str()
+    sprint["endDate"] = body.get("endDate") or None
+    return sprint
+
+
+@app.post("/api/sprints/{sid}/complete")
+def complete_sprint(sid: int):
+    sprint = next((s for s in state["sprints"] if s["id"] == sid), None)
+    if not sprint:
+        raise HTTPException(404, "Sprint not found")
+    if sprint["status"] != "active":
+        raise HTTPException(400, "Sprint is not active")
+    sprint["status"] = "completed"
+    sprint_name = sprint["name"]
+    moved = 0
+    for t in state["tickets"]:
+        if t.get("sprint") == sprint_name and t.get("status") != "Done":
+            t["sprint"] = None
+            moved += 1
+    return {"sprint": sprint, "movedToBacklog": moved}

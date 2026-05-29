@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
 import * as api from '../api'
+import { parseJQL } from '../utils/jql'
 
 const AppContext = createContext(null)
 
@@ -28,6 +29,7 @@ export function AppProvider({ children }) {
   const [teams, setTeams] = useState([])
   const [workflowDefs, setWorkflowDefs] = useState([])
   const [boards, setBoards] = useState([])
+  const [sprints, setSprints] = useState([])
 
   // UI state
   const [recentProjects, setRecentProjects] = useState([])
@@ -46,9 +48,8 @@ export function AppProvider({ children }) {
   const doLogin = useCallback(async (email, password) => {
     const u = await api.login(email, password)
     setUser(u)
-    // Load all data
     const [
-      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs, bds
+      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs, bds, sps
     ] = await Promise.all([
       api.getProjects(),
       api.getTickets(),
@@ -64,6 +65,7 @@ export function AppProvider({ children }) {
       api.getTeams(),
       api.getWorkflows(),
       api.getBoards(),
+      api.getSprints(),
     ])
     setProjects(projs)
     setTickets(tks)
@@ -79,6 +81,7 @@ export function AppProvider({ children }) {
     setTeams(tms)
     setWorkflowDefs(wfs)
     setBoards(bds)
+    setSprints(sps)
     setPage('projects')
     return u
   }, [])
@@ -329,20 +332,53 @@ export function AppProvider({ children }) {
     setBoards(prev => prev.filter(b => b.id !== id))
   }, [])
 
+  // ── Sprints ───────────────────────────────────────────────────────────────
+  const doCreateSprint = useCallback(async (data) => {
+    const s = await api.createSprint(data)
+    setSprints(prev => [...prev, s])
+    return s
+  }, [])
+
+  const doUpdateSprint = useCallback(async (id, data) => {
+    const s = await api.updateSprint(id, data)
+    setSprints(prev => prev.map(x => x.id === id ? s : x))
+    return s
+  }, [])
+
+  const doDeleteSprint = useCallback(async (id) => {
+    await api.deleteSprint(id)
+    setSprints(prev => prev.filter(s => s.id !== id))
+  }, [])
+
+  const doStartSprint = useCallback(async (id, data) => {
+    const s = await api.startSprint(id, data)
+    setSprints(prev => prev.map(x => x.id === id ? s : x))
+    return s
+  }, [])
+
+  const doCompleteSprint = useCallback(async (id) => {
+    const result = await api.completeSprint(id)
+    setSprints(prev => prev.map(x => x.id === id ? result.sprint : x))
+    // Refresh tickets — some moved back to backlog
+    const refreshed = await api.getTickets()
+    setTickets(refreshed)
+    return result
+  }, [])
+
   // ── Roadmap ───────────────────────────────────────────────────────────────
   const toggleRoadmapRow = useCallback((id) => {
-    setRoadmapExpanded(prev => ({ ...prev, [id]: prev[id] === false ? true : false }))
+    setRoadmapExpanded(prev => ({ ...prev, [id]: !prev[id] }))
   }, [])
 
   const expandAllRoadmap = useCallback(() => {
     const exp = {}
-    tickets.forEach(t => exp[t.id] = true)
+    tickets.forEach(t => { exp[t.id] = true })
     setRoadmapExpanded(exp)
   }, [tickets])
 
   const collapseAllRoadmap = useCallback(() => {
     const exp = {}
-    tickets.forEach(t => exp[t.id] = false)
+    tickets.forEach(t => { exp[t.id] = false })
     setRoadmapExpanded(exp)
   }, [tickets])
 
@@ -356,6 +392,9 @@ export function AppProvider({ children }) {
   const getFilteredTickets = useCallback((filterId) => {
     const f = filters.find(x => x.id === filterId)
     if (!f) return tickets
+    // JQL format
+    if (f.conditions?.jql) return parseJQL(f.conditions.jql, tickets, projects)
+    // Legacy conditions format
     return tickets.filter(t => {
       const c = f.conditions
       if (c.assignee && t.assignee !== c.assignee) return false
@@ -365,7 +404,7 @@ export function AppProvider({ children }) {
       if (c.type && !c.type.includes(t.type)) return false
       return true
     })
-  }, [filters, tickets])
+  }, [filters, tickets, projects])
 
   const projectById = useCallback((id) => projects.find(p => p.id === id), [projects])
 
@@ -376,7 +415,7 @@ export function AppProvider({ children }) {
     user, page, prevPage, activeProject, projectTab, settingsTab,
     viewTicketId, modal, projects, tickets, filters, users, connectors,
     notifications, customDashboards, settings, customFields, groups, roles,
-    teams, workflowDefs, boards,
+    teams, workflowDefs, boards, sprints,
     recentProjects, projectsOpen, projectSearch, ticketSearch,
     typeFilter, statusFilter, projectFilter, roadmapZoom, roadmapExpanded,
     roadmapProjectFilter, roadmapTypeFilter, unreadCount,
@@ -401,6 +440,7 @@ export function AppProvider({ children }) {
     doCreateTeam, doUpdateTeam, doDeleteTeam,
     doCreateWorkflow, doUpdateWorkflow, doDeleteWorkflow, doSetDefaultWorkflow,
     doCreateBoard, doUpdateBoard, doDeleteBoard,
+    doCreateSprint, doUpdateSprint, doDeleteSprint, doStartSprint, doCompleteSprint,
     toggleRoadmapRow, expandAllRoadmap, collapseAllRoadmap,
     toggleRoadmapProjectFilter,
     getFilteredTickets, projectById,

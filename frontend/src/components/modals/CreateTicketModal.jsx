@@ -4,10 +4,9 @@ import { useApp } from '../../context/AppContext'
 const ISSUE_TYPES = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
 const ISSUE_TYPE_PARENT = { Initiative: 'Feature', Epic: 'Initiative', Story: 'Epic', Task: 'Story', 'Sub-task': 'Task' }
 const PRIORITIES = ['Critical', 'High', 'Medium', 'Low']
-const SPRINTS = ['Sprint 1', 'Sprint 2', 'Sprint 3', 'Sprint 4', 'Sprint 5']
 
 export default function CreateTicketModal({ data, extra }) {
-  const { projects, tickets, users, teams, activeProject, user, closeModal, doCreateTicket } = useApp()
+  const { projects, tickets, users, teams, sprints, activeProject, user, closeModal, doCreateTicket } = useApp()
 
   const parentId    = extra || null
   const pTicket     = parentId ? tickets.find(t => t.id === parentId) : null
@@ -24,7 +23,13 @@ export default function CreateTicketModal({ data, extra }) {
   const [startDate, setStartDate] = useState('')
   const [dueDate,   setDueDate]   = useState('')
   const [parent,    setParent]    = useState(parentId || '')
-  const [sprint,    setSprint]    = useState('Sprint 2')
+  // Project-scoped sprints (active + planning only, not completed)
+  const projectSprints = useMemo(
+    () => sprints.filter(s => s.project === parseInt(pid) && s.status !== 'completed').sort((a,b) => a.order - b.order),
+    [sprints, pid]
+  )
+  const defaultSprint = projectSprints.find(s => s.status === 'active')?.name || projectSprints[0]?.name || ''
+  const [sprint,    setSprint]    = useState(defaultSprint)
   const [labels,    setLabels]    = useState('')
 
   // ── Team selection (drives assignee list) ──────────────────────────────────
@@ -200,7 +205,12 @@ export default function CreateTicketModal({ data, extra }) {
         <div className="form-group">
           <label className="form-label">Sprint</label>
           <select className="form-select" value={sprint} onChange={e => setSprint(e.target.value)}>
-            {SPRINTS.map(s => <option key={s} value={s}>{s}</option>)}
+            <option value="">Backlog (no sprint)</option>
+            {projectSprints.map(s => (
+              <option key={s.id} value={s.name}>
+                {s.name}{s.status === 'active' ? ' ⚡' : ' · Planning'}
+              </option>
+            ))}
           </select>
         </div>
       </div>

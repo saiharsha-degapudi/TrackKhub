@@ -101,3 +101,11 @@ export const getBoards = (project) => request('GET', project ? `/boards?project=
 export const createBoard = (data) => request('POST', '/boards', data)
 export const updateBoard = (id, data) => request('PUT', `/boards/${id}`, data)
 export const deleteBoard = (id) => request('DELETE', `/boards/${id}`)
+
+// ── Sprints ───────────────────────────────────────────────────────────────────
+export const getSprints = (project) => request('GET', project ? `/sprints?project=${project}` : '/sprints')
+export const createSprint = (data) => request('POST', '/sprints', data)
+export const updateSprint = (id, data) => request('PUT', `/sprints/${id}`, data)
+export const deleteSprint = (id) => request('DELETE', `/sprints/${id}`)
+export const startSprint = (id, data) => request('POST', `/sprints/${id}/start`, data || {})
+export const completeSprint = (id) => request('POST', `/sprints/${id}/complete`, {})

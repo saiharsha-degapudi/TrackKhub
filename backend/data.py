@@ -139,11 +139,12 @@ BOARDS = [
 NEXT_BOARD_ID = 3
 
 FILTERS = [
-    {"id": 1, "name": "My Open Tasks",     "conditions": {"assignee": "Harsha",    "status": ["To Do", "In Progress", "In Review"]}},
-    {"id": 2, "name": "Critical Issues",   "conditions": {"priority": "Critical"}},
-    {"id": 3, "name": "Blocked Items",     "conditions": {"status": ["Blocked"]}},
-    {"id": 4, "name": "Sprint 2 Work",     "conditions": {"sprint": "Sprint 2"}},
+    {"id": 1, "name": "My Open Tasks",   "conditions": {"jql": 'assignee = "Harsha" AND status IN ("To Do", "In Progress", "In Review")'},   "owner": "Harsha", "shared": True,  "created": "2024-01-10"},
+    {"id": 2, "name": "Critical Issues", "conditions": {"jql": 'priority = "Critical"'},                                                       "owner": "Harsha", "shared": True,  "created": "2024-01-10"},
+    {"id": 3, "name": "Blocked Items",   "conditions": {"jql": 'status = "Blocked"'},                                                          "owner": "Harsha", "shared": True,  "created": "2024-01-10"},
+    {"id": 4, "name": "Sprint 2 Work",   "conditions": {"jql": 'sprint = "Sprint 2"'},                                                         "owner": "Harsha", "shared": False, "created": "2024-01-12"},
 ]
+NEXT_FILTER_ID = 5
 
 CUSTOM_FIELDS = [
     {"id": 1, "name": "Story Points",   "type": "Number", "applyTo": ["Story", "Task", "Sub-task"],          "required": False},
@@ -177,6 +178,14 @@ APP_SETTINGS = {
 CUSTOM_DASHBOARDS = []
 
 NEXT_TICKET_NUMS = {1: 101, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1}
+
+SPRINTS = [
+    {"id": 1, "project": 1, "name": "Sprint 1", "goal": "Supplier onboarding core features",  "status": "completed", "startDate": "2024-01-15", "endDate": "2024-01-29", "order": 1},
+    {"id": 2, "project": 1, "name": "Sprint 2", "goal": "Purchase order workflow automation", "status": "active",    "startDate": "2024-01-29", "endDate": "2024-02-12", "order": 2},
+    {"id": 3, "project": 1, "name": "Sprint 3", "goal": "Spend analytics and reporting",      "status": "planning",  "startDate": None,         "endDate": None,         "order": 3},
+    {"id": 4, "project": 1, "name": "Sprint 4", "goal": "Integrations, portal & compliance",  "status": "planning",  "startDate": None,         "endDate": None,         "order": 4},
+]
+NEXT_SPRINT_ID = 5
 
 TEAMS = [
     {"id": "tm1", "name": "Procurement Team", "description": "Procurement Portal team",       "color": "#1a56db", "lead": 1, "members": [1, 2, 5]},
