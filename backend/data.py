@@ -132,6 +132,12 @@ TICKETS = [
     {"id": "PRC-100","project": 1, "type": "Sub-task",   "title": "Role permission matrix documentation",   "desc": "Document the permission matrix for each procurement role.",             "status": "Done",        "priority": "Low",      "assignee": "Tom Wilson",  "reporter": "Harsha",      "created": "2024-01-11", "updated": "2024-01-22", "labels": ["docs","roles"],                   "sprint": "Sprint 1", "parent": "PRC-99",    "startDate": "2024-01-11", "dueDate": "2024-01-20"},
 ]
 
+BOARDS = [
+    {"id": 1, "project": 1, "name": "PRC Sprint Board",    "type": "scrum",  "description": "Main sprint board for Procurement Portal",  "columns": ["To Do", "In Progress", "In Review", "Done"],          "created": "2024-01-10"},
+    {"id": 2, "project": 1, "name": "PRC Kanban Flow",     "type": "kanban", "description": "Continuous flow board for support tickets",    "columns": ["To Do", "In Progress", "In Review", "Done", "Blocked"], "created": "2024-01-15"},
+]
+NEXT_BOARD_ID = 3
+
 FILTERS = [
     {"id": 1, "name": "My Open Tasks",     "conditions": {"assignee": "Harsha",    "status": ["To Do", "In Progress", "In Review"]}},
     {"id": 2, "name": "Critical Issues",   "conditions": {"priority": "Critical"}},

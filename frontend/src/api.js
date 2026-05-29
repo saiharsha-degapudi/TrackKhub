@@ -95,3 +95,9 @@ export const getWorkflows = () => request('GET', '/workflows')
 export const createWorkflow = (data) => request('POST', '/workflows', data)
 export const updateWorkflow = (id, data) => request('PUT', `/workflows/${id}`, data)
 export const deleteWorkflow = (id) => request('DELETE', `/workflows/${id}`)
+
+// ── Boards ────────────────────────────────────────────────────────────────────
+export const getBoards = (project) => request('GET', project ? `/boards?project=${project}` : '/boards')
+export const createBoard = (data) => request('POST', '/boards', data)
+export const updateBoard = (id, data) => request('PUT', `/boards/${id}`, data)
+export const deleteBoard = (id) => request('DELETE', `/boards/${id}`)

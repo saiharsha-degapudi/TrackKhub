@@ -27,6 +27,7 @@ export function AppProvider({ children }) {
   const [roles, setRoles] = useState([])
   const [teams, setTeams] = useState([])
   const [workflowDefs, setWorkflowDefs] = useState([])
+  const [boards, setBoards] = useState([])
 
   // UI state
   const [recentProjects, setRecentProjects] = useState([])
@@ -47,7 +48,7 @@ export function AppProvider({ children }) {
     setUser(u)
     // Load all data
     const [
-      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs
+      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs, bds
     ] = await Promise.all([
       api.getProjects(),
       api.getTickets(),
@@ -62,6 +63,7 @@ export function AppProvider({ children }) {
       api.getRoles(),
       api.getTeams(),
       api.getWorkflows(),
+      api.getBoards(),
     ])
     setProjects(projs)
     setTickets(tks)
@@ -76,6 +78,7 @@ export function AppProvider({ children }) {
     setRoles(rls)
     setTeams(tms)
     setWorkflowDefs(wfs)
+    setBoards(bds)
     setPage('projects')
     return u
   }, [])
@@ -308,6 +311,24 @@ export function AppProvider({ children }) {
     setWorkflowDefs(prev => prev.map(x => ({ ...x, isDefault: x.id === id ? w.isDefault : false })))
   }, [])
 
+  // ── Boards ────────────────────────────────────────────────────────────────
+  const doCreateBoard = useCallback(async (data) => {
+    const b = await api.createBoard(data)
+    setBoards(prev => [...prev, b])
+    return b
+  }, [])
+
+  const doUpdateBoard = useCallback(async (id, data) => {
+    const b = await api.updateBoard(id, data)
+    setBoards(prev => prev.map(x => x.id === id ? b : x))
+    return b
+  }, [])
+
+  const doDeleteBoard = useCallback(async (id) => {
+    await api.deleteBoard(id)
+    setBoards(prev => prev.filter(b => b.id !== id))
+  }, [])
+
   // ── Roadmap ───────────────────────────────────────────────────────────────
   const toggleRoadmapRow = useCallback((id) => {
     setRoadmapExpanded(prev => ({ ...prev, [id]: prev[id] === false ? true : false }))
@@ -355,7 +376,7 @@ export function AppProvider({ children }) {
     user, page, prevPage, activeProject, projectTab, settingsTab,
     viewTicketId, modal, projects, tickets, filters, users, connectors,
     notifications, customDashboards, settings, customFields, groups, roles,
-    teams, workflowDefs,
+    teams, workflowDefs, boards,
     recentProjects, projectsOpen, projectSearch, ticketSearch,
     typeFilter, statusFilter, projectFilter, roadmapZoom, roadmapExpanded,
     roadmapProjectFilter, roadmapTypeFilter, unreadCount,
@@ -379,6 +400,7 @@ export function AppProvider({ children }) {
     doAddGroup, doAddRole,
     doCreateTeam, doUpdateTeam, doDeleteTeam,
     doCreateWorkflow, doUpdateWorkflow, doDeleteWorkflow, doSetDefaultWorkflow,
+    doCreateBoard, doUpdateBoard, doDeleteBoard,
     toggleRoadmapRow, expandAllRoadmap, collapseAllRoadmap,
     toggleRoadmapProjectFilter,
     getFilteredTickets, projectById,

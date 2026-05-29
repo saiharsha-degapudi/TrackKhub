@@ -37,6 +37,8 @@ state = {
     "nextTicketNums": copy.deepcopy(seed.NEXT_TICKET_NUMS),
     "teams": copy.deepcopy(seed.TEAMS),
     "workflowDefs": copy.deepcopy(seed.WORKFLOW_DEFS),
+    "boards": copy.deepcopy(seed.BOARDS),
+    "nextBoardId": seed.NEXT_BOARD_ID,
 }
 
 
@@ -472,4 +474,55 @@ def update_workflow(wid: str, body: Dict[str, Any]):
 @app.delete("/api/workflows/{wid}")
 def delete_workflow(wid: str):
     state["workflowDefs"] = [w for w in state["workflowDefs"] if w["id"] != wid]
+    return {"ok": True}
+
+
+# ── Boards ────────────────────────────────────────────────────────────────────
+@app.get("/api/boards")
+def get_boards(project: Optional[int] = None):
+    boards = state["boards"]
+    if project is not None:
+        boards = [b for b in boards if b["project"] == project]
+    return boards
+
+
+@app.post("/api/boards")
+def create_board(body: Dict[str, Any]):
+    name = body.get("name", "").strip()
+    board_type = body.get("type", "kanban")
+    project = body.get("project")
+    if not name or not project:
+        raise HTTPException(400, "name and project required")
+    default_cols = (
+        ["To Do", "In Progress", "In Review", "Done"]
+        if board_type == "scrum"
+        else ["To Do", "In Progress", "In Review", "Done", "Blocked"]
+    )
+    bid = state["nextBoardId"]
+    state["nextBoardId"] += 1
+    board = {
+        "id": bid,
+        "project": int(project),
+        "name": name,
+        "type": board_type,
+        "description": body.get("description", ""),
+        "columns": body.get("columns", default_cols),
+        "created": today_str(),
+    }
+    state["boards"].append(board)
+    return board
+
+
+@app.put("/api/boards/{bid}")
+def update_board(bid: int, body: Dict[str, Any]):
+    board = next((b for b in state["boards"] if b["id"] == bid), None)
+    if not board:
+        raise HTTPException(404, "Board not found")
+    board.update({k: v for k, v in body.items() if k != "id"})
+    return board
+
+
+@app.delete("/api/boards/{bid}")
+def delete_board(bid: int):
+    state["boards"] = [b for b in state["boards"] if b["id"] != bid]
     return {"ok": True}
