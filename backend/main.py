@@ -1,5 +1,5 @@
 """
-TrackKub FastAPI Backend
+Hub FastAPI Backend
 """
 import copy
 from datetime import date
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 import data as seed
 
-app = FastAPI(title="TrackKub API")
+app = FastAPI(title="Hub API")
 
 app.add_middleware(
     CORSMiddleware,

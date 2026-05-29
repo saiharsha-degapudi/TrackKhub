@@ -26,8 +26,8 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-box">
         <div className="login-logo">
-          <div className="login-logo-icon">T</div>
-          <div className="login-logo-text">TrackKub</div>
+          <div className="login-logo-icon">H</div>
+          <div className="login-logo-text">Hub</div>
         </div>
         <div className="login-title">Sign in to your workspace</div>
         <form onSubmit={handleLogin}>

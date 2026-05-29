@@ -1,5 +1,5 @@
 /**
- * TrackKub API client — all fetch calls to /api/... endpoints.
+ * Hub API client — all fetch calls to /api/... endpoints.
  */
 
 const BASE = '/api'
