@@ -178,3 +178,64 @@ APP_SETTINGS = {
 CUSTOM_DASHBOARDS = []
 
 NEXT_TICKET_NUMS = {1: 26, 2: 15, 3: 15, 4: 7, 5: 7, 6: 7, 7: 7, 8: 6, 9: 6, 10: 5, 11: 6}
+
+TEAMS = [
+    {"id": "tm1", "name": "Frontend Team",  "description": "UI/UX and frontend development",       "color": "#1a56db", "lead": 2, "members": [2, 3]},
+    {"id": "tm2", "name": "Backend Team",   "description": "API and server-side engineering",       "color": "#7c3aed", "lead": 1, "members": [1, 5]},
+    {"id": "tm3", "name": "QA Team",        "description": "Quality assurance and testing",         "color": "#16a34a", "lead": 5, "members": [4, 5]},
+    {"id": "tm4", "name": "Product Team",   "description": "Product management and roadmap",        "color": "#ea580c", "lead": 4, "members": [4, 1]},
+]
+
+WORKFLOW_DEFS = [
+    {
+        "id": "wf1", "name": "Default Workflow", "isDefault": True,
+        "statuses": [
+            {"name": "To Do",               "color": "#64748b", "category": "todo"},
+            {"name": "In Progress",         "color": "#1d4ed8", "category": "inprogress"},
+            {"name": "Ready for Testing",   "color": "#7c3aed", "category": "inprogress"},
+            {"name": "In Testing",          "color": "#ea580c", "category": "inprogress"},
+            {"name": "Done",                "color": "#16a34a", "category": "done"},
+            {"name": "Blocked",             "color": "#dc2626", "category": "blocked"},
+        ],
+        "transitions": [
+            {"from": "To Do",             "to": ["In Progress", "Blocked"]},
+            {"from": "In Progress",       "to": ["Ready for Testing", "Blocked", "To Do"]},
+            {"from": "Ready for Testing", "to": ["In Testing", "In Progress"]},
+            {"from": "In Testing",        "to": ["Done", "In Progress"]},
+            {"from": "Done",              "to": ["In Progress"]},
+            {"from": "Blocked",           "to": ["To Do", "In Progress"]},
+        ],
+    },
+    {
+        "id": "wf2", "name": "Bug Workflow", "isDefault": False,
+        "statuses": [
+            {"name": "Open",                "color": "#64748b", "category": "todo"},
+            {"name": "In Progress",         "color": "#1d4ed8", "category": "inprogress"},
+            {"name": "Ready for Testing",   "color": "#7c3aed", "category": "inprogress"},
+            {"name": "Verified",            "color": "#16a34a", "category": "done"},
+            {"name": "Closed",              "color": "#334155", "category": "done"},
+            {"name": "Reopened",            "color": "#dc2626", "category": "todo"},
+        ],
+        "transitions": [
+            {"from": "Open",              "to": ["In Progress"]},
+            {"from": "In Progress",       "to": ["Ready for Testing", "Open"]},
+            {"from": "Ready for Testing", "to": ["Verified", "In Progress"]},
+            {"from": "Verified",          "to": ["Closed", "Reopened"]},
+            {"from": "Closed",            "to": ["Reopened"]},
+            {"from": "Reopened",          "to": ["In Progress"]},
+        ],
+    },
+    {
+        "id": "wf3", "name": "Sprint Workflow", "isDefault": False,
+        "statuses": [
+            {"name": "To Do",       "color": "#64748b", "category": "todo"},
+            {"name": "In Progress", "color": "#1d4ed8", "category": "inprogress"},
+            {"name": "Done",        "color": "#16a34a", "category": "done"},
+        ],
+        "transitions": [
+            {"from": "To Do",       "to": ["In Progress"]},
+            {"from": "In Progress", "to": ["Done", "To Do"]},
+            {"from": "Done",        "to": ["In Progress"]},
+        ],
+    },
+]

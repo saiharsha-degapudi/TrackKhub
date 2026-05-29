@@ -18,7 +18,7 @@ export default function Header() {
     <div className="header">
       <div className="logo">
         <div className="logo-icon">T</div>
-        TracKorbit
+        TrackKub
       </div>
       <div className="header-nav">
         {NAV_ITEMS.map(n => (

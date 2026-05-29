@@ -3,10 +3,6 @@ import { useApp } from '../../context/AppContext'
 import Avatar from '../common/Avatar'
 import { getTypeColor } from '../common/Badge'
 
-const ISSUE_TYPES = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
-const STATUSES = ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
-const WORKFLOWS = ['Default Workflow', 'Bug Workflow', 'Sprint Workflow']
-
 function UsersPanel() {
   const { users, openModal, doDeleteUser, doToggleUser } = useApp()
   return (
@@ -92,6 +88,57 @@ function RolesPanel() {
   )
 }
 
+function TeamsPanel() {
+  const { teams, users, doDeleteTeam, openModal } = useApp()
+
+  const getUserName = (id) => users.find(u => u.id === id)?.name || '—'
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>Teams</div>
+        <button className="btn btn-primary btn-sm" onClick={() => openModal('createTeam')}>+ New Team</button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {teams.map(t => (
+          <div key={t.id} className="card" style={{ borderLeft: `4px solid ${t.color}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14 }}>
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
+                  {t.description && <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t.description}</div>}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => openModal('editTeam', t.id)}>✏</button>
+                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => {
+                  if (window.confirm('Delete team?')) doDeleteTeam(t.id)
+                }}>🗑</button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--gray-600)' }}>
+              <span><strong>Lead:</strong> {getUserName(t.lead)}</span>
+              <span><strong>Members:</strong> {t.members.length}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
+              {t.members.map(mid => {
+                const u = users.find(x => x.id === mid)
+                return u ? <Avatar key={mid} name={u.name} size={26} title={u.name} /> : null
+              })}
+            </div>
+          </div>
+        ))}
+        {teams.length === 0 && (
+          <div className="empty-state">No teams yet. Create one to get started.</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function PermissionsPanel() {
   const { roles } = useApp()
   const perms = ['Create Tickets', 'Edit Tickets', 'Delete Tickets', 'Manage Projects', 'Manage Users', 'View Reports', 'Admin Settings']
@@ -159,34 +206,54 @@ function FieldsPanel() {
 }
 
 function WorkflowsPanel() {
-  const transitions = [
-    { from: 'To Do', to: ['In Progress'] },
-    { from: 'In Progress', to: ['In Review', 'Blocked', 'To Do'] },
-    { from: 'In Review', to: ['Done', 'In Progress'] },
-    { from: 'Blocked', to: ['To Do', 'In Progress'] },
-  ]
-  const statusClass = { 'To Do': 's-todo', 'In Progress': 's-inprogress', 'In Review': 's-review', Done: 's-done', Blocked: 's-blocked' }
+  const { workflowDefs, doDeleteWorkflow, doSetDefaultWorkflow, openModal } = useApp()
+
+  const catColor = { todo: 'badge-gray', inprogress: 'badge-blue', done: 'badge-green', blocked: 'badge-red' }
+
   return (
     <div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Workflows</div>
-      {WORKFLOWS.map((w, i) => (
-        <div key={w} className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>Workflow Definitions</div>
+        <button className="btn btn-primary btn-sm" onClick={() => openModal('createWorkflow')}>+ New Workflow</button>
+      </div>
+      {workflowDefs.map(wf => (
+        <div key={wf.id} className="card" style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>{w}</div>
-            <span className={`badge ${i === 0 ? 'badge-green' : 'badge-gray'}`}>{i === 0 ? 'Active' : 'Draft'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{wf.name}</span>
+              {wf.isDefault && <span className="badge badge-green">Default</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {!wf.isDefault && (
+                <button className="btn btn-outline btn-sm" onClick={() => doSetDefaultWorkflow(wf.id)}>Set Default</button>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={() => openModal('editWorkflow', wf.id)}>✏</button>
+              {!wf.isDefault && (
+                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => {
+                  if (window.confirm('Delete workflow?')) doDeleteWorkflow(wf.id)
+                }}>🗑</button>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
-            {STATUSES.map(s => <span key={s} className={`badge ${statusClass[s]}`}>{s}</span>)}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+            {wf.statuses.map(s => (
+              <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: s.color + '22', color: s.color, border: `1.5px solid ${s.color}44` }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+                {s.name}
+              </span>
+            ))}
           </div>
-          {transitions.map(t => (
-            <div key={t.from} style={{ fontSize: 12, color: 'var(--gray-600)', padding: '3px 0' }}>
-              <span className={`badge ${statusClass[t.from]}`} style={{ fontSize: 10 }}>{t.from}</span>
-              <span style={{ margin: '0 5px', color: 'var(--gray-400)' }}>→</span>
-              {t.to.map(x => <span key={x} className={`badge ${statusClass[x]}`} style={{ fontSize: 10, marginRight: 3 }}>{x}</span>)}
+          <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.5px' }}>Transitions</div>
+          {wf.transitions.map(tr => (
+            <div key={tr.from} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 12 }}>
+              <span style={{ fontWeight: 600, color: 'var(--gray-700)' }}>{tr.from}</span>
+              <span style={{ color: 'var(--gray-400)' }}>→</span>
+              {tr.to.map(x => <span key={x} style={{ background: 'var(--blue-light)', color: 'var(--blue)', padding: '1px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{x}</span>)}
             </div>
           ))}
         </div>
       ))}
+      {workflowDefs.length === 0 && <div className="empty-state">No workflows defined.</div>}
     </div>
   )
 }
@@ -273,12 +340,12 @@ function AppSettingsPanel() {
 }
 
 const TABS = {
-  users: 'Users', roles: 'Roles & Groups', permissions: 'Permissions',
+  users: 'Users', roles: 'Roles & Groups', teams: 'Teams', permissions: 'Permissions',
   fields: 'Custom Fields', workflows: 'Workflows', screens: 'Screens', app: 'App Settings'
 }
 
 const PANELS = {
-  users: UsersPanel, roles: RolesPanel, permissions: PermissionsPanel,
+  users: UsersPanel, roles: RolesPanel, teams: TeamsPanel, permissions: PermissionsPanel,
   fields: FieldsPanel, workflows: WorkflowsPanel, screens: ScreensPanel, app: AppSettingsPanel
 }
 
@@ -292,7 +359,7 @@ export default function Settings() {
       <div className="settings-layout">
         <div className="settings-nav">
           <div className="settings-nav-group">Admin</div>
-          {['users', 'roles', 'permissions'].map(k => (
+          {['users', 'roles', 'teams', 'permissions'].map(k => (
             <div key={k} className={`settings-nav-item ${settingsTab === k ? 'active' : ''}`} onClick={() => navSettings(k)}>
               {TABS[k]}
             </div>

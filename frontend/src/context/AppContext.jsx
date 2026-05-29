@@ -25,6 +25,8 @@ export function AppProvider({ children }) {
   const [customFields, setCustomFields] = useState([])
   const [groups, setGroups] = useState([])
   const [roles, setRoles] = useState([])
+  const [teams, setTeams] = useState([])
+  const [workflowDefs, setWorkflowDefs] = useState([])
 
   // UI state
   const [recentProjects, setRecentProjects] = useState([])
@@ -45,7 +47,7 @@ export function AppProvider({ children }) {
     setUser(u)
     // Load all data
     const [
-      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls
+      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs
     ] = await Promise.all([
       api.getProjects(),
       api.getTickets(),
@@ -58,6 +60,8 @@ export function AppProvider({ children }) {
       api.getCustomFields(),
       api.getGroups(),
       api.getRoles(),
+      api.getTeams(),
+      api.getWorkflows(),
     ])
     setProjects(projs)
     setTickets(tks)
@@ -70,6 +74,8 @@ export function AppProvider({ children }) {
     setCustomFields(fields)
     setGroups(grps)
     setRoles(rls)
+    setTeams(tms)
+    setWorkflowDefs(wfs)
     setPage('projects')
     return u
   }, [])
@@ -251,6 +257,51 @@ export function AppProvider({ children }) {
     setModal(null)
   }, [])
 
+  // ── Teams ─────────────────────────────────────────────────────────────────
+  const doCreateTeam = useCallback(async (data) => {
+    const t = await api.createTeam(data)
+    setTeams(prev => [...prev, t])
+    setModal(null)
+    return t
+  }, [])
+
+  const doUpdateTeam = useCallback(async (id, data) => {
+    const t = await api.updateTeam(id, data)
+    setTeams(prev => prev.map(x => x.id === id ? t : x))
+    setModal(null)
+    return t
+  }, [])
+
+  const doDeleteTeam = useCallback(async (id) => {
+    await api.deleteTeam(id)
+    setTeams(prev => prev.filter(t => t.id !== id))
+  }, [])
+
+  // ── Workflows ─────────────────────────────────────────────────────────────
+  const doCreateWorkflow = useCallback(async (data) => {
+    const w = await api.createWorkflow(data)
+    setWorkflowDefs(prev => [...prev, w])
+    setModal(null)
+    return w
+  }, [])
+
+  const doUpdateWorkflow = useCallback(async (id, data) => {
+    const w = await api.updateWorkflow(id, data)
+    setWorkflowDefs(prev => prev.map(x => x.id === id ? w : x))
+    setModal(null)
+    return w
+  }, [])
+
+  const doDeleteWorkflow = useCallback(async (id) => {
+    await api.deleteWorkflow(id)
+    setWorkflowDefs(prev => prev.filter(w => w.id !== id))
+  }, [])
+
+  const doSetDefaultWorkflow = useCallback(async (id) => {
+    const w = await api.updateWorkflow(id, { isDefault: true })
+    setWorkflowDefs(prev => prev.map(x => ({ ...x, isDefault: x.id === id ? w.isDefault : false })))
+  }, [])
+
   // ── Roadmap ───────────────────────────────────────────────────────────────
   const toggleRoadmapRow = useCallback((id) => {
     setRoadmapExpanded(prev => ({ ...prev, [id]: prev[id] === false ? true : false }))
@@ -298,6 +349,7 @@ export function AppProvider({ children }) {
     user, page, prevPage, activeProject, projectTab, settingsTab,
     viewTicketId, modal, projects, tickets, filters, users, connectors,
     notifications, customDashboards, settings, customFields, groups, roles,
+    teams, workflowDefs,
     recentProjects, projectsOpen, projectSearch, ticketSearch,
     typeFilter, statusFilter, projectFilter, roadmapZoom, roadmapExpanded,
     roadmapProjectFilter, roadmapTypeFilter, unreadCount,
@@ -319,6 +371,8 @@ export function AppProvider({ children }) {
     doUpdateSettings,
     doCreateCustomField,
     doAddGroup, doAddRole,
+    doCreateTeam, doUpdateTeam, doDeleteTeam,
+    doCreateWorkflow, doUpdateWorkflow, doDeleteWorkflow, doSetDefaultWorkflow,
     toggleRoadmapRow, expandAllRoadmap, collapseAllRoadmap,
     toggleRoadmapProjectFilter,
     getFilteredTickets, projectById,

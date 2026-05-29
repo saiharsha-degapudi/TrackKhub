@@ -83,3 +83,15 @@ export const getGroups = () => request('GET', '/groups')
 export const addGroup = (name) => request('POST', '/groups', { name })
 export const getRoles = () => request('GET', '/roles')
 export const addRole = (name) => request('POST', '/roles', { name })
+
+// ── Teams ─────────────────────────────────────────────────────────────────────
+export const getTeams = () => request('GET', '/teams')
+export const createTeam = (data) => request('POST', '/teams', data)
+export const updateTeam = (id, data) => request('PUT', `/teams/${id}`, data)
+export const deleteTeam = (id) => request('DELETE', `/teams/${id}`)
+
+// ── Workflows ─────────────────────────────────────────────────────────────────
+export const getWorkflows = () => request('GET', '/workflows')
+export const createWorkflow = (data) => request('POST', '/workflows', data)
+export const updateWorkflow = (id, data) => request('PUT', `/workflows/${id}`, data)
+export const deleteWorkflow = (id) => request('DELETE', `/workflows/${id}`)

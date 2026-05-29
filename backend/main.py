@@ -35,6 +35,8 @@ state = {
     "appSettings": copy.deepcopy(seed.APP_SETTINGS),
     "customDashboards": copy.deepcopy(seed.CUSTOM_DASHBOARDS),
     "nextTicketNums": copy.deepcopy(seed.NEXT_TICKET_NUMS),
+    "teams": copy.deepcopy(seed.TEAMS),
+    "workflowDefs": copy.deepcopy(seed.WORKFLOW_DEFS),
 }
 
 
@@ -391,3 +393,83 @@ def add_role(body: Dict[str, Any]):
     if val not in state["roles"]:
         state["roles"].append(val)
     return state["roles"]
+
+
+# ── Teams ─────────────────────────────────────────────────────────────────────
+@app.get("/api/teams")
+def get_teams():
+    return state["teams"]
+
+
+@app.post("/api/teams")
+def create_team(body: Dict[str, Any]):
+    name = body.get("name", "").strip()
+    if not name:
+        raise HTTPException(400, "name required")
+    import time
+    team = {
+        "id": "tm" + str(int(time.time() * 1000)),
+        "name": name,
+        "description": body.get("description", ""),
+        "color": body.get("color", "#1a56db"),
+        "lead": body.get("lead", None),
+        "members": body.get("members", []),
+    }
+    state["teams"].append(team)
+    return team
+
+
+@app.put("/api/teams/{tid}")
+def update_team(tid: str, body: Dict[str, Any]):
+    team = next((t for t in state["teams"] if t["id"] == tid), None)
+    if not team:
+        raise HTTPException(404, "Team not found")
+    team.update({k: v for k, v in body.items() if k != "id"})
+    return team
+
+
+@app.delete("/api/teams/{tid}")
+def delete_team(tid: str):
+    state["teams"] = [t for t in state["teams"] if t["id"] != tid]
+    return {"ok": True}
+
+
+# ── Workflow Definitions ───────────────────────────────────────────────────────
+@app.get("/api/workflows")
+def get_workflows():
+    return state["workflowDefs"]
+
+
+@app.post("/api/workflows")
+def create_workflow(body: Dict[str, Any]):
+    name = body.get("name", "").strip()
+    if not name:
+        raise HTTPException(400, "name required")
+    import time
+    wf = {
+        "id": "wf" + str(int(time.time() * 1000)),
+        "name": name,
+        "isDefault": False,
+        "statuses": body.get("statuses", []),
+        "transitions": body.get("transitions", []),
+    }
+    state["workflowDefs"].append(wf)
+    return wf
+
+
+@app.put("/api/workflows/{wid}")
+def update_workflow(wid: str, body: Dict[str, Any]):
+    wf = next((w for w in state["workflowDefs"] if w["id"] == wid), None)
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+    if body.get("isDefault"):
+        for w in state["workflowDefs"]:
+            w["isDefault"] = False
+    wf.update({k: v for k, v in body.items() if k != "id"})
+    return wf
+
+
+@app.delete("/api/workflows/{wid}")
+def delete_workflow(wid: str):
+    state["workflowDefs"] = [w for w in state["workflowDefs"] if w["id"] != wid]
+    return {"ok": True}
