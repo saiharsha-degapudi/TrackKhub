@@ -20,41 +20,96 @@ const COL_ICONS = {
   'To Do': '○', 'In Progress': '◕', 'In Review': '◎', 'Done': '✓', 'Blocked': '✕',
 }
 
-// ── Draggable ticket card ──────────────────────────────────────────────────────
-function TicketCard({ ticket, onDragStart, onClick }) {
+// ── Type / Priority config ─────────────────────────────────────────────────────
+const TYPE_CONF = {
+  'Story':      { bg: '#dcfce7', color: '#166534', char: 'S' },
+  'Task':       { bg: '#dbeafe', color: '#1e40af', char: 'T' },
+  'Sub-task':   { bg: '#f0f9ff', color: '#0369a1', char: '↳' },
+  'Epic':       { bg: '#ede9fe', color: '#5b21b6', char: 'E' },
+  'Feature':    { bg: '#fef3c7', color: '#92400e', char: 'F' },
+  'Initiative': { bg: '#fce7f3', color: '#9d174d', char: 'I' },
+  'Bug':        { bg: '#fee2e2', color: '#991b1b', char: 'B' },
+}
+const PRIO_CONF = {
+  Critical: { color: '#ef4444', sym: '↑↑' },
+  High:     { color: '#f97316', sym: '↑'  },
+  Medium:   { color: '#eab308', sym: '='  },
+  Low:      { color: '#22c55e', sym: '↓'  },
+}
+
+// ── Board card (Jira-style) ────────────────────────────────────────────────────
+function BoardCard({ ticket, allTickets = [], onDragStart, onClick }) {
+  const tc = TYPE_CONF[ticket.type]  || { bg: '#f3f4f6', color: '#4b5563', char: '?' }
+  const pc = PRIO_CONF[ticket.priority] || { color: '#9ca3af', sym: '-' }
+  const parentT   = ticket.parent ? allTickets.find(t => t.id === ticket.parent) : null
+  const epicT     = parentT?.type === 'Epic' ? parentT
+                  : parentT ? allTickets.find(t => t.id === parentT.parent && t.type === 'Epic') : null
+  const isOverdue = ticket.dueDate && new Date(ticket.dueDate) < new Date() && ticket.status !== 'Done'
+
   return (
     <div
-      className="kanban-card"
+      className="board-card"
       draggable
       onDragStart={e => onDragStart(e, ticket.id)}
       onClick={() => onClick(ticket.id)}
-      style={{ cursor: 'grab', borderLeft: `3px solid ${(COL_COLORS[ticket.status] || '#64748b')}60` }}
+      style={{ borderLeft: `3px solid ${tc.color}` }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-        <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>{ticket.id}</span>
-        <span className={`badge ${getTypeColor(ticket.type)}`} style={{ fontSize: 9 }}>{ticket.type}</span>
-      </div>
-      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', marginBottom: 8, lineHeight: 1.4 }}>
+      {/* Epic chip */}
+      {epicT && (
+        <div style={{ marginBottom: 5 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, borderRadius: 3, padding: '1px 6px',
+            background: '#ede9fe', color: '#5b21b6', display: 'inline-block',
+            maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{epicT.id} · {epicT.title}</span>
+        </div>
+      )}
+
+      {/* Title */}
+      <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, marginBottom: 9, wordBreak: 'break-word' }}>
         {ticket.title}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span className={priorityClass(ticket.priority)} style={{ fontSize: 10 }}>{ticket.priority}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {ticket.storyPoints != null && (
-            <span style={{ fontSize: 9, background: '#eff6ff', color: '#1e40af', borderRadius: 8, padding: '1px 5px', fontWeight: 600 }}>
-              {ticket.storyPoints}
-            </span>
-          )}
-          {ticket.dueDate && <span style={{ fontSize: 9, color: '#9ca3af' }}>{ticket.dueDate}</span>}
-          <Avatar name={ticket.assignee} size={20} />
+
+      {/* Labels */}
+      {ticket.labels?.length > 0 && (
+        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 7 }}>
+          {ticket.labels.slice(0, 3).map(l => (
+            <span key={l} style={{ fontSize: 10, background: '#eff6ff', color: '#1e40af', borderRadius: 3, padding: '1px 6px', fontWeight: 600 }}>{l}</span>
+          ))}
         </div>
+      )}
+
+      {/* Bottom row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {/* Type badge */}
+          <span style={{
+            width: 18, height: 18, borderRadius: 4, background: tc.bg, color: tc.color,
+            fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0, border: `1px solid ${tc.color}30`,
+          }}>{tc.char}</span>
+          {/* ID */}
+          <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>{ticket.id}</span>
+          {/* Priority */}
+          <span style={{ fontSize: 11, color: pc.color, fontWeight: 900, lineHeight: 1 }} title={ticket.priority}>{pc.sym}</span>
+          {/* Story points */}
+          {ticket.storyPoints != null && (
+            <span style={{
+              minWidth: 18, height: 18, borderRadius: '50%', background: '#eff6ff', color: '#1e40af',
+              fontSize: 10, fontWeight: 800, border: '1.5px solid #bfdbfe',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px',
+            }}>{ticket.storyPoints}</span>
+          )}
+          {isOverdue && <span style={{ fontSize: 11, color: '#ef4444' }} title="Overdue">⚠</span>}
+        </div>
+        <Avatar name={ticket.assignee} size={22} />
       </div>
     </div>
   )
 }
 
-// ── Kanban column with drop zone ───────────────────────────────────────────────
-function DropColumn({ status, cards, isOver, onDragStart, onDragOver, onDragLeave, onDrop, openTicketView, openModal, pid }) {
+// ── Kanban column with drop zone ──────────────────────────────────────────────
+function DropColumn({ status, cards, allTickets, isOver, onDragStart, onDragOver, onDragLeave, onDrop, openTicketView, openModal, pid }) {
   const color = COL_COLORS[status] || '#64748b'
   const bg    = COL_BG[status]    || '#f8faff'
   return (
@@ -63,53 +118,39 @@ function DropColumn({ status, cards, isOver, onDragStart, onDragOver, onDragLeav
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop(e, status)}
-      style={{
-        outline: isOver ? `2px dashed ${color}` : 'none',
-        borderRadius: 10, transition: 'all .15s',
-        background: isOver ? `${color}12` : undefined,
-      }}
+      style={{ outline: isOver ? `2.5px dashed ${color}` : 'none', outlineOffset: -2, transition: 'outline .1s' }}
     >
-      {/* Column header */}
-      <div
-        className="kanban-col-header"
-        style={{ background: bg, borderBottom: `3px solid ${color}40`, color: color }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: 13 }}>
-          <span style={{
-            width: 20, height: 20, borderRadius: '50%', background: color,
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 900, flexShrink: 0,
-          }}>{COL_ICONS[status] || '•'}</span>
-          {status}
-        </span>
-        <span style={{
-          background: color, color: '#fff', borderRadius: 12,
-          padding: '2px 8px', fontSize: 11, fontWeight: 700,
-        }}>
+      {/* Header */}
+      <div className="kanban-col-header" style={{ background: bg, borderBottom: `3px solid ${color}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color, letterSpacing: 0.3 }}>{status.toUpperCase()}</span>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: color, borderRadius: 12, padding: '1px 8px', minWidth: 22, textAlign: 'center' }}>
           {cards.length}
         </span>
       </div>
 
-      {/* Column body */}
-      <div className="kanban-col-body">
-        {cards.map(t => (
-          <TicketCard key={t.id} ticket={t} onDragStart={onDragStart} onClick={openTicketView} />
-        ))}
+      {/* Body */}
+      <div
+        className="kanban-col-body"
+        style={{ background: isOver ? `${color}07` : 'rgba(0,0,0,.018)', transition: 'background .15s' }}
+      >
         {cards.length === 0 && (
-          <div style={{
-            border: `2px dashed ${color}40`, borderRadius: 8,
-            padding: '24px 8px', textAlign: 'center', fontSize: 11, color: 'var(--gray-400)',
-          }}>
+          <div style={{ border: `2px dashed ${color}30`, borderRadius: 7, padding: '18px 8px', textAlign: 'center', fontSize: 11, color: 'var(--gray-400)' }}>
             {isOver ? '📥 Drop here' : 'No issues'}
           </div>
         )}
+        {cards.map(t => (
+          <BoardCard key={t.id} ticket={t} allTickets={allTickets} onDragStart={onDragStart} onClick={openTicketView} />
+        ))}
         <div
-          style={{ textAlign: 'center', padding: '8px 0', fontSize: 12, color: 'var(--gray-400)', cursor: 'pointer', borderRadius: 6, transition: 'background .1s' }}
           onClick={() => openModal('createTicket', { project: pid })}
-          onMouseEnter={e => e.currentTarget.style.background='var(--gray-200)'}
-          onMouseLeave={e => e.currentTarget.style.background='transparent'}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', fontSize: 12, color: 'var(--gray-400)', cursor: 'pointer', borderRadius: 5, transition: 'all .12s', marginTop: 2 }}
+          onMouseEnter={e => { e.currentTarget.style.background='var(--gray-100)'; e.currentTarget.style.color='var(--blue)' }}
+          onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--gray-400)' }}
         >
-          + Add issue
+          <span style={{ fontSize: 14, fontWeight: 700 }}>+</span> Create issue
         </div>
       </div>
     </div>
@@ -263,52 +304,13 @@ function BoardFilterBar({ tickets, assignees, typeF, priorityF, search, onAssign
   )
 }
 
-// ── Jira-style board card ──────────────────────────────────────────────────────
-const PCOLOR = { Critical: '#ef4444', High: '#f97316', Medium: '#eab308', Low: '#22c55e' }
-const TYPE_ICON = { Story: '🟢', Epic: '🟣', Feature: '🟠', Task: '🔵', 'Sub-task': '⬜', Initiative: '🔷' }
-
-function NewBoardCard({ ticket, onDragStart, onClick }) {
-  const pc = PCOLOR[ticket.priority] || '#9ca3af'
-  return (
-    <div
-      draggable
-      onDragStart={e => onDragStart(e, ticket.id)}
-      onClick={() => onClick(ticket.id)}
-      style={{
-        padding: '10px 12px', borderRadius: 6, background: 'var(--white)',
-        border: '1px solid var(--gray-200)', boxShadow: '0 1px 3px rgba(0,0,0,.06)',
-        cursor: 'pointer', userSelect: 'none', marginBottom: 6,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,.12)'; e.currentTarget.style.borderColor = '#93c5fd' }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.06)'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
-    >
-      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 10, lineHeight: 1.45, wordBreak: 'break-word' }}>
-        {ticket.title}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 15, color: pc, fontWeight: 900, lineHeight: 1, letterSpacing: -1 }}>≡</span>
-          <span style={{ fontSize: 12 }}>{TYPE_ICON[ticket.type] || '🔵'}</span>
-          <span style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600 }}>{ticket.id}</span>
-          {ticket.storyPoints != null && (
-            <span style={{ fontSize: 10, background: '#eff6ff', color: '#1e40af', borderRadius: 8, padding: '1px 6px', fontWeight: 700 }}>
-              {ticket.storyPoints}
-            </span>
-          )}
-        </div>
-        <Avatar name={ticket.assignee} size={22} />
-      </div>
-    </div>
-  )
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
-// ── KANBAN BOARD (continuous flow — all project tickets, no sprint filter) ───
+// ── KANBAN BOARD — continuous flow ───────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function KanbanBoard({ board, pid, tickets }) {
   const { openModal, openTicketView } = useApp()
   const cols = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
-  const ptix = tickets.filter(t => t.project === pid)
+  const ptix = useMemo(() => tickets.filter(t => t.project === pid), [tickets, pid])
 
   // ── Filters ──
   const [filterAssignees, setFilterAssignees] = useState([])
@@ -316,7 +318,9 @@ function KanbanBoard({ board, pid, tickets }) {
   const [filterPriority,  setFilterPriority]  = useState('')
   const [filterSearch,    setFilterSearch]    = useState('')
 
-  const visibleTickets = useMemo(() => ptix.filter(t => {
+  const uniqueAssignees = useMemo(() => [...new Set(ptix.map(t => t.assignee).filter(Boolean))], [ptix])
+
+  const visible = useMemo(() => ptix.filter(t => {
     if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee)) return false
     if (filterType && t.type !== filterType) return false
     if (filterPriority && t.priority !== filterPriority) return false
@@ -327,49 +331,89 @@ function KanbanBoard({ board, pid, tickets }) {
     return true
   }), [ptix, filterAssignees, filterType, filterPriority, filterSearch])
 
-  const toggleAssignee = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
-  const clearFilters   = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+  const toggleAssignee  = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
+  const clearFilters    = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+  const activeCount     = filterAssignees.length + (filterType ? 1 : 0) + (filterPriority ? 1 : 0) + (filterSearch ? 1 : 0)
 
-  const { dragOverCol, handleDragStart, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(visibleTickets)
-
-  const total = ptix.length
-  const done  = ptix.filter(t => t.status === 'Done').length
-  const wip   = ptix.filter(t => t.status === 'In Progress').length
+  const { dragOverCol, handleDragStart, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(ptix)
 
   return (
     <div>
-      {/* Info bar */}
-      <div style={{ display: 'flex', gap: 12, padding: '12px 16px', background: 'var(--white)', borderRadius: 10, border: '1.5px solid var(--gray-200)', marginBottom: 12, alignItems: 'center', boxShadow: 'var(--shadow)' }}>
+      {/* Stats bar */}
+      <div style={{ display: 'flex', gap: 10, padding: '10px 14px', background: 'var(--white)', borderRadius: 10, border: '1.5px solid var(--gray-200)', marginBottom: 12, alignItems: 'center', boxShadow: 'var(--shadow)', flexWrap: 'wrap' }}>
         {[
-          { label: 'Total',       val: total, color: '#3b82f6', icon: '📋' },
-          { label: 'In Progress', val: wip,   color: '#f59e0b', icon: '⚡' },
-          { label: 'Done',        val: done,  color: '#10b981', icon: '✅' },
-          { label: 'Blocked',     val: ptix.filter(t => t.status === 'Blocked').length, color: '#ef4444', icon: '🚫' },
-        ].map(({ label, val, color, icon }) => (
+          { label: 'Total',       val: ptix.length,                              color: '#3b82f6' },
+          { label: 'In Progress', val: ptix.filter(t=>t.status==='In Progress').length, color: '#f59e0b' },
+          { label: 'Done',        val: ptix.filter(t=>t.status==='Done').length, color: '#10b981' },
+          { label: 'Blocked',     val: ptix.filter(t=>t.status==='Blocked').length, color: '#ef4444' },
+        ].map(({ label, val, color }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 8, background: `${color}10` }}>
-            <span style={{ fontSize: 13 }}>{icon}</span>
-            <span style={{ fontWeight: 800, fontSize: 15, color }}>{val}</span>
+            <span style={{ fontWeight: 800, fontSize: 18, color }}>{val}</span>
             <span style={{ fontSize: 11, color: 'var(--gray-500)' }}>{label}</span>
           </div>
         ))}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: 'var(--gray-400)', fontStyle: 'italic' }}>Continuous flow · all tickets</span>
+        <span style={{ fontSize: 11, color: 'var(--gray-400)', fontStyle: 'italic' }}>Kanban · continuous flow · all {ptix.length} tickets</span>
       </div>
 
-      {/* Filter bar */}
-      <BoardFilterBar
-        tickets={ptix}
-        assignees={filterAssignees} typeF={filterType} priorityF={filterPriority} search={filterSearch}
-        onAssignee={toggleAssignee} onType={setFilterType} onPriority={setFilterPriority}
-        onSearch={setFilterSearch} onClear={clearFilters}
-      />
+      {/* Action bar */}
+      <div className="board-action-bar">
+        <input
+          className="form-input"
+          placeholder="🔍 Search board"
+          value={filterSearch}
+          onChange={e => setFilterSearch(e.target.value)}
+          style={{ width: 170, fontSize: 12, padding: '5px 10px' }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {uniqueAssignees.slice(0, 7).map(name => (
+            <div key={name} onClick={() => toggleAssignee(name)} title={name} style={{
+              cursor: 'pointer', borderRadius: '50%', flexShrink: 0,
+              outline: filterAssignees.includes(name) ? '2.5px solid #1a56db' : '2px solid transparent',
+              outlineOffset: 1,
+              opacity: filterAssignees.length > 0 && !filterAssignees.includes(name) ? 0.3 : 1,
+              transition: 'all .15s',
+            }}>
+              <Avatar name={name} size={26} />
+            </div>
+          ))}
+          {uniqueAssignees.length > 7 && (
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#6b7280' }}>
+              +{uniqueAssignees.length - 7}
+            </div>
+          )}
+        </div>
+        <div style={{ width: 1, height: 20, background: 'var(--gray-200)', flexShrink: 0 }} />
+        <span className={`board-filter-chip ${filterType ? 'active' : ''}`}>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}>
+            <option value="">Type ▾</option>
+            {FILTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </span>
+        <span className={`board-filter-chip ${filterPriority ? 'active' : ''}`}>
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+            <option value="">Priority ▾</option>
+            {FILTER_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </span>
+        {activeCount > 0 && (
+          <button onClick={clearFilters} style={{ padding: '4px 10px', borderRadius: 20, background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+            ✕ Clear ({activeCount})
+          </button>
+        )}
+        <span style={{ flex: 1 }} />
+        <button className="btn btn-outline btn-sm" onClick={() => openModal('createTicket', { project: pid })}>
+          + Add ticket
+        </button>
+      </div>
 
       {/* Columns */}
       <div className="kanban-board">
         {cols.map(col => (
           <DropColumn
             key={col} status={col}
-            cards={visibleTickets.filter(t => t.status === col)}
+            cards={visible.filter(t => t.status === col)}
+            allTickets={tickets}
             isOver={dragOverCol === col}
             onDragStart={handleDragStart}
             onDragOver={e => handleDragOver(e, col)}
@@ -386,19 +430,20 @@ function KanbanBoard({ board, pid, tickets }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ── SCRUM BOARD (active sprint — grouped by story, Jira-style) ───────────────
+// ── SCRUM BOARD — active sprint (Jira Active Sprints style) ──────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function ScrumBoard({ board, pid, tickets, sprints }) {
-  const { openModal, openTicketView, setProjectTab, doCompleteSprint, doUpdateTicket } = useApp()
+  const { openModal, openTicketView, setProjectTab, doCompleteSprint } = useApp()
+
   const cols            = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
   const projectSprints  = sprints.filter(s => s.project === pid).sort((a, b) => a.order - b.order)
   const activeSprint    = projectSprints.find(s => s.status === 'active')
   const planningSprints = projectSprints.filter(s => s.status === 'planning')
 
   // ── UI state ──
-  const [completing,      setCompleting]     = useState(false)
-  const [groupByStory,    setGroupByStory]   = useState(true)
-  const [collapsed,       setCollapsed]      = useState({})
+  const [completing,    setCompleting]  = useState(false)
+  const [groupBy,       setGroupBy]     = useState('none') // 'none' | 'story' | 'epic'
+  const [collapsed,     setCollapsed]   = useState({})
 
   // ── Filters ──
   const [filterAssignees, setFilterAssignees] = useState([])
@@ -411,9 +456,9 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
     [activeSprint, tickets, pid]
   )
 
-  const visibleTickets = useMemo(() => sprintTickets.filter(t => {
+  const visible = useMemo(() => sprintTickets.filter(t => {
     if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee)) return false
-    if (filterType && t.type !== filterType) return false
+    if (filterType     && t.type !== filterType) return false
     if (filterPriority && t.priority !== filterPriority) return false
     if (filterSearch) {
       const q = filterSearch.toLowerCase()
@@ -422,10 +467,10 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
     return true
   }), [sprintTickets, filterAssignees, filterType, filterPriority, filterSearch])
 
-  const uniqueAssignees  = useMemo(() => [...new Set(sprintTickets.map(t => t.assignee).filter(Boolean))], [sprintTickets])
-  const toggleAssignee   = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
-  const clearFilters     = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
-  const activeFilterCount = filterAssignees.length + (filterType ? 1 : 0) + (filterPriority ? 1 : 0) + (filterSearch ? 1 : 0)
+  const uniqueAssignees = useMemo(() => [...new Set(sprintTickets.map(t => t.assignee).filter(Boolean))], [sprintTickets])
+  const toggleAssignee  = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
+  const clearFilters    = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+  const activeCount     = filterAssignees.length + (filterType?1:0) + (filterPriority?1:0) + (filterSearch?1:0)
 
   // ── Stats ──
   const doneCount = sprintTickets.filter(t => t.status === 'Done').length
@@ -439,24 +484,29 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
   // ── Drag & drop ──
   const { dragOverCol, handleDragStart, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(sprintTickets)
 
-  // ── Group tickets by parent ──
-  const groupedTickets = useMemo(() => {
+  // ── Grouping logic ──
+  const grouped = useMemo(() => {
+    if (groupBy === 'none') return null
     const groups = {}
-    visibleTickets.forEach(t => {
-      const key = t.parent || '__none__'
+    visible.forEach(t => {
+      let key = '__none__'
+      if (groupBy === 'story') {
+        key = t.parent || '__none__'
+      } else if (groupBy === 'epic') {
+        const parentT = t.parent ? tickets.find(x => x.id === t.parent) : null
+        const epicT   = parentT?.type === 'Epic' ? parentT
+                      : parentT ? tickets.find(x => x.id === parentT.parent && x.type === 'Epic') : null
+        key = epicT?.id || t.parent || '__none__'
+      }
       if (!groups[key]) groups[key] = []
       groups[key].push(t)
     })
     return groups
-  }, [visibleTickets])
+  }, [visible, groupBy, tickets])
 
   const groupKeys = useMemo(() =>
-    Object.keys(groupedTickets).sort((a, b) => {
-      if (a === '__none__') return 1
-      if (b === '__none__') return -1
-      return a.localeCompare(b)
-    }),
-    [groupedTickets]
+    grouped ? Object.keys(grouped).sort((a, b) => a === '__none__' ? 1 : b === '__none__' ? -1 : a.localeCompare(b)) : [],
+    [grouped]
   )
 
   const toggleCollapse = key => setCollapsed(p => ({ ...p, [key]: !p[key] }))
@@ -464,184 +514,144 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
   // ── No active sprint ──
   if (!activeSprint) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <div style={{ fontSize: 52, marginBottom: 16 }}>🏃</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>No Active Sprint</div>
-        <div style={{ fontSize: 14, color: 'var(--gray-500)', marginBottom: 24, lineHeight: 1.6 }}>
-          Go to the <strong>Backlog</strong> tab to start a sprint.<br />
-          Once a sprint is active its tickets will appear here.
+      <div style={{ textAlign: 'center', padding: '70px 20px' }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>🏃</div>
+        <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>No Active Sprint</div>
+        <div style={{ fontSize: 14, color: 'var(--gray-500)', marginBottom: 8, lineHeight: 1.7 }}>
+          Create tickets in the <strong>Backlog</strong>, drag them into a sprint, then start it.<br />
+          The active sprint board will appear here.
         </div>
         {planningSprints.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 10 }}>Sprints ready to start:</div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {planningSprints.map(sp => (
-                <div key={sp.id} style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: 8, padding: '8px 16px', fontSize: 13 }}>
-                  <strong>{sp.name}</strong>
-                  <span style={{ color: 'var(--gray-400)', marginLeft: 8, fontSize: 12 }}>
-                    ({tickets.filter(t => t.project === pid && t.sprint === sp.name).length} tickets)
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
+            {planningSprints.map(sp => (
+              <div key={sp.id} style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 8, padding: '8px 16px', fontSize: 13 }}>
+                <strong>{sp.name}</strong>
+                <span style={{ color: '#3b82f6', marginLeft: 8, fontWeight: 700 }}>
+                  {tickets.filter(t => t.project === pid && t.sprint === sp.name).length} tickets ready
+                </span>
+              </div>
+            ))}
           </div>
         )}
-        <button className="btn btn-primary" onClick={() => setProjectTab('backlog')}>Go to Backlog →</button>
+        <button className="btn btn-primary" onClick={() => setProjectTab('backlog')}>
+          Go to Backlog →
+        </button>
       </div>
     )
   }
 
   return (
     <div>
-      {/* ── Compact sprint info bar ── */}
+      {/* ── Sprint info bar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
-        background: 'linear-gradient(90deg, #1a56db 0%, #1e40af 100%)',
+        display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px',
+        background: 'linear-gradient(90deg,#1a56db 0%,#1e3a8a 100%)',
         borderRadius: 10, marginBottom: 12, color: '#fff', flexWrap: 'wrap',
-        boxShadow: '0 2px 12px rgba(26,86,219,.2)',
+        boxShadow: '0 3px 14px rgba(26,86,219,.22)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 800, fontSize: 15 }}>{activeSprint.name}</span>
-          <span style={{ background: '#10b981', borderRadius: 20, padding: '1px 8px', fontSize: 10, fontWeight: 800 }}>⚡ ACTIVE</span>
-          {activeSprint.goal && <span style={{ fontSize: 12, color: '#bfdbfe', fontStyle: 'italic' }}>{activeSprint.goal}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap' }}>{activeSprint.name}</span>
+          <span style={{ background: '#10b981', borderRadius: 20, padding: '2px 9px', fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ ACTIVE</span>
+          {activeSprint.goal && (
+            <span style={{ fontSize: 12, color: '#bfdbfe', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {activeSprint.goal}
+            </span>
+          )}
         </div>
         {activeSprint.startDate && (
-          <span style={{ fontSize: 11, color: '#93c5fd' }}>
+          <span style={{ fontSize: 11, color: '#93c5fd', flexShrink: 0 }}>
             📅 {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}
             {daysLeft !== null && (
-              <span style={{ marginLeft: 8, background: daysLeft <= 2 ? '#ef4444' : 'rgba(255,255,255,.2)', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
-                {daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
+              <span style={{ marginLeft: 8, background: daysLeft <= 2 ? '#ef4444' : 'rgba(255,255,255,.18)', borderRadius: 10, padding: '1px 8px', fontWeight: 700 }}>
+                {daysLeft === 0 ? '🔥 Due today' : `${daysLeft}d left`}
               </span>
             )}
           </span>
         )}
         <span style={{ flex: 1 }} />
-        {/* Progress */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 100, height: 6, background: 'rgba(255,255,255,.25)', borderRadius: 4, overflow: 'hidden' }}>
+        {/* Inline progress */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <div style={{ width: 90, height: 6, background: 'rgba(255,255,255,.25)', borderRadius: 4, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 4, transition: 'width .4s' }} />
           </div>
-          <span style={{ fontSize: 11, color: '#93c5fd' }}>{doneCount}/{sprintTickets.length} done</span>
-          {totalPts > 0 && <span style={{ fontSize: 11, color: '#bfdbfe' }}>⭐ {donePts}/{totalPts} pts</span>}
+          <span style={{ fontSize: 11, color: '#93c5fd', whiteSpace: 'nowrap' }}>{doneCount}/{sprintTickets.length} done</span>
+          {totalPts > 0 && <span style={{ fontSize: 11, color: '#bfdbfe', whiteSpace: 'nowrap' }}>⭐ {donePts}/{totalPts} pts</span>}
         </div>
       </div>
 
       {/* ── Action bar (Jira-style) ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-        background: 'var(--white)', border: '1.5px solid var(--gray-200)',
-        borderRadius: 10, marginBottom: 14, flexWrap: 'wrap',
-        boxShadow: 'var(--shadow)',
-      }}>
+      <div className="board-action-bar">
         {/* Search */}
         <input
           className="form-input"
           placeholder="🔍 Search board"
           value={filterSearch}
           onChange={e => setFilterSearch(e.target.value)}
-          style={{ width: 160, fontSize: 12, padding: '5px 10px' }}
+          style={{ width: 165, fontSize: 12, padding: '5px 10px' }}
         />
-
         {/* Assignee avatars */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {uniqueAssignees.slice(0, 6).map(name => (
-            <div
-              key={name}
-              onClick={() => toggleAssignee(name)}
-              title={name}
-              style={{
-                cursor: 'pointer', borderRadius: '50%', flexShrink: 0,
-                outline: filterAssignees.includes(name) ? '2.5px solid #1a56db' : '2px solid transparent',
-                outlineOffset: 1,
-                opacity: filterAssignees.length > 0 && !filterAssignees.includes(name) ? 0.35 : 1,
-                transition: 'all .15s',
-              }}
-            >
+          {uniqueAssignees.slice(0, 7).map(name => (
+            <div key={name} onClick={() => toggleAssignee(name)} title={name} style={{
+              cursor: 'pointer', borderRadius: '50%', flexShrink: 0,
+              outline: filterAssignees.includes(name) ? '2.5px solid #1a56db' : '2px solid transparent',
+              outlineOffset: 1,
+              opacity: filterAssignees.length > 0 && !filterAssignees.includes(name) ? 0.28 : 1,
+              transition: 'all .15s',
+            }}>
               <Avatar name={name} size={26} />
             </div>
           ))}
-          {uniqueAssignees.length > 6 && (
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#4b5563' }}>
-              +{uniqueAssignees.length - 6}
+          {uniqueAssignees.length > 7 && (
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#6b7280' }}>
+              +{uniqueAssignees.length - 7}
             </div>
           )}
         </div>
-
-        {/* Divider */}
-        <div style={{ width: 1, height: 22, background: 'var(--gray-200)', flexShrink: 0 }} />
-
+        <div style={{ width: 1, height: 20, background: 'var(--gray-200)', flexShrink: 0 }} />
         {/* Type filter */}
-        <select
-          value={filterType}
-          onChange={e => setFilterType(e.target.value)}
-          style={{
-            fontSize: 12, padding: '5px 8px', borderRadius: 7, cursor: 'pointer', outline: 'none',
-            border: `1.5px solid ${filterType ? '#3b82f6' : 'var(--gray-200)'}`,
-            background: filterType ? '#eff6ff' : 'var(--white)',
-            color: filterType ? '#1e40af' : 'var(--text)', fontWeight: filterType ? 700 : 400,
-          }}
-        >
-          <option value="">Type ▾</option>
-          {FILTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-
+        <span className={`board-filter-chip ${filterType ? 'active' : ''}`}>
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}>
+            <option value="">Type ▾</option>
+            {FILTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </span>
         {/* Priority filter */}
-        <select
-          value={filterPriority}
-          onChange={e => setFilterPriority(e.target.value)}
-          style={{
-            fontSize: 12, padding: '5px 8px', borderRadius: 7, cursor: 'pointer', outline: 'none',
-            border: `1.5px solid ${filterPriority ? (PRIORITY_COLORS[filterPriority] || '#3b82f6') : 'var(--gray-200)'}`,
-            background: filterPriority ? `${PRIORITY_COLORS[filterPriority] || '#3b82f6'}10` : 'var(--white)',
-            color: filterPriority ? (PRIORITY_COLORS[filterPriority] || '#1e40af') : 'var(--text)',
-            fontWeight: filterPriority ? 700 : 400,
-          }}
-        >
-          <option value="">Priority ▾</option>
-          {FILTER_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-
-        {/* Clear filters */}
-        {activeFilterCount > 0 && (
-          <button
-            onClick={clearFilters}
-            style={{ padding: '4px 10px', borderRadius: 20, background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
-          >✕ Clear ({activeFilterCount})</button>
+        <span className={`board-filter-chip ${filterPriority ? 'active' : ''}`}>
+          <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+            <option value="">Priority ▾</option>
+            {FILTER_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </span>
+        {/* Clear */}
+        {activeCount > 0 && (
+          <button onClick={clearFilters} style={{ padding: '4px 10px', borderRadius: 20, background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+            ✕ Clear ({activeCount})
+          </button>
         )}
-
         <span style={{ flex: 1 }} />
-
+        {/* Group selector */}
+        <span className={`board-filter-chip ${groupBy !== 'none' ? 'active' : ''}`}>
+          <select value={groupBy} onChange={e => { setGroupBy(e.target.value); setCollapsed({}) }}>
+            <option value="none">Group: None ▾</option>
+            <option value="story">Group: Story ▾</option>
+            <option value="epic">Group: Epic ▾</option>
+          </select>
+        </span>
         {/* Complete sprint */}
         <button
           onClick={() => setCompleting(true)}
-          style={{
-            background: '#1a56db', color: '#fff', border: 'none',
-            borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 700,
-            cursor: 'pointer', boxShadow: '0 2px 8px rgba(26,86,219,.3)',
-          }}
+          style={{ background: '#1a56db', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(26,86,219,.28)', whiteSpace: 'nowrap' }}
         >
           ✓ Complete sprint
-        </button>
-
-        {/* Group toggle */}
-        <button
-          onClick={() => setGroupByStory(v => !v)}
-          style={{
-            padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-            background: groupByStory ? '#eff6ff' : 'var(--white)',
-            color: groupByStory ? '#1a56db' : 'var(--gray-600)',
-            border: `1.5px solid ${groupByStory ? '#3b82f6' : 'var(--gray-200)'}`,
-          }}
-        >
-          Group: {groupByStory ? 'Stories' : 'None'}
         </button>
       </div>
 
       {/* ── Complete sprint confirm ── */}
       {completing && (
         <div style={{ padding: '16px 18px', background: '#fff7ed', borderRadius: 10, border: '1.5px solid #fed7aa', marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Complete "{activeSprint.name}"?</div>
-          <div style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 12, lineHeight: 1.5 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>Complete "{activeSprint.name}"?</div>
+          <div style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 12, lineHeight: 1.55 }}>
             <strong style={{ color: '#f59e0b' }}>{sprintTickets.filter(t => t.status !== 'Done').length}</strong> incomplete tickets will move to the Backlog.&nbsp;
             <strong style={{ color: '#10b981' }}>{doneCount}</strong> Done tickets stay completed.
           </div>
@@ -654,143 +664,14 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
         </div>
       )}
 
-      {/* ══ GROUPED BOARD ══ */}
-      {groupByStory ? (
-        <div>
-          {groupKeys.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--gray-400)', fontSize: 14 }}>
-              No tickets match your filters.
-            </div>
-          )}
-          {groupKeys.map(key => {
-            const parentT   = key !== '__none__' ? tickets.find(t => t.id === key) : null
-            const groupTix  = groupedTickets[key] || []
-            const isCollapsed = collapsed[key]
-            const groupDone = groupTix.filter(t => t.status === 'Done').length
-
-            return (
-              <div key={key} style={{ marginBottom: 18 }}>
-                {/* ── Story/group header row ── */}
-                <div
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '9px 14px',
-                    background: 'var(--gray-50)',
-                    border: '1.5px solid var(--gray-200)',
-                    borderRadius: isCollapsed ? 8 : '8px 8px 0 0',
-                    cursor: 'pointer', userSelect: 'none',
-                  }}
-                  onClick={() => toggleCollapse(key)}
-                >
-                  <span style={{ fontSize: 12, color: 'var(--gray-400)', flexShrink: 0 }}>{isCollapsed ? '▶' : '▼'}</span>
-                  {parentT ? (
-                    <>
-                      <span style={{ fontSize: 14, flexShrink: 0 }}>{TYPE_ICON[parentT.type] || '🔵'}</span>
-                      <span
-                        style={{ fontWeight: 700, color: 'var(--blue)', fontSize: 12, flexShrink: 0, cursor: 'pointer' }}
-                        onClick={e => { e.stopPropagation(); openTicketView(parentT.id) }}
-                      >{parentT.id}</span>
-                      <span style={{ fontWeight: 600, fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {parentT.title}
-                      </span>
-                      <span style={{ fontSize: 11, background: '#e5e7eb', borderRadius: 10, padding: '1px 8px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        {groupTix.length} subtask{groupTix.length !== 1 ? 's' : ''}
-                      </span>
-                      <span
-                        className={`badge ${getStatusClass(parentT.status)}`}
-                        style={{ fontSize: 10, flexShrink: 0 }}
-                      >{parentT.status}</span>
-                      <Avatar name={parentT.assignee} size={22} />
-                    </>
-                  ) : (
-                    <>
-                      <span style={{ fontSize: 14 }}>📋</span>
-                      <span style={{ fontWeight: 600, fontSize: 13, flex: 1 }}>Other tickets</span>
-                      <span style={{ fontSize: 11, background: '#e5e7eb', borderRadius: 10, padding: '1px 8px', fontWeight: 600, flexShrink: 0 }}>
-                        {groupTix.length} ticket{groupTix.length !== 1 ? 's' : ''}
-                      </span>
-                    </>
-                  )}
-                  <span style={{ fontSize: 11, color: 'var(--gray-400)', flexShrink: 0, marginLeft: 4 }}>
-                    {groupDone}/{groupTix.length} done
-                  </span>
-                </div>
-
-                {/* ── Mini kanban columns ── */}
-                {!isCollapsed && (
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
-                    border: '1.5px solid var(--gray-200)',
-                    borderTop: 'none',
-                    borderRadius: '0 0 8px 8px',
-                    overflow: 'hidden',
-                    background: 'var(--white)',
-                  }}>
-                    {cols.map((col, colIdx) => {
-                      const colColor = COL_COLORS[col] || '#64748b'
-                      const colCards = groupTix.filter(t => t.status === col)
-                      const isOver   = dragOverCol === col
-                      return (
-                        <div
-                          key={col}
-                          style={{
-                            borderRight: colIdx < cols.length - 1 ? '1px solid var(--gray-200)' : 'none',
-                            minHeight: 100,
-                            background: isOver ? `${colColor}08` : 'transparent',
-                            transition: 'background .12s',
-                          }}
-                          onDragOver={e => { e.preventDefault(); handleDragOver(e, col) }}
-                          onDragLeave={handleDragLeave}
-                          onDrop={e => handleDrop(e, col)}
-                        >
-                          {/* Column header */}
-                          <div style={{
-                            padding: '7px 10px',
-                            borderBottom: `2px solid ${colColor}40`,
-                            background: isOver ? `${colColor}12` : `${COL_BG[col] || '#f8faff'}`,
-                            display: 'flex', alignItems: 'center', gap: 6,
-                          }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: colColor, letterSpacing: 0.5 }}>
-                              {col.toUpperCase()}
-                            </span>
-                            {colCards.length > 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: colColor, borderRadius: 8, padding: '0px 5px' }}>
-                                {colCards.length}
-                              </span>
-                            )}
-                          </div>
-                          {/* Cards */}
-                          <div style={{ padding: '8px 8px 2px' }}>
-                            {colCards.map(t => (
-                              <NewBoardCard
-                                key={t.id}
-                                ticket={t}
-                                onDragStart={handleDragStart}
-                                onClick={openTicketView}
-                              />
-                            ))}
-                            <div
-                              onClick={e => { e.stopPropagation(); openModal('createTicket', { project: pid, parent: parentT?.id }) }}
-                              style={{ fontSize: 12, color: 'var(--gray-400)', cursor: 'pointer', padding: '4px 2px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
-                            >+ Create</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      ) : (
-        /* ══ FLAT BOARD ══ */
+      {/* ══ FLAT BOARD (no grouping) ══ */}
+      {groupBy === 'none' && (
         <div className="kanban-board">
           {cols.map(col => (
             <DropColumn
               key={col} status={col}
-              cards={visibleTickets.filter(t => t.status === col)}
+              cards={visible.filter(t => t.status === col)}
+              allTickets={tickets}
               isOver={dragOverCol === col}
               onDragStart={handleDragStart}
               onDragOver={e => handleDragOver(e, col)}
@@ -801,6 +682,100 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
               pid={pid}
             />
           ))}
+        </div>
+      )}
+
+      {/* ══ GROUPED / SWIMLANE BOARD ══ */}
+      {groupBy !== 'none' && (
+        <div>
+          {groupKeys.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)', fontSize: 14 }}>No tickets match your filters.</div>
+          )}
+          {groupKeys.map(key => {
+            const parentT    = key !== '__none__' ? tickets.find(t => t.id === key) : null
+            const groupTix   = grouped[key] || []
+            const groupDone  = groupTix.filter(t => t.status === 'Done').length
+            const isCollapsed = collapsed[key]
+            const tc = parentT ? (TYPE_CONF[parentT.type] || { bg: '#f3f4f6', color: '#4b5563', char: '?' }) : null
+
+            return (
+              <div key={key}>
+                {/* Swimlane header */}
+                <div className="swimlane-header" onClick={() => toggleCollapse(key)}>
+                  <span style={{ fontSize: 11, color: 'var(--gray-400)', flexShrink: 0 }}>{isCollapsed ? '▶' : '▼'}</span>
+                  {parentT ? (
+                    <>
+                      <span style={{
+                        width: 18, height: 18, borderRadius: 4, background: tc.bg, color: tc.color,
+                        fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center',
+                        justifyContent: 'center', flexShrink: 0,
+                      }}>{tc.char}</span>
+                      <span
+                        style={{ fontWeight: 700, color: 'var(--blue)', fontSize: 12, flexShrink: 0, cursor: 'pointer' }}
+                        onClick={e => { e.stopPropagation(); openTicketView(parentT.id) }}
+                      >{parentT.id}</span>
+                      <span style={{ fontWeight: 600, fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{parentT.title}</span>
+                      <span style={{ fontSize: 11, background: '#e5e7eb', borderRadius: 10, padding: '1px 8px', fontWeight: 600, flexShrink: 0 }}>
+                        {groupTix.length} issue{groupTix.length !== 1 ? 's' : ''}
+                      </span>
+                      <span className={`badge ${getStatusClass(parentT.status)}`} style={{ fontSize: 10, flexShrink: 0 }}>{parentT.status}</span>
+                      <Avatar name={parentT.assignee} size={20} />
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontWeight: 600, fontSize: 13, flex: 1, color: 'var(--gray-600)' }}>Other tickets</span>
+                      <span style={{ fontSize: 11, background: '#e5e7eb', borderRadius: 10, padding: '1px 8px', fontWeight: 600 }}>{groupTix.length}</span>
+                    </>
+                  )}
+                  <span style={{ fontSize: 11, color: 'var(--gray-400)', flexShrink: 0, marginLeft: 4 }}>
+                    {groupDone}/{groupTix.length} done
+                  </span>
+                </div>
+
+                {/* Swimlane columns grid */}
+                {!isCollapsed && (
+                  <div
+                    className="swimlane-grid"
+                    style={{ gridTemplateColumns: `repeat(${cols.length}, 1fr)` }}
+                  >
+                    {cols.map((col, idx) => {
+                      const colColor = COL_COLORS[col] || '#64748b'
+                      const colCards = groupTix.filter(t => t.status === col)
+                      const isOver   = dragOverCol === col
+                      return (
+                        <div
+                          key={col}
+                          className="swimlane-col"
+                          style={{ background: isOver ? `${colColor}07` : 'transparent', transition: 'background .12s' }}
+                          onDragOver={e => { e.preventDefault(); handleDragOver(e, col) }}
+                          onDragLeave={handleDragLeave}
+                          onDrop={e => handleDrop(e, col)}
+                        >
+                          {/* Only show column header on FIRST group */}
+                          {groupKeys.indexOf(key) === 0 && (
+                            <div className="swimlane-col-hdr" style={{ borderBottomColor: `${colColor}60`, background: COL_BG[col] || '#f8faff' }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', background: colColor, flexShrink: 0 }} />
+                              <span style={{ color: colColor }}>{col.toUpperCase()}</span>
+                            </div>
+                          )}
+                          <div className="swimlane-col-body">
+                            {colCards.map(t => (
+                              <BoardCard key={t.id} ticket={t} allTickets={tickets} onDragStart={handleDragStart} onClick={openTicketView} />
+                            ))}
+                            {colCards.length === 0 && (
+                              <div style={{ height: 40, border: `1.5px dashed ${colColor}25`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--gray-300)' }}>
+                                {isOver ? '📥' : '—'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
