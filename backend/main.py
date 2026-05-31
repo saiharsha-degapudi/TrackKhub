@@ -41,6 +41,11 @@ state = {
     "nextBoardId": seed.NEXT_BOARD_ID,
     "sprints": copy.deepcopy(seed.SPRINTS),
     "nextSprintId": seed.NEXT_SPRINT_ID,
+    "channels": copy.deepcopy(seed.CHANNELS),
+    "nextChannelId": seed.NEXT_CHANNEL_ID,
+    "messages": copy.deepcopy(seed.MESSAGES),
+    "nextMessageId": seed.NEXT_MESSAGE_ID,
+    "projectWorkflows": {},
 }
 
 
@@ -618,3 +623,88 @@ def complete_sprint(sid: int):
             t["sprint"] = None
             moved += 1
     return {"sprint": sprint, "movedToBacklog": moved}
+
+
+# ── Chat Channels ─────────────────────────────────────────────────────────────
+@app.get("/api/channels")
+def get_channels():
+    return state["channels"]
+
+
+@app.post("/api/channels")
+def create_channel(body: Dict[str, Any]):
+    name = body.get("name", "").strip().lower().replace(" ", "-")
+    if not name:
+        raise HTTPException(400, "name required")
+    cid = state["nextChannelId"]
+    state["nextChannelId"] += 1
+    channel = {
+        "id": cid,
+        "name": name,
+        "description": body.get("description", ""),
+        "type": body.get("type", "public"),
+    }
+    state["channels"].append(channel)
+    return channel
+
+
+# ── Chat Messages ─────────────────────────────────────────────────────────────
+@app.get("/api/messages")
+def get_messages(channel: Optional[int] = None):
+    msgs = state["messages"]
+    if channel is not None:
+        msgs = [m for m in msgs if m["channel"] == channel]
+    return msgs
+
+
+@app.post("/api/messages")
+def send_message(body: Dict[str, Any]):
+    from datetime import datetime
+    text = body.get("text", "").strip()
+    channel = body.get("channel")
+    user = body.get("user", "")
+    if not text or not channel:
+        raise HTTPException(400, "text and channel required")
+    mid = state["nextMessageId"]
+    state["nextMessageId"] += 1
+    msg = {
+        "id": mid,
+        "channel": int(channel),
+        "user": user,
+        "text": text,
+        "ts": datetime.now().isoformat(timespec="seconds"),
+    }
+    state["messages"].append(msg)
+    return msg
+
+
+# ── Project Workflow ──────────────────────────────────────────────────────────
+DEFAULT_WORKFLOW = {
+    "statuses": [
+        {"name": "To Do",       "color": "#64748b"},
+        {"name": "In Progress", "color": "#3b82f6"},
+        {"name": "In Review",   "color": "#8b5cf6"},
+        {"name": "Done",        "color": "#10b981"},
+        {"name": "Blocked",     "color": "#ef4444"},
+    ],
+    "transitions": [
+        ["To Do",       "In Progress"],
+        ["In Progress", "In Review"],
+        ["In Progress", "Blocked"],
+        ["In Review",   "In Progress"],
+        ["In Review",   "Done"],
+        ["Blocked",     "In Progress"],
+        ["To Do",       "Blocked"],
+    ],
+}
+
+
+@app.get("/api/workflows/project/{pid}")
+def get_project_workflow(pid: int):
+    return state["projectWorkflows"].get(pid, copy.deepcopy(DEFAULT_WORKFLOW))
+
+
+@app.put("/api/workflows/project/{pid}")
+def update_project_workflow(pid: int, body: Dict[str, Any]):
+    state["projectWorkflows"][pid] = body
+    return body

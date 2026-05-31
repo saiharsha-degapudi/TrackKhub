@@ -30,6 +30,7 @@ export function AppProvider({ children }) {
   const [workflowDefs, setWorkflowDefs] = useState([])
   const [boards, setBoards] = useState([])
   const [sprints, setSprints] = useState([])
+  const [channels, setChannels] = useState([])
 
   // UI state
   const [recentProjects, setRecentProjects] = useState([])
@@ -49,7 +50,7 @@ export function AppProvider({ children }) {
     const u = await api.login(email, password)
     setUser(u)
     const [
-      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs, bds, sps
+      projs, tks, filts, usrs, conns, notifs, dashes, stgs, fields, grps, rls, tms, wfs, bds, sps, chans
     ] = await Promise.all([
       api.getProjects(),
       api.getTickets(),
@@ -66,6 +67,7 @@ export function AppProvider({ children }) {
       api.getWorkflows(),
       api.getBoards(),
       api.getSprints(),
+      api.getChannels(),
     ])
     setProjects(projs)
     setTickets(tks)
@@ -82,7 +84,8 @@ export function AppProvider({ children }) {
     setWorkflowDefs(wfs)
     setBoards(bds)
     setSprints(sps)
-    setPage('projects')
+    setChannels(chans)
+    setPage('home')
     return u
   }, [])
 
@@ -415,7 +418,7 @@ export function AppProvider({ children }) {
     user, page, prevPage, activeProject, projectTab, settingsTab,
     viewTicketId, modal, projects, tickets, filters, users, connectors,
     notifications, customDashboards, settings, customFields, groups, roles,
-    teams, workflowDefs, boards, sprints,
+    teams, workflowDefs, boards, sprints, channels,
     recentProjects, projectsOpen, projectSearch, ticketSearch,
     typeFilter, statusFilter, projectFilter, roadmapZoom, roadmapExpanded,
     roadmapProjectFilter, roadmapTypeFilter, unreadCount,

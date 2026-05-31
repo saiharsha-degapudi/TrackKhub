@@ -434,3 +434,33 @@ WORKFLOW_DEFS = [
         ],
     },
 ]
+
+CHANNELS = [
+    {"id": 1, "name": "general",     "description": "Team-wide announcements", "type": "public"},
+    {"id": 2, "name": "engineering", "description": "Engineering discussions",  "type": "public"},
+    {"id": 3, "name": "design",      "description": "Design & UX discussions",  "type": "public"},
+    {"id": 4, "name": "product",     "description": "Product planning",         "type": "public"},
+    {"id": 5, "name": "random",      "description": "Off-topic & fun",          "type": "public"},
+]
+NEXT_CHANNEL_ID = 6
+
+MESSAGES = [
+    {"id": 1,  "channel": 1, "user": "Sara Lee",    "text": "Good morning team! Sprint 2 planning starts tomorrow at 10am.",  "ts": "2026-05-30T09:00:00"},
+    {"id": 2,  "channel": 1, "user": "Mike Chen",   "text": "I've prepared all the backlog items. Ready to go! 🚀",           "ts": "2026-05-30T09:05:00"},
+    {"id": 3,  "channel": 1, "user": "Harsha",      "text": "Great, see you all then. Let's aim for 22 sprint points.",       "ts": "2026-05-30T09:10:00"},
+    {"id": 4,  "channel": 1, "user": "Tom Wilson",  "text": "Quick reminder: deployment freeze starts Friday EOD.",           "ts": "2026-05-30T14:00:00"},
+    {"id": 5,  "channel": 1, "user": "Priya Patel", "text": "Product demo scheduled for next Wednesday at 2pm 📅",            "ts": "2026-05-30T15:30:00"},
+    {"id": 6,  "channel": 2, "user": "Harsha",      "text": "PR #142 is ready for review — supplier registration API.",      "ts": "2026-05-30T10:00:00"},
+    {"id": 7,  "channel": 2, "user": "Sara Lee",    "text": "On it! Will review by EOD.",                                     "ts": "2026-05-30T10:15:00"},
+    {"id": 8,  "channel": 2, "user": "Mike Chen",   "text": "Also need to fix the N+1 query in the PO listing endpoint.",     "ts": "2026-05-30T11:00:00"},
+    {"id": 9,  "channel": 2, "user": "Harsha",      "text": "Added a ticket for that — PRC-28. High priority.",               "ts": "2026-05-30T11:20:00"},
+    {"id": 10, "channel": 3, "user": "Mike Chen",   "text": "New mockups for the supplier dashboard are in Figma 🎨",         "ts": "2026-05-29T16:00:00"},
+    {"id": 11, "channel": 3, "user": "Priya Patel", "text": "Love the new colour scheme! The status badges are much clearer.","ts": "2026-05-29T16:30:00"},
+    {"id": 12, "channel": 3, "user": "Sara Lee",    "text": "Can we also simplify the filter panel? Too many options.",        "ts": "2026-05-29T16:45:00"},
+    {"id": 13, "channel": 4, "user": "Priya Patel", "text": "Q3 roadmap review on Friday. Please prep your project updates.", "ts": "2026-05-28T09:00:00"},
+    {"id": 14, "channel": 4, "user": "Tom Wilson",  "text": "Analytics & Reporting is on track for June GA release.",         "ts": "2026-05-28T09:30:00"},
+    {"id": 15, "channel": 5, "user": "Sara Lee",    "text": "Who's up for lunch? 🍕",                                          "ts": "2026-05-31T12:00:00"},
+    {"id": 16, "channel": 5, "user": "Tom Wilson",  "text": "Always! Slack me the place.",                                    "ts": "2026-05-31T12:05:00"},
+    {"id": 17, "channel": 5, "user": "Mike Chen",   "text": "Count me in 🙋",                                                  "ts": "2026-05-31T12:07:00"},
+]
+NEXT_MESSAGE_ID = 18

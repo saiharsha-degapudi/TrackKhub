@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { key: 'filters', label: 'Filters' },
   { key: 'alltickets', label: 'All Tickets' },
   { key: 'roadmaps', label: '🗺 Roadmaps' },
-  { key: 'webconnectors', label: 'Web Connectors' },
+  { key: 'hithere', label: '💬 Hi There' },
 ]
 
 export default function Header() {

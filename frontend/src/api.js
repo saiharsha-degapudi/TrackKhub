@@ -109,3 +109,15 @@ export const updateSprint = (id, data) => request('PUT', `/sprints/${id}`, data)
 export const deleteSprint = (id) => request('DELETE', `/sprints/${id}`)
 export const startSprint = (id, data) => request('POST', `/sprints/${id}/start`, data || {})
 export const completeSprint = (id) => request('POST', `/sprints/${id}/complete`, {})
+
+// ── Chat Channels ─────────────────────────────────────────────────────────────
+export const getChannels = () => request('GET', '/channels')
+export const createChannel = (data) => request('POST', '/channels', data)
+
+// ── Chat Messages ─────────────────────────────────────────────────────────────
+export const getMessages = (channelId) => request('GET', `/messages?channel=${channelId}`)
+export const sendMessage = (data) => request('POST', '/messages', data)
+
+// ── Project Workflow ──────────────────────────────────────────────────────────
+export const getProjectWorkflow = (pid) => request('GET', `/workflows/project/${pid}`)
+export const updateProjectWorkflow = (pid, data) => request('PUT', `/workflows/project/${pid}`, data)

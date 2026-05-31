@@ -34,8 +34,8 @@ export default function Sidebar() {
       <div className="sidebar-section">
         <div className="sidebar-label">Navigation</div>
         <div
-          className={`sidebar-item ${page === 'projects' ? 'active' : ''}`}
-          onClick={() => nav('projects')}
+          className={`sidebar-item ${page === 'home' ? 'active' : ''}`}
+          onClick={() => nav('home')}
         >🏠 Home</div>
         <div
           className={`sidebar-item ${page === 'dashboards' ? 'active' : ''}`}
@@ -54,9 +54,9 @@ export default function Sidebar() {
           onClick={() => nav('roadmaps')}
         >🗺 Roadmaps</div>
         <div
-          className={`sidebar-item ${page === 'webconnectors' ? 'active' : ''}`}
-          onClick={() => nav('webconnectors')}
-        >🔗 Connectors</div>
+          className={`sidebar-item ${page === 'hithere' ? 'active' : ''}`}
+          onClick={() => nav('hithere')}
+        >💬 Hi There</div>
       </div>
 
       <div className="sidebar-section">
@@ -131,8 +131,9 @@ export default function Sidebar() {
             { key: 'board',      icon: '📋', label: 'Board' },
             { key: 'backlog',    icon: '📃', label: 'Backlog' },
             { key: 'roadmap',    icon: '🗺',  label: 'Roadmap' },
+            { key: 'workflow',   icon: '⚡', label: 'Workflow' },
             { key: 'reports',    icon: '📊', label: 'Reports' },
-            { key: 'psettings',  icon: '⚙',  label: 'Project Settings' },
+            { key: 'settings',   icon: '⚙',  label: 'Project Settings' },
           ].map(({ key, icon, label }) => (
             <div
               key={key}

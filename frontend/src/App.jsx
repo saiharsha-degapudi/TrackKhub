@@ -5,6 +5,7 @@ import Header from './components/Header'
 import Sidebar from './components/Sidebar'
 import ModalManager from './components/ModalManager'
 
+import Home from './components/pages/Home'
 import Projects from './components/pages/Projects'
 import ProjectDetail from './components/pages/ProjectDetail'
 import Dashboards from './components/pages/Dashboards'
@@ -12,13 +13,14 @@ import Filters from './components/pages/Filters'
 import AllTickets from './components/pages/AllTickets'
 import Roadmaps from './components/pages/Roadmaps'
 import TicketView from './components/pages/TicketView'
-import WebConnectors from './components/pages/WebConnectors'
+import HiThere from './components/pages/HiThere'
 import Settings from './components/pages/Settings'
 
 function PageContent() {
   const { page } = useApp()
 
   switch (page) {
+    case 'home': return <Home />
     case 'projects': return <Projects />
     case 'projectdetail': return <ProjectDetail />
     case 'dashboards': return <Dashboards />
@@ -26,9 +28,9 @@ function PageContent() {
     case 'alltickets': return <AllTickets />
     case 'roadmaps': return <Roadmaps />
     case 'ticketview': return <TicketView />
-    case 'webconnectors': return <WebConnectors />
+    case 'hithere': return <HiThere />
     case 'settings': return <Settings />
-    default: return <Projects />
+    default: return <Home />
   }
 }
 

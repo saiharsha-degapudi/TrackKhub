@@ -1,8 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { useApp } from '../../context/AppContext'
 import Avatar from '../common/Avatar'
 import { getTypeColor, getStatusClass, priorityClass } from '../common/Badge'
 import Roadmap from '../Roadmap'
+import * as api from '../../api'
 
 const ISSUE_TYPES = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
 const PRIORITIES  = ['Critical', 'High', 'Medium', 'Low']
@@ -854,6 +855,209 @@ function ProjectReports({ pid, tickets }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ── WORKFLOW EDITOR ───────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+const DEFAULT_WORKFLOW = {
+  statuses: [
+    { name: 'To Do',       color: '#64748b' },
+    { name: 'In Progress', color: '#3b82f6' },
+    { name: 'In Review',   color: '#8b5cf6' },
+    { name: 'Done',        color: '#10b981' },
+    { name: 'Blocked',     color: '#ef4444' },
+  ],
+  transitions: [
+    ['To Do',       'In Progress'],
+    ['In Progress', 'In Review'],
+    ['In Progress', 'Blocked'],
+    ['In Review',   'In Progress'],
+    ['In Review',   'Done'],
+    ['Blocked',     'In Progress'],
+    ['To Do',       'Blocked'],
+  ],
+}
+
+function WorkflowEditor({ project }) {
+  const [workflow, setWorkflow] = useState(null)
+  const [saved, setSaved]       = useState(false)
+  const [newStatus, setNewStatus] = useState('')
+  const [newColor,  setNewColor]  = useState('#1a56db')
+
+  useEffect(() => {
+    api.getProjectWorkflow(project.id)
+      .then(wf => setWorkflow(wf))
+      .catch(() => setWorkflow({ ...DEFAULT_WORKFLOW }))
+  }, [project.id])
+
+  if (!workflow) return <div style={{ padding: 20, color: 'var(--gray-400)' }}>Loading workflow…</div>
+
+  const { statuses, transitions } = workflow
+
+  const hasTransition = (from, to) =>
+    transitions.some(([f, t]) => f === from && t === to)
+
+  const toggleTransition = (from, to) => {
+    if (from === to) return
+    const exists = hasTransition(from, to)
+    const newTransitions = exists
+      ? transitions.filter(([f, t]) => !(f === from && t === to))
+      : [...transitions, [from, to]]
+    setWorkflow({ ...workflow, transitions: newTransitions })
+  }
+
+  const handleSave = async () => {
+    await api.updateProjectWorkflow(project.id, workflow)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  const addStatus = () => {
+    const name = newStatus.trim()
+    if (!name || statuses.some(s => s.name === name)) return
+    setWorkflow({ ...workflow, statuses: [...statuses, { name, color: newColor }] })
+    setNewStatus('')
+  }
+
+  const removeStatus = (name) => {
+    setWorkflow({
+      ...workflow,
+      statuses: statuses.filter(s => s.name !== name),
+      transitions: transitions.filter(([f, t]) => f !== name && t !== name),
+    })
+  }
+
+  const updateStatusColor = (name, color) => {
+    setWorkflow({
+      ...workflow,
+      statuses: statuses.map(s => s.name === name ? { ...s, color } : s),
+    })
+  }
+
+  return (
+    <div style={{ maxWidth: 780 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>⚡ Workflow</div>
+          <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>{project.name}</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {saved && <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>✓ Saved</span>}
+          <button className="btn btn-primary btn-sm" onClick={handleSave}>Save Workflow</button>
+        </div>
+      </div>
+
+      {/* Statuses */}
+      <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Statuses</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+          {statuses.map(s => (
+            <div key={s.name} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+              border: `2px solid ${s.color}40`, borderRadius: 10,
+              background: `${s.color}10`,
+            }}>
+              <input
+                type="color"
+                value={s.color}
+                onChange={e => updateStatusColor(s.name, e.target.value)}
+                style={{ width: 22, height: 22, border: 'none', cursor: 'pointer', borderRadius: 4, background: 'transparent' }}
+              />
+              <span style={{ fontWeight: 700, fontSize: 13, color: s.color }}>{s.name}</span>
+              <button
+                onClick={() => removeStatus(s.name)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--gray-400)', fontSize: 14, lineHeight: 1, padding: 0,
+                }}
+                title="Remove status"
+              >×</button>
+            </div>
+          ))}
+        </div>
+        {/* Add status */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className="form-input"
+            placeholder="New status name…"
+            value={newStatus}
+            onChange={e => setNewStatus(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addStatus()}
+            style={{ fontSize: 13, padding: '6px 10px', flex: 1, maxWidth: 240 }}
+          />
+          <input
+            type="color"
+            value={newColor}
+            onChange={e => setNewColor(e.target.value)}
+            style={{ width: 34, height: 34, border: '1.5px solid var(--gray-200)', cursor: 'pointer', borderRadius: 6 }}
+          />
+          <button className="btn btn-secondary btn-sm" onClick={addStatus}>+ Add Status</button>
+        </div>
+      </div>
+
+      {/* Transitions matrix */}
+      <div className="card" style={{ padding: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Transitions</div>
+        <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 14 }}>
+          Click a cell to toggle whether that transition is allowed. Rows = From, Columns = To.
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '6px 10px', textAlign: 'left', color: 'var(--gray-500)', fontWeight: 600, width: 120 }}>From \ To</th>
+                {statuses.map(s => (
+                  <th key={s.name} style={{ padding: '6px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: s.color, fontWeight: 700 }}>{s.name}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {statuses.map(fromS => (
+                <tr key={fromS.name} style={{ borderTop: '1px solid var(--gray-100)' }}>
+                  <td style={{ padding: '8px 10px', fontWeight: 700, color: fromS.color, whiteSpace: 'nowrap' }}>
+                    {fromS.name}
+                  </td>
+                  {statuses.map(toS => {
+                    const isSame = fromS.name === toS.name
+                    const allowed = !isSame && hasTransition(fromS.name, toS.name)
+                    return (
+                      <td
+                        key={toS.name}
+                        style={{
+                          padding: '8px',
+                          textAlign: 'center',
+                          cursor: isSame ? 'default' : 'pointer',
+                          background: isSame ? 'var(--gray-50)' : allowed ? `${toS.color}12` : 'transparent',
+                          transition: 'background .15s',
+                          borderRadius: 4,
+                        }}
+                        onClick={() => toggleTransition(fromS.name, toS.name)}
+                        title={isSame ? '—' : `${fromS.name} → ${toS.name}`}
+                      >
+                        {isSame ? (
+                          <span style={{ color: 'var(--gray-300)' }}>—</span>
+                        ) : allowed ? (
+                          <span style={{ color: '#10b981', fontSize: 16 }}>✓</span>
+                        ) : (
+                          <span style={{ color: 'var(--gray-200)', fontSize: 13 }}>○</span>
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ── PROJECT SETTINGS ─────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function ProjectSettings({ project }) {
@@ -935,6 +1139,7 @@ export default function ProjectDetail() {
     { key: 'board',    label: 'Board',    icon: '📋' },
     { key: 'backlog',  label: 'Backlog',  icon: '📃' },
     { key: 'roadmap',  label: 'Roadmap',  icon: '🗺' },
+    { key: 'workflow', label: 'Workflow', icon: '⚡' },
     { key: 'reports',  label: 'Reports',  icon: '📊' },
     { key: 'settings', label: 'Settings', icon: '⚙' },
   ]
@@ -991,6 +1196,10 @@ export default function ProjectDetail() {
 
       {projectTab === 'roadmap' && (
         <Roadmap project={project} tickets={projectTickets} />
+      )}
+
+      {projectTab === 'workflow' && (
+        <WorkflowEditor project={project} />
       )}
 
       {projectTab === 'reports' && (
