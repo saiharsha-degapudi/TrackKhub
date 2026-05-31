@@ -69,7 +69,13 @@ export function AppProvider({ children }) {
       api.getSprints(),
       api.getChannels(),
     ])
-    setProjects(projs)
+    const filteredProjs = u.role === 'Admin'
+      ? projs
+      : projs.filter(p =>
+          p.lead === u.name ||
+          (p.members && p.members.some(m => m.name === u.name))
+        )
+    setProjects(filteredProjs)
     setTickets(tks)
     setFilters(filts)
     setUsers(usrs)
@@ -109,7 +115,7 @@ export function AppProvider({ children }) {
   const openProject = useCallback((id) => {
     setActiveProject(id)
     setPage('projectdetail')
-    setProjectTab('board')
+    setProjectTab('backlog')
     setRecentProjects(prev => [id, ...prev.filter(x => x !== id)].slice(0, 3))
   }, [])
 

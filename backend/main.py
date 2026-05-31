@@ -91,6 +91,11 @@ def login(body: LoginBody):
 # ── Projects ─────────────────────────────────────────────────────────────────
 @app.get("/api/projects")
 def get_projects():
+    # Ensure all projects have a members list
+    for p in state["projects"]:
+        if "members" not in p:
+            lead = p.get("lead", "")
+            p["members"] = [{"name": lead, "role": "Lead"}] if lead else []
     return state["projects"]
 
 
@@ -103,15 +108,17 @@ def create_project(body: Dict[str, Any]):
     if any(p["key"] == key for p in state["projects"]):
         raise HTTPException(400, "Key already exists")
     new_id = max((p["id"] for p in state["projects"]), default=0) + 1
+    lead = body.get("lead", "")
     project = {
         "id": new_id,
         "key": key,
         "name": name,
         "description": body.get("description", "No description"),
         "color": body.get("color", "#1a56db"),
-        "lead": body.get("lead", ""),
+        "lead": lead,
         "status": "Active",
         "created": today_str(),
+        "members": [{"name": lead, "role": "Lead"}] if lead else [],
     }
     state["projects"].append(project)
     state["nextTicketNums"][new_id] = 1

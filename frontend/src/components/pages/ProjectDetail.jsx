@@ -982,58 +982,99 @@ function CreateBoardForm({ pid, onCreated, onCancel }) {
 }
 
 function BoardsManager({ pid, tickets, sprints }) {
-  const { boards, doDeleteBoard, openModal } = useApp()
-  const projectBoards = boards.filter(b => b.project === pid)
-  const [activeBoardId, setActiveBoardId] = useState(projectBoards[0]?.id ?? null)
-  const [showCreate, setShowCreate]        = useState(false)
-  const [confirmDelete, setConfirmDelete]  = useState(null)
+  const { boards, doDeleteBoard } = useApp()
+  const projectBoards  = boards.filter(b => b.project === pid)
+  const projectSprints = sprints.filter(s => s.project === pid)
 
-  const activeBoard = projectBoards.find(b => b.id === activeBoardId) || projectBoards[0]
+  // If no boards configured, synthesise a default one so the user
+  // lands on a working board rather than a "create board" form.
+  const defaultBoard = useMemo(() => {
+    if (projectBoards.length > 0) return null
+    return {
+      id:      '__default__',
+      project: pid,
+      name:    projectSprints.length > 0 ? 'Active Sprints' : 'Board',
+      type:    projectSprints.length > 0 ? 'scrum' : 'kanban',
+      columns: ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked'],
+    }
+  }, [projectBoards, projectSprints, pid])
+
+  const allBoards = defaultBoard ? [defaultBoard] : projectBoards
+
+  const [activeBoardId, setActiveBoardId] = useState(() => allBoards[0]?.id ?? null)
+  const [showCreate,    setShowCreate]    = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+
+  // Keep activeBoardId in sync when boards change
+  useEffect(() => {
+    if (!allBoards.find(b => b.id === activeBoardId)) {
+      setActiveBoardId(allBoards[0]?.id ?? null)
+    }
+  }, [allBoards])
+
+  const activeBoard = allBoards.find(b => b.id === activeBoardId) || allBoards[0]
 
   const handleDelete = async (id) => {
     await doDeleteBoard(id)
-    if (activeBoardId === id) setActiveBoardId(projectBoards.find(b => b.id !== id)?.id ?? null)
     setConfirmDelete(null)
-  }
-
-  if (projectBoards.length === 0 && !showCreate) {
-    return (
-      <CreateBoardForm
-        pid={pid}
-        onCreated={b => { setActiveBoardId(b.id); setShowCreate(false) }}
-        onCancel={() => {}}
-      />
-    )
+    const remaining = projectBoards.filter(b => b.id !== id)
+    setActiveBoardId(remaining[0]?.id ?? null)
   }
 
   return (
     <div>
-      {/* Board chips + New Board button */}
+      {/* ── Board selector bar ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14, alignItems: 'center' }}>
-        {projectBoards.map(b => (
-          <div
-            key={b.id}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px 5px 12px', borderRadius: 20, border: `2px solid ${b.id === activeBoardId ? 'var(--blue)' : 'var(--gray-200)'}`, background: b.id === activeBoardId ? '#eff6ff' : 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: b.id === activeBoardId ? 700 : 400 }}
-            onClick={() => { setActiveBoardId(b.id); setShowCreate(false) }}
-          >
-            {b.type === 'scrum' ? '🏃' : '🔄'} {b.name}
-            <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 8, background: b.type === 'scrum' ? '#dbeafe' : '#dcfce7', color: b.type === 'scrum' ? '#1e40af' : '#166534', fontWeight: 700, marginLeft: 2 }}>
-              {b.type.toUpperCase()}
-            </span>
-            {projectBoards.length > 1 && (
-              <span
-                style={{ marginLeft: 2, color: 'var(--gray-400)', fontSize: 14, lineHeight: 1, padding: '0 2px' }}
-                onClick={e => { e.stopPropagation(); setConfirmDelete(b.id) }}
-                title="Delete board"
-              >×</span>
-            )}
-          </div>
-        ))}
+        {allBoards.map(b => {
+          const isScrum   = b.type === 'scrum'
+          const activeSp  = sprints.find(s => s.project === pid && s.status === 'active')
+          const chipLabel = isScrum
+            ? (activeSp ? `⚡ ${activeSp.name}` : `🏃 ${b.name}`)
+            : `🔄 ${b.name}`
+          const isActive  = b.id === activeBoardId
+          return (
+            <div
+              key={b.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px 6px 14px', borderRadius: 20,
+                border: `2px solid ${isActive ? 'var(--blue)' : 'var(--gray-200)'}`,
+                background: isActive ? '#eff6ff' : 'var(--white)',
+                cursor: 'pointer', fontSize: 13,
+                fontWeight: isActive ? 700 : 400,
+                transition: 'all .15s',
+              }}
+              onClick={() => { setActiveBoardId(b.id); setShowCreate(false) }}
+            >
+              {chipLabel}
+              {/* type badge */}
+              <span style={{
+                fontSize: 9, padding: '1px 5px', borderRadius: 8,
+                background: isScrum ? '#dbeafe' : '#dcfce7',
+                color: isScrum ? '#1e40af' : '#166534',
+                fontWeight: 700, marginLeft: 2,
+              }}>
+                {b.type.toUpperCase()}
+              </span>
+              {/* delete X — only for real boards with more than 1 */}
+              {b.id !== '__default__' && projectBoards.length > 1 && (
+                <span
+                  style={{ marginLeft: 2, color: 'var(--gray-400)', fontSize: 14, lineHeight: 1, padding: '0 2px' }}
+                  onClick={e => { e.stopPropagation(); setConfirmDelete(b.id) }}
+                  title="Delete board"
+                >×</span>
+              )}
+            </div>
+          )
+        })}
 
+        {/* New Board button */}
         {!showCreate && (
           <button
-            style={{ padding: '5px 12px', borderRadius: 20, border: '2px dashed var(--gray-300)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, color: 'var(--gray-500)' }}
+            style={{ padding: '6px 12px', borderRadius: 20, border: '2px dashed var(--gray-300)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, color: 'var(--gray-500)', transition: 'all .15s' }}
             onClick={() => setShowCreate(true)}
+            onMouseEnter={e => { e.currentTarget.style.borderColor='var(--blue)'; e.currentTarget.style.color='var(--blue)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor='var(--gray-300)'; e.currentTarget.style.color='var(--gray-500)' }}
           >＋ New Board</button>
         )}
       </div>
@@ -1729,24 +1770,44 @@ function ProjectSettings({ project }) {
   }
 
   // ── Teams / Members ──
+  // Seed from project.members (persisted) or fall back to lead
   const [members, setMembers] = useState(() => {
+    if (project.members && project.members.length > 0) {
+      return project.members.map(m => {
+        const u = users.find(x => x.name === m.name)
+        return { userId: u?.id || 0, name: m.name, role: m.role }
+      }).filter(m => m.userId)
+    }
     const leadUser = users.find(u => u.name === project.lead)
-    return leadUser ? [{ userId: leadUser.id, role: 'Lead' }] : []
+    return leadUser ? [{ userId: leadUser.id, name: leadUser.name, role: 'Lead' }] : []
   })
   const [addUserId, setAddUserId] = useState('')
   const [addRole,   setAddRole]   = useState('Developer')
 
-  const addMember = () => {
+  const addMember = async () => {
     if (!addUserId) return
     const uid = Number(addUserId)
     if (members.some(m => m.userId === uid)) return
-    setMembers(prev => [...prev, { userId: uid, role: addRole }])
+    const u = users.find(x => x.id === uid)
+    const newMembers = [...members, { userId: uid, name: u?.name || '', role: addRole }]
+    setMembers(newMembers)
     setAddUserId('')
     setAddRole('Developer')
+    // Persist so user-visibility filter picks it up on next login
+    await doUpdateProject(project.id, {
+      members: newMembers.map(m => ({ name: m.name || users.find(u => u.id === m.userId)?.name || '', role: m.role }))
+    })
   }
 
-  const removeMember = uid  => setMembers(prev => prev.filter(m => m.userId !== uid))
-  const updateRole   = (uid, role) => setMembers(prev => prev.map(m => m.userId === uid ? { ...m, role } : m))
+  const removeMember = async (uid) => {
+    const newMembers = members.filter(m => m.userId !== uid)
+    setMembers(newMembers)
+    await doUpdateProject(project.id, {
+      members: newMembers.map(m => ({ name: m.name || users.find(u => u.id === m.userId)?.name || '', role: m.role }))
+    })
+  }
+
+  const updateRole = (uid, role) => setMembers(prev => prev.map(m => m.userId === uid ? { ...m, role } : m))
 
   const SECTIONS = [
     { key: 'details',  label: 'Project Details', icon: '📋' },
@@ -1985,8 +2046,8 @@ export default function ProjectDetail() {
   if (!project) return <div className="page"><div className="empty-state">Project not found</div></div>
 
   const TABS = [
-    { key: 'board',    label: 'Board',    icon: '📋' },
     { key: 'backlog',  label: 'Backlog',  icon: '📃' },
+    { key: 'board',    label: 'Board',    icon: '📋' },
     { key: 'roadmap',  label: 'Roadmap',  icon: '🗺' },
     { key: 'reports',  label: 'Reports',  icon: '📊' },
     { key: 'settings', label: 'Settings', icon: '⚙' },

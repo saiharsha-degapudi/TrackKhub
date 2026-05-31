@@ -33,7 +33,11 @@ function todayStr() {
 }
 
 export default function Home() {
-  const { user, tickets, projects, openTicketView, openProject } = useApp()
+  const {
+    user, tickets, projects,
+    openTicketView, openProject,
+    nav, setStatusFilter, setProjectFilter,
+  } = useApp()
   const firstName = user?.name?.split(' ')[0] || 'there'
 
   // My tickets (assigned to the logged-in user)
@@ -74,8 +78,6 @@ export default function Home() {
   // Activity feed derived from ticket data
   const activityFeed = useMemo(() => {
     const items = []
-
-    // Recently updated tickets
     const recentlyUpdated = [...tickets]
       .sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))
       .slice(0, 20)
@@ -94,7 +96,6 @@ export default function Home() {
       }
     })
 
-    // Due soon (within 7 days)
     const nextWeek = new Date()
     nextWeek.setDate(nextWeek.getDate() + 7)
     tickets
@@ -104,7 +105,6 @@ export default function Home() {
         items.push({ icon: '⏰', text: `${t.id} due on ${t.dueDate}`, ticket: t, ts: t.dueDate })
       })
 
-    // Deduplicate by ticket id + icon, take first 10
     const seen = new Set()
     return items.filter(item => {
       const key = `${item.icon}-${item.ticket?.id}`
@@ -114,12 +114,48 @@ export default function Home() {
     }).slice(0, 10)
   }, [tickets, user])
 
+  // Navigate to All Tickets with a preset status filter
+  const goToTickets = (statusVal) => {
+    setStatusFilter(statusVal || 'All')
+    nav('alltickets')
+  }
+
   const statCards = [
-    { label: 'Open',      value: openCount,     color: '#3b82f6', bg: '#eff6ff' },
-    { label: 'In Review', value: inReviewCount,  color: '#8b5cf6', bg: '#f5f3ff' },
-    { label: 'Blocked',   value: blockedCount,   color: '#ef4444', bg: '#fff1f2' },
-    { label: 'Due Today', value: dueTodayCount,  color: '#f59e0b', bg: '#fffbeb' },
-    { label: `${myProjects.length} projects assigned`, value: null, color: '#10b981', bg: '#f0fdf4' },
+    {
+      label: 'Open Tickets',
+      value: openCount,
+      color: '#3b82f6',
+      bg: '#eff6ff',
+      onClick: () => goToTickets('All'),
+    },
+    {
+      label: 'In Review',
+      value: inReviewCount,
+      color: '#8b5cf6',
+      bg: '#f5f3ff',
+      onClick: () => goToTickets('In Review'),
+    },
+    {
+      label: 'Blocked',
+      value: blockedCount,
+      color: '#ef4444',
+      bg: '#fff1f2',
+      onClick: () => goToTickets('Blocked'),
+    },
+    {
+      label: 'Due Today',
+      value: dueTodayCount,
+      color: '#f59e0b',
+      bg: '#fffbeb',
+      onClick: () => goToTickets('All'),
+    },
+    {
+      label: `${myProjects.length} project${myProjects.length !== 1 ? 's' : ''} assigned`,
+      value: null,
+      color: '#10b981',
+      bg: '#f0fdf4',
+      onClick: () => nav('projects'),
+    },
   ]
 
   return (
@@ -143,12 +179,15 @@ export default function Home() {
               key={p.id}
               title={p.name}
               style={{
-                width: 32, height: 32, borderRadius: 8,
+                width: 36, height: 36, borderRadius: 10,
                 background: p.color, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 16, cursor: 'pointer',
+                justifyContent: 'center', fontSize: 18, cursor: 'pointer',
                 boxShadow: `0 2px 8px ${p.color}40`,
+                transition: 'transform .15s, box-shadow .15s',
               }}
               onClick={() => openProject(p.id)}
+              onMouseEnter={e => { e.currentTarget.style.transform='scale(1.12)'; e.currentTarget.style.boxShadow=`0 4px 14px ${p.color}55` }}
+              onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.boxShadow=`0 2px 8px ${p.color}40` }}
             >
               {p.icon || '📁'}
             </div>
@@ -158,17 +197,35 @@ export default function Home() {
 
       {/* Stat cards row */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        {statCards.map(({ label, value, color, bg }) => (
-          <div key={label} style={{
-            flex: '1 1 120px', background: bg, borderRadius: 12, padding: '14px 18px',
-            border: `1.5px solid ${color}30`, minWidth: 100,
-          }}>
+        {statCards.map(({ label, value, color, bg, onClick }) => (
+          <div
+            key={label}
+            onClick={onClick}
+            style={{
+              flex: '1 1 120px', background: bg, borderRadius: 12, padding: '14px 18px',
+              border: `1.5px solid ${color}30`, minWidth: 100,
+              cursor: 'pointer', transition: 'transform .15s, box-shadow .15s',
+              userSelect: 'none',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow=`0 4px 16px ${color}22` }}
+            onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none' }}
+          >
             {value !== null && (
               <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
             )}
-            <div style={{ fontSize: 12, color: value !== null ? 'var(--gray-500)' : color, fontWeight: value !== null ? 400 : 700, marginTop: value !== null ? 4 : 0 }}>
+            <div style={{
+              fontSize: 12,
+              color: value !== null ? 'var(--gray-500)' : color,
+              fontWeight: value !== null ? 400 : 700,
+              marginTop: value !== null ? 4 : 0,
+            }}>
               {label}
             </div>
+            {value !== null && (
+              <div style={{ fontSize: 10, color: color, fontWeight: 600, marginTop: 4, opacity: 0.7 }}>
+                Click to view →
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -182,7 +239,11 @@ export default function Home() {
           <div style={{ color: 'var(--gray-400)', fontSize: 13 }}>No tickets assigned to you yet.</div>
         ) : (
           statusCounts.map(([status, count]) => (
-            <div key={status} style={{ marginBottom: 10 }}>
+            <div
+              key={status}
+              style={{ marginBottom: 10, cursor: 'pointer' }}
+              onClick={() => goToTickets(status)}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{
@@ -212,7 +273,18 @@ export default function Home() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* My Open Tickets */}
         <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>My Open Tickets</div>
+          <div style={{
+            fontWeight: 700, fontSize: 14, marginBottom: 14,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span>My Open Tickets</span>
+            {openCount > 8 && (
+              <span
+                style={{ fontSize: 11, color: 'var(--blue)', cursor: 'pointer', fontWeight: 600 }}
+                onClick={() => goToTickets('All')}
+              >View all {openCount} →</span>
+            )}
+          </div>
           {openTickets.length === 0 ? (
             <div style={{ color: 'var(--gray-400)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
               All clear! No open tickets.
@@ -240,7 +312,10 @@ export default function Home() {
                       {t.title}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--gray-400)', marginTop: 2 }}>
-                      <span style={{ fontWeight: 700, color: proj?.color || 'var(--blue)' }}>{t.id}</span>
+                      <span
+                        style={{ fontWeight: 700, color: proj?.color || 'var(--blue)', cursor: 'pointer' }}
+                        onClick={e => { e.stopPropagation(); proj && openProject(proj.id) }}
+                      >{t.id}</span>
                       {' · '}
                       <span style={{ color: STATUS_COLORS[t.status] || '#64748b' }}>{t.status}</span>
                     </div>
