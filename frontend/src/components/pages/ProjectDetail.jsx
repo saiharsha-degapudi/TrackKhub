@@ -8,11 +8,15 @@ const ISSUE_TYPES = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task
 const PRIORITIES  = ['Critical', 'High', 'Medium', 'Low']
 
 const COL_COLORS = {
-  'To Do': '#64748b', 'In Progress': '#f59e0b',
+  'To Do': '#64748b', 'In Progress': '#3b82f6',
   'In Review': '#8b5cf6', 'Done': '#10b981', 'Blocked': '#ef4444',
 }
+const COL_BG = {
+  'To Do': '#f1f5f9', 'In Progress': '#eff6ff',
+  'In Review': '#f5f3ff', 'Done': '#f0fdf4', 'Blocked': '#fff1f2',
+}
 const COL_ICONS = {
-  'To Do': '📋', 'In Progress': '⚡', 'In Review': '👁', 'Done': '✅', 'Blocked': '🚫',
+  'To Do': '○', 'In Progress': '◕', 'In Review': '◎', 'Done': '✓', 'Blocked': '✕',
 }
 
 // ── Draggable ticket card ──────────────────────────────────────────────────────
@@ -50,6 +54,8 @@ function TicketCard({ ticket, onDragStart, onClick }) {
 
 // ── Kanban column with drop zone ───────────────────────────────────────────────
 function DropColumn({ status, cards, isOver, onDragStart, onDragOver, onDragLeave, onDrop, openTicketView, openModal, pid }) {
+  const color = COL_COLORS[status] || '#64748b'
+  const bg    = COL_BG[status]    || '#f8faff'
   return (
     <div
       className="kanban-col"
@@ -57,31 +63,50 @@ function DropColumn({ status, cards, isOver, onDragStart, onDragOver, onDragLeav
       onDragLeave={onDragLeave}
       onDrop={e => onDrop(e, status)}
       style={{
-        outline: isOver ? `2px dashed ${COL_COLORS[status]}` : 'none',
-        background: isOver ? `${COL_COLORS[status]}08` : undefined,
-        borderRadius: 8, transition: 'all .15s',
+        outline: isOver ? `2px dashed ${color}` : 'none',
+        borderRadius: 10, transition: 'all .15s',
+        background: isOver ? `${color}12` : undefined,
       }}
     >
-      <div className="kanban-col-header" style={{ borderBottom: `3px solid ${(COL_COLORS[status] || '#64748b')}30` }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          {COL_ICONS[status] || '📌'} {status}
+      {/* Column header */}
+      <div
+        className="kanban-col-header"
+        style={{ background: bg, borderBottom: `3px solid ${color}40`, color: color }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 800, fontSize: 13 }}>
+          <span style={{
+            width: 20, height: 20, borderRadius: '50%', background: color,
+            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 900, flexShrink: 0,
+          }}>{COL_ICONS[status] || '•'}</span>
+          {status}
         </span>
-        <span style={{ background: COL_COLORS[status] || '#64748b', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>
+        <span style={{
+          background: color, color: '#fff', borderRadius: 12,
+          padding: '2px 8px', fontSize: 11, fontWeight: 700,
+        }}>
           {cards.length}
         </span>
       </div>
+
+      {/* Column body */}
       <div className="kanban-col-body">
         {cards.map(t => (
           <TicketCard key={t.id} ticket={t} onDragStart={onDragStart} onClick={openTicketView} />
         ))}
         {cards.length === 0 && (
-          <div style={{ border: '2px dashed var(--gray-200)', borderRadius: 8, padding: '20px 8px', textAlign: 'center', fontSize: 11, color: 'var(--gray-400)' }}>
+          <div style={{
+            border: `2px dashed ${color}40`, borderRadius: 8,
+            padding: '24px 8px', textAlign: 'center', fontSize: 11, color: 'var(--gray-400)',
+          }}>
             {isOver ? '📥 Drop here' : 'No issues'}
           </div>
         )}
         <div
-          style={{ textAlign: 'center', padding: '8px 0', fontSize: 11, color: 'var(--gray-400)', cursor: 'pointer' }}
+          style={{ textAlign: 'center', padding: '8px 0', fontSize: 12, color: 'var(--gray-400)', cursor: 'pointer', borderRadius: 6, transition: 'background .1s' }}
           onClick={() => openModal('createTicket', { project: pid })}
+          onMouseEnter={e => e.currentTarget.style.background='var(--gray-200)'}
+          onMouseLeave={e => e.currentTarget.style.background='transparent'}
         >
           + Add issue
         </div>
@@ -139,12 +164,21 @@ function KanbanBoard({ board, pid, tickets }) {
   return (
     <div>
       {/* Info bar */}
-      <div style={{ display: 'flex', gap: 20, padding: '10px 14px', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--gray-200)', marginBottom: 14, fontSize: 12, color: 'var(--gray-600)' }}>
-        <span>📊 <strong>{total}</strong> total</span>
-        <span>⚡ <strong>{wip}</strong> in progress</span>
-        <span>✅ <strong>{done}</strong> done</span>
+      <div style={{ display: 'flex', gap: 12, padding: '12px 16px', background: 'var(--white)', borderRadius: 10, border: '1.5px solid var(--gray-200)', marginBottom: 16, alignItems: 'center', boxShadow: 'var(--shadow)' }}>
+        {[
+          { label: 'Total', val: total, color: '#3b82f6', icon: '📋' },
+          { label: 'In Progress', val: wip, color: '#f59e0b', icon: '⚡' },
+          { label: 'Done', val: done, color: '#10b981', icon: '✅' },
+          { label: 'Blocked', val: ptix.filter(t => t.status === 'Blocked').length, color: '#ef4444', icon: '🚫' },
+        ].map(({ label, val, color, icon }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 8, background: `${color}10` }}>
+            <span style={{ fontSize: 13 }}>{icon}</span>
+            <span style={{ fontWeight: 800, fontSize: 15, color }}>{val}</span>
+            <span style={{ fontSize: 11, color: 'var(--gray-500)' }}>{label}</span>
+          </div>
+        ))}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>Continuous flow · all tickets</span>
+        <span style={{ fontSize: 11, color: 'var(--gray-400)', fontStyle: 'italic' }}>Continuous flow · all tickets</span>
       </div>
 
       {/* Columns */}
@@ -218,41 +252,85 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
     )
   }
 
+  // Days remaining
+  const daysLeft = activeSprint.endDate
+    ? Math.max(0, Math.ceil((new Date(activeSprint.endDate) - new Date()) / 86400000))
+    : null
+  const totalPts = sprintTickets.reduce((s, t) => s + (t.storyPoints || 0), 0)
+  const donePts  = sprintTickets.filter(t => t.status === 'Done').reduce((s, t) => s + (t.storyPoints || 0), 0)
+  const wipCount = sprintTickets.filter(t => t.status === 'In Progress').length
+
   return (
     <div>
-      {/* Sprint banner */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)', borderRadius: 8, border: '1px solid #bfdbfe', marginBottom: 16 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontWeight: 800, fontSize: 15 }}>{activeSprint.name}</span>
-            <span className="badge badge-green" style={{ fontSize: 10 }}>ACTIVE</span>
+      {/* ── Sprint Banner ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a56db 0%, #1e40af 100%)',
+        borderRadius: 12, padding: '18px 22px', marginBottom: 18, color: '#fff',
+        boxShadow: '0 4px 20px rgba(26,86,219,.25)',
+      }}>
+        {/* Top row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+              <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -.3 }}>{activeSprint.name}</span>
+              <span style={{ background: '#10b981', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 10, fontWeight: 800, letterSpacing: .5 }}>⚡ ACTIVE</span>
+            </div>
             {activeSprint.goal && (
-              <span style={{ fontSize: 12, color: 'var(--gray-600)', fontStyle: 'italic' }}>
-                — {activeSprint.goal}
-              </span>
+              <div style={{ fontSize: 13, color: '#bfdbfe', fontStyle: 'italic' }}>
+                {activeSprint.goal}
+              </div>
+            )}
+            {activeSprint.startDate && (
+              <div style={{ fontSize: 11, color: '#93c5fd', marginTop: 4 }}>
+                📅 {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}
+                {daysLeft !== null && (
+                  <span style={{ marginLeft: 10, background: daysLeft <= 2 ? '#ef4444' : 'rgba(255,255,255,.15)', borderRadius: 10, padding: '1px 8px', fontWeight: 700 }}>
+                    {daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
+                  </span>
+                )}
+              </div>
             )}
           </div>
-          {activeSprint.startDate && (
-            <div style={{ fontSize: 11, color: 'var(--gray-500)', marginBottom: 6 }}>
-              {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 180, height: 6, background: 'var(--gray-200)', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 3, transition: 'width .3s' }} />
-            </div>
-            <span style={{ fontSize: 11, color: 'var(--gray-500)' }}>
-              {doneCount}/{sprintTickets.length} done ({progress}%)
-            </span>
+          <button
+            style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}
+            onClick={() => setProjectTab('backlog')}
+          >
+            ⚙ Manage Sprint
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ height: 8, background: 'rgba(255,255,255,.2)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 6, transition: 'width .4s' }} />
+          </div>
+          <div style={{ fontSize: 11, color: '#93c5fd', marginTop: 4 }}>
+            {doneCount} of {sprintTickets.length} issues done ({progress}%)
           </div>
         </div>
-        <button
-          className="btn btn-outline btn-sm"
-          onClick={() => setProjectTab('backlog')}
-          title="Manage sprints in Backlog tab"
-        >
-          ⚙ Manage Sprint
-        </button>
+
+        {/* Stat pills */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total',        val: sprintTickets.length, icon: '📋' },
+            { label: 'In Progress',  val: wipCount,             icon: '⚡' },
+            { label: 'Done',         val: doneCount,            icon: '✅' },
+            { label: 'Blocked',      val: sprintTickets.filter(t => t.status === 'Blocked').length, icon: '🚫' },
+            ...(totalPts > 0 ? [{ label: 'Story Pts', val: `${donePts}/${totalPts}`, icon: '⭐' }] : []),
+          ].map(({ label, val, icon }) => (
+            <div key={label} style={{
+              background: 'rgba(255,255,255,.12)', borderRadius: 8,
+              padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6,
+              border: '1px solid rgba(255,255,255,.15)', backdropFilter: 'blur(4px)',
+            }}>
+              <span style={{ fontSize: 12 }}>{icon}</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1 }}>{val}</div>
+                <div style={{ fontSize: 10, color: '#93c5fd', lineHeight: 1.2 }}>{label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Board columns */}
@@ -854,24 +932,30 @@ export default function ProjectDetail() {
   if (!project) return <div className="page"><div className="empty-state">Project not found</div></div>
 
   const TABS = [
-    { key: 'board',    label: '📋 Board' },
-    { key: 'backlog',  label: '📃 Backlog' },
-    { key: 'roadmap',  label: '🗺 Roadmap' },
-    { key: 'reports',  label: '📊 Reports' },
-    { key: 'settings', label: '⚙ Settings' },
+    { key: 'board',    label: 'Board',    icon: '📋' },
+    { key: 'backlog',  label: 'Backlog',  icon: '📃' },
+    { key: 'roadmap',  label: 'Roadmap',  icon: '🗺' },
+    { key: 'reports',  label: 'Reports',  icon: '📊' },
+    { key: 'settings', label: 'Settings', icon: '⚙' },
   ]
 
   return (
     <div className="page">
       {/* Project header */}
       <div className="page-header" style={{ marginBottom: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 24 }}>{project.icon || '📁'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: project.color || 'var(--blue)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+            boxShadow: `0 2px 10px ${project.color || 'var(--blue)'}40`,
+          }}>
+            {project.icon || '📁'}
+          </div>
           <div>
-            <div className="page-title" style={{ marginBottom: 0 }}>{project.name}</div>
-            <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-              <span style={{ fontWeight: 700, color: project.color }}>{project.key}</span>
-              {project.lead && <> · Lead: {project.lead}</>}
+            <div className="page-title" style={{ marginBottom: 1 }}>{project.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 700, color: project.color || 'var(--blue)', background: `${project.color || 'var(--blue)'}15`, padding: '1px 7px', borderRadius: 5, fontSize: 11 }}>{project.key}</span>
+              {project.lead && <span>Lead: {project.lead}</span>}
             </div>
           </div>
         </div>
@@ -881,16 +965,19 @@ export default function ProjectDetail() {
       </div>
 
       {/* Tab bar */}
-      <div className="tab-bar" style={{ marginBottom: 18, marginTop: 14 }}>
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            className={projectTab === t.key ? 'active' : ''}
-            onClick={() => setProjectTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div style={{ marginTop: 16, marginBottom: 20 }}>
+        <div className="tab-bar">
+          {TABS.map(t => (
+            <button
+              key={t.key}
+              className={projectTab === t.key ? 'active' : ''}
+              onClick={() => setProjectTab(t.key)}
+            >
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Tab content */}
