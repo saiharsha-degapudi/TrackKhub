@@ -4,6 +4,7 @@ import Avatar from '../common/Avatar'
 import { getTypeColor, getStatusClass, priorityClass } from '../common/Badge'
 import Roadmap from '../Roadmap'
 import * as api from '../../api'
+import { parseJQL } from '../../utils/jql'
 
 const ISSUE_TYPES = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
 const PRIORITIES  = ['Critical', 'High', 'Medium', 'Low']
@@ -191,6 +192,32 @@ function useDragDrop(tickets) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ── Resolve which tickets belong to a board (based on board.filter) ───────────
+// ══════════════════════════════════════════════════════════════════════════════
+function getTicketsForBoard(board, allTickets, savedFilters, projects) {
+  const f = board.filter
+  // No filter field → fall back to board's project
+  if (!f) return allTickets.filter(t => t.project === board.project)
+
+  // Saved-filter reference: "filter:<id>"
+  if (typeof f === 'string' && f.startsWith('filter:')) {
+    const filterId = Number(f.split(':')[1])
+    const sf = savedFilters.find(x => x.id === filterId)
+    if (!sf) return allTickets.filter(t => t.project === board.project)
+    const jql = sf.conditions?.jql || ''
+    if (!jql) return allTickets
+    try { return parseJQL(jql, allTickets, projects) }
+    catch { return allTickets.filter(t => t.project === board.project) }
+  }
+
+  // Plain project-id string
+  const projId = Number(f)
+  if (!isNaN(projId) && projId > 0) return allTickets.filter(t => t.project === projId)
+
+  return allTickets.filter(t => t.project === board.project)
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ── BOARD FILTER BAR (shared by Scrum + Kanban) ──────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 const FILTER_TYPES      = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
@@ -308,9 +335,13 @@ function BoardFilterBar({ tickets, assignees, typeF, priorityF, search, onAssign
 // ── KANBAN BOARD — continuous flow ───────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function KanbanBoard({ board, pid, tickets }) {
-  const { openModal, openTicketView } = useApp()
+  const { openModal, openTicketView, filters: savedFilters, projects: allProjects } = useApp()
   const cols = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
-  const ptix = useMemo(() => tickets.filter(t => t.project === pid), [tickets, pid])
+  // Resolve tickets according to board.filter (project id OR saved JQL filter)
+  const ptix = useMemo(
+    () => getTicketsForBoard(board, tickets, savedFilters, allProjects),
+    [board, tickets, savedFilters, allProjects]
+  )
 
   // ── Filters ──
   const [filterAssignees, setFilterAssignees] = useState([])
@@ -353,7 +384,7 @@ function KanbanBoard({ board, pid, tickets }) {
           </div>
         ))}
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: 'var(--gray-400)', fontStyle: 'italic' }}>Kanban · continuous flow · all {ptix.length} tickets</span>
+        <span style={{ fontSize: 11, color: 'var(--gray-400)', fontStyle: 'italic' }}>Kanban · continuous flow · {ptix.length} tickets{board.filter?.startsWith('filter:') ? ' (filtered)' : ''}</span>
       </div>
 
       {/* Action bar */}
@@ -433,7 +464,7 @@ function KanbanBoard({ board, pid, tickets }) {
 // ── SCRUM BOARD — active sprint (Jira Active Sprints style) ──────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function ScrumBoard({ board, pid, tickets, sprints }) {
-  const { openModal, openTicketView, setProjectTab, doCompleteSprint } = useApp()
+  const { openModal, openTicketView, setProjectTab, doCompleteSprint, filters: savedFilters, projects: allProjects } = useApp()
 
   const cols            = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
   const projectSprints  = sprints.filter(s => s.project === pid).sort((a, b) => a.order - b.order)
@@ -451,9 +482,15 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
   const [filterPriority,  setFilterPriority]  = useState('')
   const [filterSearch,    setFilterSearch]    = useState('')
 
+  // Resolve board-level ticket pool (respects board.filter: project id or JQL filter)
+  const boardTickets = useMemo(
+    () => getTicketsForBoard(board, tickets, savedFilters, allProjects),
+    [board, tickets, savedFilters, allProjects]
+  )
+
   const sprintTickets = useMemo(() =>
-    activeSprint ? tickets.filter(t => t.project === pid && t.sprint === activeSprint.name) : [],
-    [activeSprint, tickets, pid]
+    activeSprint ? boardTickets.filter(t => t.sprint === activeSprint.name) : [],
+    [activeSprint, boardTickets]
   )
 
   const visible = useMemo(() => sprintTickets.filter(t => {
@@ -493,16 +530,16 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
       if (groupBy === 'story') {
         key = t.parent || '__none__'
       } else if (groupBy === 'epic') {
-        const parentT = t.parent ? tickets.find(x => x.id === t.parent) : null
+        const parentT = t.parent ? boardTickets.find(x => x.id === t.parent) : null
         const epicT   = parentT?.type === 'Epic' ? parentT
-                      : parentT ? tickets.find(x => x.id === parentT.parent && x.type === 'Epic') : null
+                      : parentT ? boardTickets.find(x => x.id === parentT.parent && x.type === 'Epic') : null
         key = epicT?.id || t.parent || '__none__'
       }
       if (!groups[key]) groups[key] = []
       groups[key].push(t)
     })
     return groups
-  }, [visible, groupBy, tickets])
+  }, [visible, groupBy, boardTickets])
 
   const groupKeys = useMemo(() =>
     grouped ? Object.keys(grouped).sort((a, b) => a === '__none__' ? 1 : b === '__none__' ? -1 : a.localeCompare(b)) : [],
@@ -671,7 +708,7 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
             <DropColumn
               key={col} status={col}
               cards={visible.filter(t => t.status === col)}
-              allTickets={tickets}
+              allTickets={boardTickets}
               isOver={dragOverCol === col}
               onDragStart={handleDragStart}
               onDragOver={e => handleDragOver(e, col)}
@@ -692,7 +729,7 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray-400)', fontSize: 14 }}>No tickets match your filters.</div>
           )}
           {groupKeys.map(key => {
-            const parentT    = key !== '__none__' ? tickets.find(t => t.id === key) : null
+            const parentT    = key !== '__none__' ? boardTickets.find(t => t.id === key) : null
             const groupTix   = grouped[key] || []
             const groupDone  = groupTix.filter(t => t.status === 'Done').length
             const isCollapsed = collapsed[key]
@@ -760,7 +797,7 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
                           )}
                           <div className="swimlane-col-body">
                             {colCards.map(t => (
-                              <BoardCard key={t.id} ticket={t} allTickets={tickets} onDragStart={handleDragStart} onClick={openTicketView} />
+                              <BoardCard key={t.id} ticket={t} allTickets={boardTickets} onDragStart={handleDragStart} onClick={openTicketView} />
                             ))}
                             {colCards.length === 0 && (
                               <div style={{ height: 40, border: `1.5px dashed ${colColor}25`, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--gray-300)' }}>
@@ -982,7 +1019,7 @@ function CreateBoardForm({ pid, onCreated, onCancel }) {
 }
 
 function BoardsManager({ pid, tickets, sprints }) {
-  const { boards, doDeleteBoard } = useApp()
+  const { boards, doDeleteBoard, doUpdateBoard, projects, filters: savedFilters } = useApp()
   const projectBoards  = boards.filter(b => b.project === pid)
   const projectSprints = sprints.filter(s => s.project === pid)
 
@@ -993,6 +1030,7 @@ function BoardsManager({ pid, tickets, sprints }) {
     return {
       id:      '__default__',
       project: pid,
+      filter:  String(pid),
       name:    projectSprints.length > 0 ? 'Active Sprints' : 'Board',
       type:    projectSprints.length > 0 ? 'scrum' : 'kanban',
       columns: ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked'],
@@ -1001,9 +1039,12 @@ function BoardsManager({ pid, tickets, sprints }) {
 
   const allBoards = defaultBoard ? [defaultBoard] : projectBoards
 
-  const [activeBoardId, setActiveBoardId] = useState(() => allBoards[0]?.id ?? null)
-  const [showCreate,    setShowCreate]    = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [activeBoardId,  setActiveBoardId]  = useState(() => allBoards[0]?.id ?? null)
+  const [showCreate,     setShowCreate]     = useState(false)
+  const [confirmDelete,  setConfirmDelete]  = useState(null)
+  const [editingBoardId, setEditingBoardId] = useState(null)
+  const [editForm,       setEditForm]       = useState({})
+  const [saving,         setSaving]         = useState(false)
 
   // Keep activeBoardId in sync when boards change
   useEffect(() => {
@@ -1021,6 +1062,35 @@ function BoardsManager({ pid, tickets, sprints }) {
     setActiveBoardId(remaining[0]?.id ?? null)
   }
 
+  const openEdit = (b) => {
+    setEditingBoardId(b.id)
+    setEditForm({ name: b.name, type: b.type, filter: b.filter || String(pid) })
+    setShowCreate(false)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editForm.name?.trim()) return
+    setSaving(true)
+    await doUpdateBoard(editingBoardId, {
+      name:   editForm.name.trim(),
+      type:   editForm.type,
+      filter: editForm.filter,
+    })
+    setSaving(false)
+    setEditingBoardId(null)
+  }
+
+  const filterLabel = (f) => {
+    if (!f) return ''
+    if (f.startsWith('filter:')) {
+      const id = Number(f.split(':')[1])
+      const sf = savedFilters.find(x => x.id === id)
+      return sf ? `🔍 ${sf.name}` : `Filter #${id}`
+    }
+    const p = projects.find(x => x.id === Number(f))
+    return p ? `${p.icon || '📁'} ${p.name}` : f
+  }
+
   return (
     <div>
       {/* ── Board selector bar ── */}
@@ -1032,19 +1102,20 @@ function BoardsManager({ pid, tickets, sprints }) {
             ? (activeSp ? `⚡ ${activeSp.name}` : `🏃 ${b.name}`)
             : `🔄 ${b.name}`
           const isActive  = b.id === activeBoardId
+          const isEditing = b.id === editingBoardId
           return (
             <div
               key={b.id}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px 6px 14px', borderRadius: 20,
-                border: `2px solid ${isActive ? 'var(--blue)' : 'var(--gray-200)'}`,
-                background: isActive ? '#eff6ff' : 'var(--white)',
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '6px 10px 6px 14px', borderRadius: 20,
+                border: `2px solid ${isEditing ? '#f59e0b' : isActive ? 'var(--blue)' : 'var(--gray-200)'}`,
+                background: isEditing ? '#fffbeb' : isActive ? '#eff6ff' : 'var(--white)',
                 cursor: 'pointer', fontSize: 13,
                 fontWeight: isActive ? 700 : 400,
                 transition: 'all .15s',
               }}
-              onClick={() => { setActiveBoardId(b.id); setShowCreate(false) }}
+              onClick={() => { if (!isEditing) { setActiveBoardId(b.id); setShowCreate(false); setEditingBoardId(null) } }}
             >
               {chipLabel}
               {/* type badge */}
@@ -1056,10 +1127,24 @@ function BoardsManager({ pid, tickets, sprints }) {
               }}>
                 {b.type.toUpperCase()}
               </span>
-              {/* delete X — only for real boards with more than 1 */}
-              {b.id !== '__default__' && projectBoards.length > 1 && (
+              {/* filter label (if cross-project) */}
+              {b.filter && b.filter !== String(pid) && (
+                <span style={{ fontSize: 9, color: '#6b7280', background: '#f3f4f6', borderRadius: 8, padding: '1px 5px', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {filterLabel(b.filter)}
+                </span>
+              )}
+              {/* edit ✏ — only real boards */}
+              {b.id !== '__default__' && (
                 <span
-                  style={{ marginLeft: 2, color: 'var(--gray-400)', fontSize: 14, lineHeight: 1, padding: '0 2px' }}
+                  title={isEditing ? 'Close edit' : 'Edit board'}
+                  onClick={e => { e.stopPropagation(); isEditing ? setEditingBoardId(null) : openEdit(b) }}
+                  style={{ fontSize: 12, color: isEditing ? '#f59e0b' : 'var(--gray-400)', padding: '0 2px', cursor: 'pointer', lineHeight: 1 }}
+                >✏</span>
+              )}
+              {/* delete × */}
+              {b.id !== '__default__' && (
+                <span
+                  style={{ color: 'var(--gray-400)', fontSize: 15, lineHeight: 1, padding: '0 2px', cursor: 'pointer' }}
                   onClick={e => { e.stopPropagation(); setConfirmDelete(b.id) }}
                   title="Delete board"
                 >×</span>
@@ -1069,7 +1154,7 @@ function BoardsManager({ pid, tickets, sprints }) {
         })}
 
         {/* New Board button */}
-        {!showCreate && (
+        {!showCreate && !editingBoardId && (
           <button
             style={{ padding: '6px 12px', borderRadius: 20, border: '2px dashed var(--gray-300)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, color: 'var(--gray-500)', transition: 'all .15s' }}
             onClick={() => setShowCreate(true)}
@@ -1078,6 +1163,77 @@ function BoardsManager({ pid, tickets, sprints }) {
           >＋ New Board</button>
         )}
       </div>
+
+      {/* ── Inline Edit form ── */}
+      {editingBoardId && (
+        <div style={{
+          background: '#fffbeb', border: '2px solid #f59e0b', borderRadius: 12,
+          padding: '18px 20px', marginBottom: 16,
+          boxShadow: '0 4px 20px rgba(245,158,11,.12)',
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#92400e' }}>✏ Edit Board</div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div style={{ flex: '2 1 200px' }}>
+              <label className="form-label">Board Name <span style={{ color: '#ef4444' }}>*</span></label>
+              <input
+                className="form-input"
+                value={editForm.name || ''}
+                onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div style={{ flex: '1 1 130px' }}>
+              <label className="form-label">Type</label>
+              <select
+                className="form-select"
+                value={editForm.type || 'scrum'}
+                onChange={e => setEditForm(p => ({ ...p, type: e.target.value }))}
+              >
+                <option value="scrum">🏃 Scrum</option>
+                <option value="kanban">🔄 Kanban</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label className="form-label">Filter — what tickets appear on this board <span style={{ color: '#ef4444' }}>*</span></label>
+            <select
+              className="form-select"
+              value={editForm.filter || String(pid)}
+              onChange={e => setEditForm(p => ({ ...p, filter: e.target.value }))}
+            >
+              <optgroup label="Projects">
+                {projects.map(p => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.icon || '📁'} {p.name} ({p.key})
+                  </option>
+                ))}
+              </optgroup>
+              {savedFilters.length > 0 && (
+                <optgroup label="Saved JQL Filters">
+                  {savedFilters.map(f => (
+                    <option key={f.id} value={`filter:${f.id}`}>
+                      🔍 {f.name} — {f.conditions?.jql?.slice(0, 50) || 'no JQL'}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            {editForm.filter?.startsWith('filter:') && (
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                ✓ JQL filter — shows tickets from all matching projects
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleSaveEdit}
+              disabled={!editForm.name?.trim() || saving}
+            >{saving ? 'Saving…' : '💾 Save Changes'}</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setEditingBoardId(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Delete confirm */}
       {confirmDelete && (
@@ -1098,7 +1254,7 @@ function BoardsManager({ pid, tickets, sprints }) {
       )}
 
       {/* Active board content */}
-      {activeBoard && !showCreate && (
+      {activeBoard && !showCreate && !editingBoardId && (
         activeBoard.type === 'scrum'
           ? <ScrumBoard  board={activeBoard} pid={pid} tickets={tickets} sprints={sprints} />
           : <KanbanBoard board={activeBoard} pid={pid} tickets={tickets} />

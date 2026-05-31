@@ -521,6 +521,7 @@ def create_board(body: Dict[str, Any]):
         "type": board_type,
         "description": body.get("description", ""),
         "columns": body.get("columns", default_cols),
+        "filter": body.get("filter", str(project)),  # project id or "filter:<id>"
         "created": today_str(),
     }
     state["boards"].append(board)
