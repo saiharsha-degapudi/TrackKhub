@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "trackorbit-backend",
+      "runtimeExecutable": "C:\\Users\\hdega\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "main:app", "--reload", "--port", "8000", "--app-dir", "C:\\Users\\hdega\\Downloads\\TrackKhub\\backend"],
+      "port": 8000
+    },
+    {
+      "name": "trackorbit-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "C:\\Users\\hdega\\Downloads\\TrackKhub\\frontend"],
+      "port": 5173
+    },
+    {
+      "name": "trackorbit-html",
+      "runtimeExecutable": "C:\\Users\\hdega\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "3457", "--directory", "C:\\Users\\hdega\\Downloads\\TrackKhub"],
+      "port": 3457
+    }
+  ]
+}
