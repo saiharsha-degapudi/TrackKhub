@@ -150,27 +150,162 @@ function useDragDrop(tickets) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ── BOARD FILTER BAR (shared by Scrum + Kanban) ──────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+const FILTER_TYPES      = ['Feature', 'Initiative', 'Epic', 'Story', 'Task', 'Sub-task']
+const FILTER_PRIORITIES = ['Critical', 'High', 'Medium', 'Low']
+const PRIORITY_COLORS   = { Critical: '#ef4444', High: '#f97316', Medium: '#eab308', Low: '#22c55e' }
+
+function BoardFilterBar({ tickets, assignees, typeF, priorityF, search, onAssignee, onType, onPriority, onSearch, onClear }) {
+  const uniqueAssignees = useMemo(
+    () => [...new Set(tickets.map(t => t.assignee).filter(Boolean))],
+    [tickets]
+  )
+  const activeCount = assignees.length + (typeF ? 1 : 0) + (priorityF ? 1 : 0) + (search ? 1 : 0)
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+      background: 'var(--white)', border: '1.5px solid var(--gray-200)',
+      borderRadius: 10, marginBottom: 14, flexWrap: 'wrap', boxShadow: 'var(--shadow)',
+    }}>
+
+      {/* Search */}
+      <input
+        className="form-input"
+        placeholder="🔍 Search tickets…"
+        value={search}
+        onChange={e => onSearch(e.target.value)}
+        style={{ width: 180, fontSize: 12, padding: '6px 10px' }}
+      />
+
+      {/* Separator */}
+      <div style={{ width: 1, height: 22, background: 'var(--gray-200)', flexShrink: 0 }} />
+
+      {/* Assignee avatars */}
+      {uniqueAssignees.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ fontSize: 11, color: 'var(--gray-400)', fontWeight: 600, marginRight: 4 }}>ASSIGNEE</span>
+          {uniqueAssignees.map(name => (
+            <div
+              key={name}
+              onClick={() => onAssignee(name)}
+              title={name}
+              style={{
+                cursor: 'pointer', borderRadius: '50%', flexShrink: 0,
+                outline: assignees.includes(name) ? '2.5px solid #1a56db' : '2.5px solid transparent',
+                outlineOffset: 2,
+                opacity: assignees.length > 0 && !assignees.includes(name) ? 0.35 : 1,
+                transition: 'all .15s', transform: assignees.includes(name) ? 'scale(1.1)' : 'scale(1)',
+              }}
+            >
+              <Avatar name={name} size={26} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Separator */}
+      <div style={{ width: 1, height: 22, background: 'var(--gray-200)', flexShrink: 0 }} />
+
+      {/* Type filter */}
+      <select
+        value={typeF}
+        onChange={e => onType(e.target.value)}
+        style={{
+          fontSize: 12, padding: '5px 10px', borderRadius: 7,
+          border: `1.5px solid ${typeF ? '#3b82f6' : 'var(--gray-200)'}`,
+          background: typeF ? '#eff6ff' : 'var(--white)', cursor: 'pointer',
+          color: typeF ? '#1e40af' : 'var(--text)', fontWeight: typeF ? 700 : 400,
+          outline: 'none',
+        }}
+      >
+        <option value="">Type: All</option>
+        {FILTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+      </select>
+
+      {/* Priority filter */}
+      <select
+        value={priorityF}
+        onChange={e => onPriority(e.target.value)}
+        style={{
+          fontSize: 12, padding: '5px 10px', borderRadius: 7,
+          border: `1.5px solid ${priorityF ? (PRIORITY_COLORS[priorityF] || '#3b82f6') : 'var(--gray-200)'}`,
+          background: priorityF ? `${PRIORITY_COLORS[priorityF] || '#3b82f6'}10` : 'var(--white)',
+          cursor: 'pointer', outline: 'none',
+          color: priorityF ? (PRIORITY_COLORS[priorityF] || '#1e40af') : 'var(--text)',
+          fontWeight: priorityF ? 700 : 400,
+        }}
+      >
+        <option value="">Priority: All</option>
+        {FILTER_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+      </select>
+
+      {/* Active filter count + Clear */}
+      {activeCount > 0 && (
+        <>
+          <span style={{ fontSize: 11, color: '#1a56db', background: '#eff6ff', borderRadius: 10, padding: '2px 8px', fontWeight: 700 }}>
+            {activeCount} filter{activeCount > 1 ? 's' : ''} active
+          </span>
+          <button
+            onClick={onClear}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 20,
+              background: '#fff1f2', color: '#ef4444',
+              border: '1px solid #fecaca', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600,
+            }}
+          >✕ Clear all</button>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // ── KANBAN BOARD (continuous flow — all project tickets, no sprint filter) ───
 // ══════════════════════════════════════════════════════════════════════════════
 function KanbanBoard({ board, pid, tickets }) {
   const { openModal, openTicketView } = useApp()
-  const cols   = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
-  const ptix   = tickets.filter(t => t.project === pid)
-  const { dragOverCol, handleDragStart, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(ptix)
+  const cols = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
+  const ptix = tickets.filter(t => t.project === pid)
 
-  const total  = ptix.length
-  const done   = ptix.filter(t => t.status === 'Done').length
-  const wip    = ptix.filter(t => t.status === 'In Progress').length
+  // ── Filters ──
+  const [filterAssignees, setFilterAssignees] = useState([])
+  const [filterType,      setFilterType]      = useState('')
+  const [filterPriority,  setFilterPriority]  = useState('')
+  const [filterSearch,    setFilterSearch]    = useState('')
+
+  const visibleTickets = useMemo(() => ptix.filter(t => {
+    if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee)) return false
+    if (filterType && t.type !== filterType) return false
+    if (filterPriority && t.priority !== filterPriority) return false
+    if (filterSearch) {
+      const q = filterSearch.toLowerCase()
+      if (!t.title.toLowerCase().includes(q) && !t.id.toLowerCase().includes(q)) return false
+    }
+    return true
+  }), [ptix, filterAssignees, filterType, filterPriority, filterSearch])
+
+  const toggleAssignee = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
+  const clearFilters   = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+
+  const { dragOverCol, handleDragStart, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(visibleTickets)
+
+  const total = ptix.length
+  const done  = ptix.filter(t => t.status === 'Done').length
+  const wip   = ptix.filter(t => t.status === 'In Progress').length
 
   return (
     <div>
       {/* Info bar */}
-      <div style={{ display: 'flex', gap: 12, padding: '12px 16px', background: 'var(--white)', borderRadius: 10, border: '1.5px solid var(--gray-200)', marginBottom: 16, alignItems: 'center', boxShadow: 'var(--shadow)' }}>
+      <div style={{ display: 'flex', gap: 12, padding: '12px 16px', background: 'var(--white)', borderRadius: 10, border: '1.5px solid var(--gray-200)', marginBottom: 12, alignItems: 'center', boxShadow: 'var(--shadow)' }}>
         {[
-          { label: 'Total', val: total, color: '#3b82f6', icon: '📋' },
-          { label: 'In Progress', val: wip, color: '#f59e0b', icon: '⚡' },
-          { label: 'Done', val: done, color: '#10b981', icon: '✅' },
-          { label: 'Blocked', val: ptix.filter(t => t.status === 'Blocked').length, color: '#ef4444', icon: '🚫' },
+          { label: 'Total',       val: total, color: '#3b82f6', icon: '📋' },
+          { label: 'In Progress', val: wip,   color: '#f59e0b', icon: '⚡' },
+          { label: 'Done',        val: done,  color: '#10b981', icon: '✅' },
+          { label: 'Blocked',     val: ptix.filter(t => t.status === 'Blocked').length, color: '#ef4444', icon: '🚫' },
         ].map(({ label, val, color, icon }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 8, background: `${color}10` }}>
             <span style={{ fontSize: 13 }}>{icon}</span>
@@ -182,12 +317,20 @@ function KanbanBoard({ board, pid, tickets }) {
         <span style={{ fontSize: 11, color: 'var(--gray-400)', fontStyle: 'italic' }}>Continuous flow · all tickets</span>
       </div>
 
+      {/* Filter bar */}
+      <BoardFilterBar
+        tickets={ptix}
+        assignees={filterAssignees} typeF={filterType} priorityF={filterPriority} search={filterSearch}
+        onAssignee={toggleAssignee} onType={setFilterType} onPriority={setFilterPriority}
+        onSearch={setFilterSearch} onClear={clearFilters}
+      />
+
       {/* Columns */}
       <div className="kanban-board">
         {cols.map(col => (
           <DropColumn
             key={col} status={col}
-            cards={ptix.filter(t => t.status === col)}
+            cards={visibleTickets.filter(t => t.status === col)}
             isOver={dragOverCol === col}
             onDragStart={handleDragStart}
             onDragOver={e => handleDragOver(e, col)}
@@ -215,9 +358,30 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
   const [showManage, setShowManage] = useState(false)
   const [completing, setCompleting] = useState(false)
 
+  // ── Filters ──
+  const [filterAssignees, setFilterAssignees] = useState([])
+  const [filterType,      setFilterType]      = useState('')
+  const [filterPriority,  setFilterPriority]  = useState('')
+  const [filterSearch,    setFilterSearch]    = useState('')
+
   const sprintTickets = activeSprint
     ? tickets.filter(t => t.project === pid && t.sprint === activeSprint.name)
     : []
+
+  const visibleTickets = useMemo(() => sprintTickets.filter(t => {
+    if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee)) return false
+    if (filterType && t.type !== filterType) return false
+    if (filterPriority && t.priority !== filterPriority) return false
+    if (filterSearch) {
+      const q = filterSearch.toLowerCase()
+      if (!t.title.toLowerCase().includes(q) && !t.id.toLowerCase().includes(q)) return false
+    }
+    return true
+  }), [sprintTickets, filterAssignees, filterType, filterPriority, filterSearch])
+
+  const toggleAssignee = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
+  const clearFilters   = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+
   const doneCount  = sprintTickets.filter(t => t.status === 'Done').length
   const progress   = sprintTickets.length ? Math.round(doneCount / sprintTickets.length * 100) : 0
 
@@ -416,12 +580,20 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
         </div>
       )}
 
+      {/* Filter bar */}
+      <BoardFilterBar
+        tickets={sprintTickets}
+        assignees={filterAssignees} typeF={filterType} priorityF={filterPriority} search={filterSearch}
+        onAssignee={toggleAssignee} onType={setFilterType} onPriority={setFilterPriority}
+        onSearch={setFilterSearch} onClear={clearFilters}
+      />
+
       {/* Board columns */}
       <div className="kanban-board">
         {cols.map(col => (
           <DropColumn
             key={col} status={col}
-            cards={sprintTickets.filter(t => t.status === col)}
+            cards={visibleTickets.filter(t => t.status === col)}
             isOver={dragOverCol === col}
             onDragStart={handleDragStart}
             onDragOver={e => handleDragOver(e, col)}
@@ -726,7 +898,7 @@ function BoardsManager({ pid, tickets, sprints }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function BacklogView({ pid, tickets, sprints }) {
   const {
-    doCreateSprint, doStartSprint, doCompleteSprint, doDeleteSprint,
+    doCreateSprint, doUpdateSprint, doStartSprint, doCompleteSprint, doDeleteSprint,
     doUpdateTicket, openModal, openTicketView,
   } = useApp()
 
@@ -746,8 +918,10 @@ function BacklogView({ pid, tickets, sprints }) {
   const [newGoal,    setNewGoal]      = useState('')
   const [startForm,  setStartForm]    = useState(null) // sprint id
   const [startDates, setStartDates]   = useState({ startDate: '', endDate: '' })
-  const [completeId, setCompleteId]   = useState(null)
-  const [dragOver,   setDragOver]     = useState(null) // sprint id | 'backlog'
+  const [completeId,       setCompleteId]       = useState(null)
+  const [editingSprintId,  setEditingSprintId]  = useState(null)
+  const [editForm,         setEditForm]         = useState({})
+  const [dragOver,         setDragOver]         = useState(null) // sprint id | 'backlog'
 
   const toggleExpand = id => setExpanded(p => ({ ...p, [id]: !p[id] }))
 
@@ -838,6 +1012,20 @@ function BacklogView({ pid, tickets, sprints }) {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+            {/* Edit button — always visible for planning/active sprints */}
+            {sprint.status !== 'completed' && (
+              <button
+                className="btn btn-ghost btn-sm"
+                title="Edit sprint details"
+                onClick={() => {
+                  setEditingSprintId(editingSprintId === sprint.id ? null : sprint.id)
+                  setEditForm({ name: sprint.name, goal: sprint.goal || '', startDate: sprint.startDate || '', endDate: sprint.endDate || '' })
+                }}
+                style={{ fontSize: 13 }}
+              >
+                ✏ Edit
+              </button>
+            )}
             {sprint.status === 'planning' && (
               <>
                 <button className="btn btn-primary btn-sm" onClick={() => { setStartForm(sprint.id); setStartDates({ startDate: '', endDate: '' }) }}>
@@ -855,6 +1043,53 @@ function BacklogView({ pid, tickets, sprints }) {
             )}
           </div>
         </div>
+
+        {/* ── Inline sprint edit form ── */}
+        {editingSprintId === sprint.id && (
+          <div style={{ padding: '16px 18px', background: '#f8faff', borderTop: '1.5px solid #bfdbfe' }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 14, color: '#1e40af' }}>✏ Edit Sprint Details</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div style={{ flex: '1 1 160px' }}>
+                <label className="form-label">Sprint Name <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  className="form-input"
+                  value={editForm.name}
+                  onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div style={{ flex: '2 1 240px' }}>
+                <label className="form-label">Sprint Goal</label>
+                <input
+                  className="form-input"
+                  placeholder="What do you want to achieve?"
+                  value={editForm.goal}
+                  onChange={e => setEditForm(p => ({ ...p, goal: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div>
+                <label className="form-label">Start Date</label>
+                <input className="form-input" type="date" value={editForm.startDate} onChange={e => setEditForm(p => ({ ...p, startDate: e.target.value }))} />
+              </div>
+              <div>
+                <label className="form-label">End Date</label>
+                <input className="form-input" type="date" value={editForm.endDate} onChange={e => setEditForm(p => ({ ...p, endDate: e.target.value }))} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={async () => {
+                    if (!editForm.name?.trim()) return
+                    await doUpdateSprint(sprint.id, editForm)
+                    setEditingSprintId(null)
+                  }}
+                >💾 Save</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setEditingSprintId(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Start sprint form */}
         {startForm === sprint.id && (
