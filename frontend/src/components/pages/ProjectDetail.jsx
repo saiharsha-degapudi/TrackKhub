@@ -440,57 +440,197 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // ── BOARDS MANAGER (chip selector + multi-board creation) ────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
+const BOARD_TYPE_INFO = {
+  scrum: {
+    icon: '🏃',
+    title: 'Scrum',
+    desc: 'Sprint towards your team objectives with a board, backlog, and reports.',
+    hint: 'Sprint-based — shows tickets from the active sprint. Manage sprints in the Backlog tab.',
+    color: '#1a56db',
+    bg: '#eff6ff',
+  },
+  kanban: {
+    icon: '🔄',
+    title: 'Kanban',
+    desc: 'Manage a continuous delivery of work with a kanban board and reports.',
+    hint: 'Continuous flow — shows all project tickets across columns with no sprint filtering.',
+    color: '#16a34a',
+    bg: '#f0fdf4',
+  },
+}
+
 function CreateBoardForm({ pid, onCreated, onCancel }) {
-  const { doCreateBoard } = useApp()
-  const [name,  setName]  = useState('')
-  const [btype, setBtype] = useState('scrum')
-  const [desc,  setDesc]  = useState('')
+  const { doCreateBoard, projects, filters } = useApp()
+
+  // step 1 = type picker | step 2 = details form
+  const [step,    setStep]    = useState(1)
+  const [btype,   setBtype]   = useState(null)
+  const [name,    setName]    = useState('')
+  const [include, setInclude] = useState(pid != null ? String(pid) : '')
+  const [creating, setCreating] = useState(false)
+
+  const info = btype ? BOARD_TYPE_INFO[btype] : null
+
+  const handlePickType = (t) => {
+    setBtype(t)
+    setStep(2)
+  }
 
   const handleCreate = async () => {
-    if (!name.trim()) { alert('Board name required'); return }
-    const b = await doCreateBoard({ project: pid, name: name.trim(), type: btype, description: desc.trim() })
+    if (!name.trim())    { alert('Board name is required'); return }
+    if (!include)        { alert('Please choose what to include'); return }
+    setCreating(true)
+    const b = await doCreateBoard({
+      project:     pid,
+      name:        name.trim(),
+      type:        btype,
+      description: info?.hint || '',
+      filter:      include,
+    })
+    setCreating(false)
     onCreated(b)
   }
 
-  return (
-    <div className="card" style={{ border: '2px solid var(--blue)', padding: 16, marginBottom: 16 }}>
-      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>New Board</div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label className="form-label">Board Name *</label>
-          <input className="form-input" placeholder="e.g. Sprint Board" value={name} onChange={e => setName(e.target.value)} autoFocus />
+  // ── Step 1: Type picker ────────────────────────────────────────────────────
+  if (step === 1) {
+    return (
+      <div style={{
+        background: 'var(--white)', border: '1.5px solid var(--gray-200)',
+        borderRadius: 14, padding: '28px 28px 24px', marginBottom: 16,
+        boxShadow: '0 8px 32px rgba(0,0,0,.08)',
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 6 }}>Create a board</div>
+        <div style={{ fontSize: 13, color: 'var(--gray-500)', marginBottom: 24 }}>
+          Choose a board type to get started.
         </div>
-        <div className="form-group">
-          <label className="form-label">Type</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {['scrum','kanban'].map(t => (
-              <button
-                key={t} type="button"
-                onClick={() => setBtype(t)}
-                style={{ flex: 1, padding: '8px 0', borderRadius: 6, border: `2px solid ${btype === t ? 'var(--blue)' : 'var(--gray-200)'}`, background: btype === t ? '#eff6ff' : 'var(--white)', fontWeight: btype === t ? 700 : 400, cursor: 'pointer', fontSize: 13 }}
+
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+          {(['scrum', 'kanban']).map(t => {
+            const ti = BOARD_TYPE_INFO[t]
+            return (
+              <div
+                key={t}
+                onClick={() => handlePickType(t)}
+                style={{
+                  flex: 1, padding: '20px 22px', borderRadius: 12,
+                  border: '2px solid var(--gray-200)', background: 'var(--white)',
+                  cursor: 'pointer', transition: 'all .18s', userSelect: 'none',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.border = `2px solid ${ti.color}`; e.currentTarget.style.background = ti.bg }}
+                onMouseLeave={e => { e.currentTarget.style.border = '2px solid var(--gray-200)'; e.currentTarget.style.background = 'var(--white)' }}
               >
-                {t === 'scrum' ? '🏃 Scrum' : '🔄 Kanban'}
-              </button>
-            ))}
+                <div style={{ fontSize: 28, marginBottom: 10 }}>{ti.icon}</div>
+                <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6, color: ti.color }}>{ti.title}</div>
+                <div style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.5 }}>{ti.desc}</div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 2: Details form ────────────────────────────────────────────────────
+  return (
+    <div style={{
+      background: 'var(--white)', border: '1.5px solid var(--gray-200)',
+      borderRadius: 14, padding: '28px 28px 24px', marginBottom: 16,
+      boxShadow: '0 8px 32px rgba(0,0,0,.08)',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 4 }}>Create a board</div>
+          <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+            {info?.hint}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 6 }}>
+            * Required fields are marked with an asterisk
           </div>
         </div>
+        <div style={{
+          padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+          background: info?.bg, color: info?.color, border: `1.5px solid ${info?.color}40`,
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 16,
+        }}>
+          {info?.icon} {info?.title} board
+        </div>
       </div>
 
+      {/* Name */}
       <div className="form-group">
-        <label className="form-label">Description</label>
-        <input className="form-input" placeholder="Optional description" value={desc} onChange={e => setDesc(e.target.value)} />
+        <label className="form-label" style={{ fontWeight: 700 }}>
+          Name this board <span style={{ color: '#ef4444' }}>*</span>
+        </label>
+        <input
+          className="form-input"
+          placeholder="Enter a name for this board"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          autoFocus
+          style={{ fontSize: 14 }}
+          onKeyDown={e => e.key === 'Enter' && handleCreate()}
+        />
       </div>
 
-      <div style={{ padding: '8px 12px', background: btype === 'scrum' ? '#eff6ff' : '#f0fdf4', borderRadius: 6, fontSize: 12, color: btype === 'scrum' ? '#1e40af' : '#166534', marginBottom: 12 }}>
-        {btype === 'scrum'
-          ? '🏃 Scrum — sprint-based. Shows tickets in the active sprint. Manage sprints in the Backlog tab.'
-          : '🔄 Kanban — continuous flow. Shows all project tickets across columns with no sprint filtering.'}
+      {/* Include filter */}
+      <div className="form-group">
+        <label className="form-label" style={{ fontWeight: 700 }}>
+          Choose what to include in this board <span style={{ color: '#ef4444' }}>*</span>
+        </label>
+        <select
+          className="form-select"
+          value={include}
+          onChange={e => setInclude(e.target.value)}
+          style={{ fontSize: 13 }}
+        >
+          <option value="">— Select —</option>
+          <optgroup label="Projects">
+            {projects.map(p => (
+              <option key={p.id} value={String(p.id)}>
+                {p.icon || '📁'} {p.name} ({p.key})
+              </option>
+            ))}
+          </optgroup>
+          {filters.length > 0 && (
+            <optgroup label="Saved Filters">
+              {filters.map(f => (
+                <option key={f.id} value={`filter:${f.id}`}>
+                  🔍 {f.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+        <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 5 }}>
+          Choose a project or saved filter whose issues will appear on this board.
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button className="btn btn-primary btn-sm" onClick={handleCreate}>Create Board</button>
-        <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gray-100)' }}>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => { setStep(1); setBtype(null) }}
+          style={{ color: 'var(--gray-500)' }}
+        >
+          ← Back
+        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
+          <button
+            className="btn btn-primary"
+            onClick={handleCreate}
+            disabled={!name.trim() || !include || creating}
+            style={{ minWidth: 80 }}
+          >
+            {creating ? 'Creating…' : 'Create'}
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -513,12 +653,11 @@ function BoardsManager({ pid, tickets, sprints }) {
 
   if (projectBoards.length === 0 && !showCreate) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>No boards yet</div>
-        <div style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 20 }}>Create a Scrum or Kanban board to get started</div>
-        <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Create Board</button>
-      </div>
+      <CreateBoardForm
+        pid={pid}
+        onCreated={b => { setActiveBoardId(b.id); setShowCreate(false) }}
+        onCancel={() => {}}
+      />
     )
   }
 
