@@ -263,6 +263,45 @@ function BoardFilterBar({ tickets, assignees, typeF, priorityF, search, onAssign
   )
 }
 
+// ── Jira-style board card ──────────────────────────────────────────────────────
+const PCOLOR = { Critical: '#ef4444', High: '#f97316', Medium: '#eab308', Low: '#22c55e' }
+const TYPE_ICON = { Story: '🟢', Epic: '🟣', Feature: '🟠', Task: '🔵', 'Sub-task': '⬜', Initiative: '🔷' }
+
+function NewBoardCard({ ticket, onDragStart, onClick }) {
+  const pc = PCOLOR[ticket.priority] || '#9ca3af'
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, ticket.id)}
+      onClick={() => onClick(ticket.id)}
+      style={{
+        padding: '10px 12px', borderRadius: 6, background: 'var(--white)',
+        border: '1px solid var(--gray-200)', boxShadow: '0 1px 3px rgba(0,0,0,.06)',
+        cursor: 'pointer', userSelect: 'none', marginBottom: 6,
+      }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 3px 10px rgba(0,0,0,.12)'; e.currentTarget.style.borderColor = '#93c5fd' }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.06)'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
+    >
+      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', marginBottom: 10, lineHeight: 1.45, wordBreak: 'break-word' }}>
+        {ticket.title}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 15, color: pc, fontWeight: 900, lineHeight: 1, letterSpacing: -1 }}>≡</span>
+          <span style={{ fontSize: 12 }}>{TYPE_ICON[ticket.type] || '🔵'}</span>
+          <span style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600 }}>{ticket.id}</span>
+          {ticket.storyPoints != null && (
+            <span style={{ fontSize: 10, background: '#eff6ff', color: '#1e40af', borderRadius: 8, padding: '1px 6px', fontWeight: 700 }}>
+              {ticket.storyPoints}
+            </span>
+          )}
+        </div>
+        <Avatar name={ticket.assignee} size={22} />
+      </div>
+    </div>
+  )
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // ── KANBAN BOARD (continuous flow — all project tickets, no sprint filter) ───
 // ══════════════════════════════════════════════════════════════════════════════
@@ -347,16 +386,19 @@ function KanbanBoard({ board, pid, tickets }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ── SCRUM BOARD (active sprint columns) ──────────────────────────────────────
+// ── SCRUM BOARD (active sprint — grouped by story, Jira-style) ───────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function ScrumBoard({ board, pid, tickets, sprints }) {
   const { openModal, openTicketView, setProjectTab, doCompleteSprint, doUpdateTicket } = useApp()
-  const cols           = board.columns || ['To Do', 'In Progress', 'In Review', 'Done']
-  const projectSprints = sprints.filter(s => s.project === pid).sort((a,b) => a.order - b.order)
-  const activeSprint   = projectSprints.find(s => s.status === 'active')
+  const cols            = board.columns || ['To Do', 'In Progress', 'In Review', 'Done', 'Blocked']
+  const projectSprints  = sprints.filter(s => s.project === pid).sort((a, b) => a.order - b.order)
+  const activeSprint    = projectSprints.find(s => s.status === 'active')
   const planningSprints = projectSprints.filter(s => s.status === 'planning')
-  const [showManage, setShowManage] = useState(false)
-  const [completing, setCompleting] = useState(false)
+
+  // ── UI state ──
+  const [completing,      setCompleting]     = useState(false)
+  const [groupByStory,    setGroupByStory]   = useState(true)
+  const [collapsed,       setCollapsed]      = useState({})
 
   // ── Filters ──
   const [filterAssignees, setFilterAssignees] = useState([])
@@ -364,9 +406,10 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
   const [filterPriority,  setFilterPriority]  = useState('')
   const [filterSearch,    setFilterSearch]    = useState('')
 
-  const sprintTickets = activeSprint
-    ? tickets.filter(t => t.project === pid && t.sprint === activeSprint.name)
-    : []
+  const sprintTickets = useMemo(() =>
+    activeSprint ? tickets.filter(t => t.project === pid && t.sprint === activeSprint.name) : [],
+    [activeSprint, tickets, pid]
+  )
 
   const visibleTickets = useMemo(() => sprintTickets.filter(t => {
     if (filterAssignees.length > 0 && !filterAssignees.includes(t.assignee)) return false
@@ -379,15 +422,46 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
     return true
   }), [sprintTickets, filterAssignees, filterType, filterPriority, filterSearch])
 
-  const toggleAssignee = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
-  const clearFilters   = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+  const uniqueAssignees  = useMemo(() => [...new Set(sprintTickets.map(t => t.assignee).filter(Boolean))], [sprintTickets])
+  const toggleAssignee   = name => setFilterAssignees(p => p.includes(name) ? p.filter(a => a !== name) : [...p, name])
+  const clearFilters     = () => { setFilterAssignees([]); setFilterType(''); setFilterPriority(''); setFilterSearch('') }
+  const activeFilterCount = filterAssignees.length + (filterType ? 1 : 0) + (filterPriority ? 1 : 0) + (filterSearch ? 1 : 0)
 
-  const doneCount  = sprintTickets.filter(t => t.status === 'Done').length
-  const progress   = sprintTickets.length ? Math.round(doneCount / sprintTickets.length * 100) : 0
+  // ── Stats ──
+  const doneCount = sprintTickets.filter(t => t.status === 'Done').length
+  const progress  = sprintTickets.length ? Math.round(doneCount / sprintTickets.length * 100) : 0
+  const totalPts  = sprintTickets.reduce((s, t) => s + (t.storyPoints || 0), 0)
+  const donePts   = sprintTickets.filter(t => t.status === 'Done').reduce((s, t) => s + (t.storyPoints || 0), 0)
+  const daysLeft  = activeSprint?.endDate
+    ? Math.max(0, Math.ceil((new Date(activeSprint.endDate) - new Date()) / 86400000))
+    : null
 
+  // ── Drag & drop ──
   const { dragOverCol, handleDragStart, handleDragOver, handleDragLeave, handleDrop } = useDragDrop(sprintTickets)
 
-  // ── No active sprint ───────────────────────────────────────────────────────
+  // ── Group tickets by parent ──
+  const groupedTickets = useMemo(() => {
+    const groups = {}
+    visibleTickets.forEach(t => {
+      const key = t.parent || '__none__'
+      if (!groups[key]) groups[key] = []
+      groups[key].push(t)
+    })
+    return groups
+  }, [visibleTickets])
+
+  const groupKeys = useMemo(() =>
+    Object.keys(groupedTickets).sort((a, b) => {
+      if (a === '__none__') return 1
+      if (b === '__none__') return -1
+      return a.localeCompare(b)
+    }),
+    [groupedTickets]
+  )
+
+  const toggleCollapse = key => setCollapsed(p => ({ ...p, [key]: !p[key] }))
+
+  // ── No active sprint ──
   if (!activeSprint) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -412,199 +486,323 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
             </div>
           </div>
         )}
-        <button className="btn btn-primary" onClick={() => setProjectTab('backlog')}>
-          Go to Backlog →
-        </button>
+        <button className="btn btn-primary" onClick={() => setProjectTab('backlog')}>Go to Backlog →</button>
       </div>
     )
   }
 
-  // Days remaining
-  const daysLeft = activeSprint.endDate
-    ? Math.max(0, Math.ceil((new Date(activeSprint.endDate) - new Date()) / 86400000))
-    : null
-  const totalPts = sprintTickets.reduce((s, t) => s + (t.storyPoints || 0), 0)
-  const donePts  = sprintTickets.filter(t => t.status === 'Done').reduce((s, t) => s + (t.storyPoints || 0), 0)
-  const wipCount = sprintTickets.filter(t => t.status === 'In Progress').length
-
   return (
     <div>
-      {/* ── Sprint Banner ── */}
+      {/* ── Compact sprint info bar ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a56db 0%, #1e40af 100%)',
-        borderRadius: 12, padding: '18px 22px', marginBottom: 18, color: '#fff',
-        boxShadow: '0 4px 20px rgba(26,86,219,.25)',
+        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+        background: 'linear-gradient(90deg, #1a56db 0%, #1e40af 100%)',
+        borderRadius: 10, marginBottom: 12, color: '#fff', flexWrap: 'wrap',
+        boxShadow: '0 2px 12px rgba(26,86,219,.2)',
       }}>
-        {/* Top row */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-              <span style={{ fontSize: 18, fontWeight: 900, letterSpacing: -.3 }}>{activeSprint.name}</span>
-              <span style={{ background: '#10b981', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 10, fontWeight: 800, letterSpacing: .5 }}>⚡ ACTIVE</span>
-            </div>
-            {activeSprint.goal && (
-              <div style={{ fontSize: 13, color: '#bfdbfe', fontStyle: 'italic' }}>
-                {activeSprint.goal}
-              </div>
-            )}
-            {activeSprint.startDate && (
-              <div style={{ fontSize: 11, color: '#93c5fd', marginTop: 4 }}>
-                📅 {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}
-                {daysLeft !== null && (
-                  <span style={{ marginLeft: 10, background: daysLeft <= 2 ? '#ef4444' : 'rgba(255,255,255,.15)', borderRadius: 10, padding: '1px 8px', fontWeight: 700 }}>
-                    {daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-          <button
-            style={{
-              background: showManage ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.15)',
-              border: '1.5px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8,
-              padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              backdropFilter: 'blur(4px)',
-            }}
-            onClick={() => { setShowManage(v => !v); setCompleting(false) }}
-          >
-            {showManage ? '✕ Close' : '⚙ Manage Sprint'}
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontWeight: 800, fontSize: 15 }}>{activeSprint.name}</span>
+          <span style={{ background: '#10b981', borderRadius: 20, padding: '1px 8px', fontSize: 10, fontWeight: 800 }}>⚡ ACTIVE</span>
+          {activeSprint.goal && <span style={{ fontSize: 12, color: '#bfdbfe', fontStyle: 'italic' }}>{activeSprint.goal}</span>}
         </div>
-
-        {/* Progress bar */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ height: 8, background: 'rgba(255,255,255,.2)', borderRadius: 6, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 6, transition: 'width .4s' }} />
+        {activeSprint.startDate && (
+          <span style={{ fontSize: 11, color: '#93c5fd' }}>
+            📅 {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}
+            {daysLeft !== null && (
+              <span style={{ marginLeft: 8, background: daysLeft <= 2 ? '#ef4444' : 'rgba(255,255,255,.2)', borderRadius: 10, padding: '1px 7px', fontWeight: 700 }}>
+                {daysLeft === 0 ? 'Due today!' : `${daysLeft}d left`}
+              </span>
+            )}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        {/* Progress */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 100, height: 6, background: 'rgba(255,255,255,.25)', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 4, transition: 'width .4s' }} />
           </div>
-          <div style={{ fontSize: 11, color: '#93c5fd', marginTop: 4 }}>
-            {doneCount} of {sprintTickets.length} issues done ({progress}%)
-          </div>
-        </div>
-
-        {/* Stat pills */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total',        val: sprintTickets.length, icon: '📋' },
-            { label: 'In Progress',  val: wipCount,             icon: '⚡' },
-            { label: 'Done',         val: doneCount,            icon: '✅' },
-            { label: 'Blocked',      val: sprintTickets.filter(t => t.status === 'Blocked').length, icon: '🚫' },
-            ...(totalPts > 0 ? [{ label: 'Story Pts', val: `${donePts}/${totalPts}`, icon: '⭐' }] : []),
-          ].map(({ label, val, icon }) => (
-            <div key={label} style={{
-              background: 'rgba(255,255,255,.12)', borderRadius: 8,
-              padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6,
-              border: '1px solid rgba(255,255,255,.15)', backdropFilter: 'blur(4px)',
-            }}>
-              <span style={{ fontSize: 12 }}>{icon}</span>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1 }}>{val}</div>
-                <div style={{ fontSize: 10, color: '#93c5fd', lineHeight: 1.2 }}>{label}</div>
-              </div>
-            </div>
-          ))}
+          <span style={{ fontSize: 11, color: '#93c5fd' }}>{doneCount}/{sprintTickets.length} done</span>
+          {totalPts > 0 && <span style={{ fontSize: 11, color: '#bfdbfe' }}>⭐ {donePts}/{totalPts} pts</span>}
         </div>
       </div>
 
-      {/* ── Inline Manage Sprint panel ── */}
-      {showManage && (
-        <div style={{
-          marginBottom: 18, padding: '18px 22px',
-          background: 'var(--white)', border: '2px solid #3b82f6',
-          borderRadius: 12, boxShadow: '0 4px 24px rgba(26,86,219,.10)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>⚙ Manage: {activeSprint.name}</div>
-            <button
-              onClick={() => { setShowManage(false); setCompleting(false) }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--gray-400)', lineHeight: 1, padding: '0 4px' }}
-            >×</button>
-          </div>
+      {/* ── Action bar (Jira-style) ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+        background: 'var(--white)', border: '1.5px solid var(--gray-200)',
+        borderRadius: 10, marginBottom: 14, flexWrap: 'wrap',
+        boxShadow: 'var(--shadow)',
+      }}>
+        {/* Search */}
+        <input
+          className="form-input"
+          placeholder="🔍 Search board"
+          value={filterSearch}
+          onChange={e => setFilterSearch(e.target.value)}
+          style={{ width: 160, fontSize: 12, padding: '5px 10px' }}
+        />
 
-          {/* Stats summary */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Total Tickets', val: sprintTickets.length,                              color: '#3b82f6' },
-              { label: 'Done',          val: doneCount,                                          color: '#10b981' },
-              { label: 'Remaining',     val: sprintTickets.filter(t => t.status !== 'Done').length, color: '#f59e0b' },
-              { label: 'In Progress',   val: wipCount,                                           color: '#8b5cf6' },
-              ...(totalPts > 0 ? [{ label: 'Story Points', val: `${donePts}/${totalPts}`, color: '#0ea5e9' }] : []),
-            ].map(({ label, val, color }) => (
-              <div key={label} style={{
-                padding: '10px 16px', background: `${color}10`,
-                border: `1px solid ${color}30`, borderRadius: 10, textAlign: 'center', minWidth: 90,
-              }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{val}</div>
-                <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Complete sprint action */}
-          {!completing ? (
-            <button
-              onClick={() => setCompleting(true)}
+        {/* Assignee avatars */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {uniqueAssignees.slice(0, 6).map(name => (
+            <div
+              key={name}
+              onClick={() => toggleAssignee(name)}
+              title={name}
               style={{
-                background: '#fff1f2', color: '#ef4444', border: '1.5px solid #fecaca',
-                borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 13,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                cursor: 'pointer', borderRadius: '50%', flexShrink: 0,
+                outline: filterAssignees.includes(name) ? '2.5px solid #1a56db' : '2px solid transparent',
+                outlineOffset: 1,
+                opacity: filterAssignees.length > 0 && !filterAssignees.includes(name) ? 0.35 : 1,
+                transition: 'all .15s',
               }}
             >
-              ✓ Complete Sprint
-            </button>
-          ) : (
-            <div style={{ padding: '16px 18px', background: '#fff7ed', borderRadius: 10, border: '1px solid #fed7aa' }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
-                Complete "{activeSprint.name}"?
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 14, lineHeight: 1.6 }}>
-                <strong style={{ color: '#f59e0b' }}>
-                  {sprintTickets.filter(t => t.status !== 'Done').length}
-                </strong> incomplete tickets will move to the Backlog.&nbsp;
-                <strong style={{ color: '#10b981' }}>{doneCount}</strong> Done tickets stay completed.
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={async () => {
-                    await doCompleteSprint(activeSprint.id)
-                    setCompleting(false)
-                    setShowManage(false)
-                  }}
-                >✓ Complete Sprint</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => setCompleting(false)}>
-                  Cancel
-                </button>
-              </div>
+              <Avatar name={name} size={26} />
+            </div>
+          ))}
+          {uniqueAssignees.length > 6 && (
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#4b5563' }}>
+              +{uniqueAssignees.length - 6}
             </div>
           )}
         </div>
+
+        {/* Divider */}
+        <div style={{ width: 1, height: 22, background: 'var(--gray-200)', flexShrink: 0 }} />
+
+        {/* Type filter */}
+        <select
+          value={filterType}
+          onChange={e => setFilterType(e.target.value)}
+          style={{
+            fontSize: 12, padding: '5px 8px', borderRadius: 7, cursor: 'pointer', outline: 'none',
+            border: `1.5px solid ${filterType ? '#3b82f6' : 'var(--gray-200)'}`,
+            background: filterType ? '#eff6ff' : 'var(--white)',
+            color: filterType ? '#1e40af' : 'var(--text)', fontWeight: filterType ? 700 : 400,
+          }}
+        >
+          <option value="">Type ▾</option>
+          {FILTER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+
+        {/* Priority filter */}
+        <select
+          value={filterPriority}
+          onChange={e => setFilterPriority(e.target.value)}
+          style={{
+            fontSize: 12, padding: '5px 8px', borderRadius: 7, cursor: 'pointer', outline: 'none',
+            border: `1.5px solid ${filterPriority ? (PRIORITY_COLORS[filterPriority] || '#3b82f6') : 'var(--gray-200)'}`,
+            background: filterPriority ? `${PRIORITY_COLORS[filterPriority] || '#3b82f6'}10` : 'var(--white)',
+            color: filterPriority ? (PRIORITY_COLORS[filterPriority] || '#1e40af') : 'var(--text)',
+            fontWeight: filterPriority ? 700 : 400,
+          }}
+        >
+          <option value="">Priority ▾</option>
+          {FILTER_PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+
+        {/* Clear filters */}
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearFilters}
+            style={{ padding: '4px 10px', borderRadius: 20, background: '#fff1f2', color: '#ef4444', border: '1px solid #fecaca', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+          >✕ Clear ({activeFilterCount})</button>
+        )}
+
+        <span style={{ flex: 1 }} />
+
+        {/* Complete sprint */}
+        <button
+          onClick={() => setCompleting(true)}
+          style={{
+            background: '#1a56db', color: '#fff', border: 'none',
+            borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 700,
+            cursor: 'pointer', boxShadow: '0 2px 8px rgba(26,86,219,.3)',
+          }}
+        >
+          ✓ Complete sprint
+        </button>
+
+        {/* Group toggle */}
+        <button
+          onClick={() => setGroupByStory(v => !v)}
+          style={{
+            padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            background: groupByStory ? '#eff6ff' : 'var(--white)',
+            color: groupByStory ? '#1a56db' : 'var(--gray-600)',
+            border: `1.5px solid ${groupByStory ? '#3b82f6' : 'var(--gray-200)'}`,
+          }}
+        >
+          Group: {groupByStory ? 'Stories' : 'None'}
+        </button>
+      </div>
+
+      {/* ── Complete sprint confirm ── */}
+      {completing && (
+        <div style={{ padding: '16px 18px', background: '#fff7ed', borderRadius: 10, border: '1.5px solid #fed7aa', marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Complete "{activeSprint.name}"?</div>
+          <div style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 12, lineHeight: 1.5 }}>
+            <strong style={{ color: '#f59e0b' }}>{sprintTickets.filter(t => t.status !== 'Done').length}</strong> incomplete tickets will move to the Backlog.&nbsp;
+            <strong style={{ color: '#10b981' }}>{doneCount}</strong> Done tickets stay completed.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary btn-sm" onClick={async () => { await doCompleteSprint(activeSprint.id); setCompleting(false) }}>
+              ✓ Complete Sprint
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setCompleting(false)}>Cancel</button>
+          </div>
+        </div>
       )}
 
-      {/* Filter bar */}
-      <BoardFilterBar
-        tickets={sprintTickets}
-        assignees={filterAssignees} typeF={filterType} priorityF={filterPriority} search={filterSearch}
-        onAssignee={toggleAssignee} onType={setFilterType} onPriority={setFilterPriority}
-        onSearch={setFilterSearch} onClear={clearFilters}
-      />
+      {/* ══ GROUPED BOARD ══ */}
+      {groupByStory ? (
+        <div>
+          {groupKeys.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--gray-400)', fontSize: 14 }}>
+              No tickets match your filters.
+            </div>
+          )}
+          {groupKeys.map(key => {
+            const parentT   = key !== '__none__' ? tickets.find(t => t.id === key) : null
+            const groupTix  = groupedTickets[key] || []
+            const isCollapsed = collapsed[key]
+            const groupDone = groupTix.filter(t => t.status === 'Done').length
 
-      {/* Board columns */}
-      <div className="kanban-board">
-        {cols.map(col => (
-          <DropColumn
-            key={col} status={col}
-            cards={visibleTickets.filter(t => t.status === col)}
-            isOver={dragOverCol === col}
-            onDragStart={handleDragStart}
-            onDragOver={e => handleDragOver(e, col)}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            openTicketView={openTicketView}
-            openModal={openModal}
-            pid={pid}
-          />
-        ))}
-      </div>
+            return (
+              <div key={key} style={{ marginBottom: 18 }}>
+                {/* ── Story/group header row ── */}
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '9px 14px',
+                    background: 'var(--gray-50)',
+                    border: '1.5px solid var(--gray-200)',
+                    borderRadius: isCollapsed ? 8 : '8px 8px 0 0',
+                    cursor: 'pointer', userSelect: 'none',
+                  }}
+                  onClick={() => toggleCollapse(key)}
+                >
+                  <span style={{ fontSize: 12, color: 'var(--gray-400)', flexShrink: 0 }}>{isCollapsed ? '▶' : '▼'}</span>
+                  {parentT ? (
+                    <>
+                      <span style={{ fontSize: 14, flexShrink: 0 }}>{TYPE_ICON[parentT.type] || '🔵'}</span>
+                      <span
+                        style={{ fontWeight: 700, color: 'var(--blue)', fontSize: 12, flexShrink: 0, cursor: 'pointer' }}
+                        onClick={e => { e.stopPropagation(); openTicketView(parentT.id) }}
+                      >{parentT.id}</span>
+                      <span style={{ fontWeight: 600, fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {parentT.title}
+                      </span>
+                      <span style={{ fontSize: 11, background: '#e5e7eb', borderRadius: 10, padding: '1px 8px', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        {groupTix.length} subtask{groupTix.length !== 1 ? 's' : ''}
+                      </span>
+                      <span
+                        className={`badge ${getStatusClass(parentT.status)}`}
+                        style={{ fontSize: 10, flexShrink: 0 }}
+                      >{parentT.status}</span>
+                      <Avatar name={parentT.assignee} size={22} />
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 14 }}>📋</span>
+                      <span style={{ fontWeight: 600, fontSize: 13, flex: 1 }}>Other tickets</span>
+                      <span style={{ fontSize: 11, background: '#e5e7eb', borderRadius: 10, padding: '1px 8px', fontWeight: 600, flexShrink: 0 }}>
+                        {groupTix.length} ticket{groupTix.length !== 1 ? 's' : ''}
+                      </span>
+                    </>
+                  )}
+                  <span style={{ fontSize: 11, color: 'var(--gray-400)', flexShrink: 0, marginLeft: 4 }}>
+                    {groupDone}/{groupTix.length} done
+                  </span>
+                </div>
+
+                {/* ── Mini kanban columns ── */}
+                {!isCollapsed && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${cols.length}, 1fr)`,
+                    border: '1.5px solid var(--gray-200)',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    overflow: 'hidden',
+                    background: 'var(--white)',
+                  }}>
+                    {cols.map((col, colIdx) => {
+                      const colColor = COL_COLORS[col] || '#64748b'
+                      const colCards = groupTix.filter(t => t.status === col)
+                      const isOver   = dragOverCol === col
+                      return (
+                        <div
+                          key={col}
+                          style={{
+                            borderRight: colIdx < cols.length - 1 ? '1px solid var(--gray-200)' : 'none',
+                            minHeight: 100,
+                            background: isOver ? `${colColor}08` : 'transparent',
+                            transition: 'background .12s',
+                          }}
+                          onDragOver={e => { e.preventDefault(); handleDragOver(e, col) }}
+                          onDragLeave={handleDragLeave}
+                          onDrop={e => handleDrop(e, col)}
+                        >
+                          {/* Column header */}
+                          <div style={{
+                            padding: '7px 10px',
+                            borderBottom: `2px solid ${colColor}40`,
+                            background: isOver ? `${colColor}12` : `${COL_BG[col] || '#f8faff'}`,
+                            display: 'flex', alignItems: 'center', gap: 6,
+                          }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: colColor, letterSpacing: 0.5 }}>
+                              {col.toUpperCase()}
+                            </span>
+                            {colCards.length > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: colColor, borderRadius: 8, padding: '0px 5px' }}>
+                                {colCards.length}
+                              </span>
+                            )}
+                          </div>
+                          {/* Cards */}
+                          <div style={{ padding: '8px 8px 2px' }}>
+                            {colCards.map(t => (
+                              <NewBoardCard
+                                key={t.id}
+                                ticket={t}
+                                onDragStart={handleDragStart}
+                                onClick={openTicketView}
+                              />
+                            ))}
+                            <div
+                              onClick={e => { e.stopPropagation(); openModal('createTicket', { project: pid, parent: parentT?.id }) }}
+                              style={{ fontSize: 12, color: 'var(--gray-400)', cursor: 'pointer', padding: '4px 2px 8px', display: 'flex', alignItems: 'center', gap: 4 }}
+                            >+ Create</div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        /* ══ FLAT BOARD ══ */
+        <div className="kanban-board">
+          {cols.map(col => (
+            <DropColumn
+              key={col} status={col}
+              cards={visibleTickets.filter(t => t.status === col)}
+              isOver={dragOverCol === col}
+              onDragStart={handleDragStart}
+              onDragOver={e => handleDragOver(e, col)}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              openTicketView={openTicketView}
+              openModal={openModal}
+              pid={pid}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
