@@ -207,11 +207,13 @@ function KanbanBoard({ board, pid, tickets }) {
 // ── SCRUM BOARD (active sprint columns) ──────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
 function ScrumBoard({ board, pid, tickets, sprints }) {
-  const { openModal, openTicketView, setProjectTab } = useApp()
+  const { openModal, openTicketView, setProjectTab, doCompleteSprint, doUpdateTicket } = useApp()
   const cols           = board.columns || ['To Do', 'In Progress', 'In Review', 'Done']
   const projectSprints = sprints.filter(s => s.project === pid).sort((a,b) => a.order - b.order)
   const activeSprint   = projectSprints.find(s => s.status === 'active')
   const planningSprints = projectSprints.filter(s => s.status === 'planning')
+  const [showManage, setShowManage] = useState(false)
+  const [completing, setCompleting] = useState(false)
 
   const sprintTickets = activeSprint
     ? tickets.filter(t => t.project === pid && t.sprint === activeSprint.name)
@@ -293,10 +295,15 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
             )}
           </div>
           <button
-            style={{ background: 'rgba(255,255,255,.15)', border: '1.5px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}
-            onClick={() => setProjectTab('backlog')}
+            style={{
+              background: showManage ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.15)',
+              border: '1.5px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8,
+              padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              backdropFilter: 'blur(4px)',
+            }}
+            onClick={() => { setShowManage(v => !v); setCompleting(false) }}
           >
-            ⚙ Manage Sprint
+            {showManage ? '✕ Close' : '⚙ Manage Sprint'}
           </button>
         </div>
 
@@ -333,6 +340,81 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
           ))}
         </div>
       </div>
+
+      {/* ── Inline Manage Sprint panel ── */}
+      {showManage && (
+        <div style={{
+          marginBottom: 18, padding: '18px 22px',
+          background: 'var(--white)', border: '2px solid #3b82f6',
+          borderRadius: 12, boxShadow: '0 4px 24px rgba(26,86,219,.10)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>⚙ Manage: {activeSprint.name}</div>
+            <button
+              onClick={() => { setShowManage(false); setCompleting(false) }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--gray-400)', lineHeight: 1, padding: '0 4px' }}
+            >×</button>
+          </div>
+
+          {/* Stats summary */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Total Tickets', val: sprintTickets.length,                              color: '#3b82f6' },
+              { label: 'Done',          val: doneCount,                                          color: '#10b981' },
+              { label: 'Remaining',     val: sprintTickets.filter(t => t.status !== 'Done').length, color: '#f59e0b' },
+              { label: 'In Progress',   val: wipCount,                                           color: '#8b5cf6' },
+              ...(totalPts > 0 ? [{ label: 'Story Points', val: `${donePts}/${totalPts}`, color: '#0ea5e9' }] : []),
+            ].map(({ label, val, color }) => (
+              <div key={label} style={{
+                padding: '10px 16px', background: `${color}10`,
+                border: `1px solid ${color}30`, borderRadius: 10, textAlign: 'center', minWidth: 90,
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color, lineHeight: 1 }}>{val}</div>
+                <div style={{ fontSize: 11, color: 'var(--gray-500)', marginTop: 4 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Complete sprint action */}
+          {!completing ? (
+            <button
+              onClick={() => setCompleting(true)}
+              style={{
+                background: '#fff1f2', color: '#ef4444', border: '1.5px solid #fecaca',
+                borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 13,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              ✓ Complete Sprint
+            </button>
+          ) : (
+            <div style={{ padding: '16px 18px', background: '#fff7ed', borderRadius: 10, border: '1px solid #fed7aa' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>
+                Complete "{activeSprint.name}"?
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--gray-600)', marginBottom: 14, lineHeight: 1.6 }}>
+                <strong style={{ color: '#f59e0b' }}>
+                  {sprintTickets.filter(t => t.status !== 'Done').length}
+                </strong> incomplete tickets will move to the Backlog.&nbsp;
+                <strong style={{ color: '#10b981' }}>{doneCount}</strong> Done tickets stay completed.
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={async () => {
+                    await doCompleteSprint(activeSprint.id)
+                    setCompleting(false)
+                    setShowManage(false)
+                  }}
+                >✓ Complete Sprint</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setCompleting(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Board columns */}
       <div className="kanban-board">
@@ -1058,15 +1140,22 @@ function WorkflowEditor({ project }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ── PROJECT SETTINGS ─────────────────────────────────────────────────────────
+// ── PROJECT SETTINGS (multi-section) ─────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════════════════════
+const MEMBER_ROLES = ['Lead', 'Developer', 'Designer', 'QA Engineer', 'DevOps', 'Product Manager', 'Scrum Master']
+const FIELD_TYPES  = ['text', 'number', 'date', 'user', 'tags', 'sprint', 'url', 'select']
+
 function ProjectSettings({ project }) {
-  const { doUpdateProject } = useApp()
-  const [name,   setName]   = useState(project.name)
-  const [desc,   setDesc]   = useState(project.description || '')
-  const [lead,   setLead]   = useState(project.lead || '')
-  const [color,  setColor]  = useState(project.color || '#1a56db')
-  const [saved,  setSaved]  = useState(false)
+  const { users, doUpdateProject } = useApp()
+
+  const [section, setSection] = useState('details')
+
+  // ── Details form ──
+  const [name,  setName]  = useState(project.name)
+  const [desc,  setDesc]  = useState(project.description || '')
+  const [lead,  setLead]  = useState(project.lead || '')
+  const [color, setColor] = useState(project.color || '#1a56db')
+  const [saved, setSaved] = useState(false)
 
   const handleSave = async () => {
     await doUpdateProject(project.id, { name: name.trim(), description: desc, lead, color })
@@ -1074,44 +1163,257 @@ function ProjectSettings({ project }) {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  // ── Fields ──
+  const [fields, setFields] = useState([
+    { id: 1, name: 'Story Points', type: 'number',  required: false },
+    { id: 2, name: 'Sprint',       type: 'sprint',  required: false },
+    { id: 3, name: 'Assignee',     type: 'user',    required: false },
+    { id: 4, name: 'Due Date',     type: 'date',    required: false },
+    { id: 5, name: 'Labels',       type: 'tags',    required: false },
+  ])
+  const [newFieldName, setNewFieldName] = useState('')
+  const [newFieldType, setNewFieldType] = useState('text')
+
+  const addField = () => {
+    const nm = newFieldName.trim()
+    if (!nm || fields.some(f => f.name === nm)) return
+    setFields(prev => [...prev, { id: Date.now(), name: nm, type: newFieldType, required: false }])
+    setNewFieldName('')
+  }
+
+  // ── Teams / Members ──
+  const [members, setMembers] = useState(() => {
+    const leadUser = users.find(u => u.name === project.lead)
+    return leadUser ? [{ userId: leadUser.id, role: 'Lead' }] : []
+  })
+  const [addUserId, setAddUserId] = useState('')
+  const [addRole,   setAddRole]   = useState('Developer')
+
+  const addMember = () => {
+    if (!addUserId) return
+    const uid = Number(addUserId)
+    if (members.some(m => m.userId === uid)) return
+    setMembers(prev => [...prev, { userId: uid, role: addRole }])
+    setAddUserId('')
+    setAddRole('Developer')
+  }
+
+  const removeMember = uid  => setMembers(prev => prev.filter(m => m.userId !== uid))
+  const updateRole   = (uid, role) => setMembers(prev => prev.map(m => m.userId === uid ? { ...m, role } : m))
+
+  const SECTIONS = [
+    { key: 'details',  label: 'Project Details', icon: '📋' },
+    { key: 'workflow', label: 'Workflow',         icon: '⚡' },
+    { key: 'fields',   label: 'Fields',           icon: '🔧' },
+    { key: 'teams',    label: 'Teams',            icon: '👥' },
+  ]
+
   return (
-    <div style={{ maxWidth: 540 }}>
-      <div className="card" style={{ padding: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Project Settings</div>
-        <div className="form-group">
-          <label className="form-label">Project Name</label>
-          <input className="form-input" value={name} onChange={e => setName(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Description</label>
-          <textarea className="form-textarea" rows={3} value={desc} onChange={e => setDesc(e.target.value)} />
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Project Lead</label>
-            <input className="form-input" placeholder="Lead name" value={lead} onChange={e => setLead(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Color</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
-              <span style={{ fontSize: 12, color: 'var(--gray-500)' }}>{color}</span>
+    <div style={{ display: 'flex', gap: 22, alignItems: 'flex-start' }}>
+
+      {/* ── Left sub-nav ── */}
+      <div style={{ width: 190, flexShrink: 0 }}>
+        <div style={{ background: 'var(--white)', border: '1.5px solid var(--gray-200)', borderRadius: 10, overflow: 'hidden' }}>
+          {SECTIONS.map(s => (
+            <div
+              key={s.key}
+              onClick={() => setSection(s.key)}
+              style={{
+                padding: '11px 16px', cursor: 'pointer', fontSize: 13,
+                fontWeight: section === s.key ? 700 : 400,
+                background: section === s.key ? '#eff6ff' : 'transparent',
+                color: section === s.key ? 'var(--blue)' : 'var(--text)',
+                borderLeft: `3px solid ${section === s.key ? 'var(--blue)' : 'transparent'}`,
+                display: 'flex', alignItems: 'center', gap: 8,
+                transition: 'all .15s', userSelect: 'none',
+              }}
+            >
+              <span>{s.icon}</span> {s.label}
             </div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
-          <button className="btn btn-primary" onClick={handleSave}>Save Changes</button>
-          {saved && <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>✓ Saved</span>}
+          ))}
         </div>
       </div>
 
-      <div className="card" style={{ padding: 20, marginTop: 16 }}>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Project Info</div>
-        <div style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <div>Key: <strong style={{ color: 'var(--text)' }}>{project.key}</strong></div>
-          <div>Created: {project.created}</div>
-          <div>Status: {project.status}</div>
-        </div>
+      {/* ── Right content ── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+
+        {/* ── Project Details ── */}
+        {section === 'details' && (
+          <div style={{ maxWidth: 540 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 16 }}>📋 Project Details</div>
+            <div className="card" style={{ padding: 20 }}>
+              <div className="form-group">
+                <label className="form-label">Project Name</label>
+                <input className="form-input" value={name} onChange={e => setName(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description</label>
+                <textarea className="form-textarea" rows={3} value={desc} onChange={e => setDesc(e.target.value)} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Project Lead</label>
+                  <input className="form-input" placeholder="Lead name" value={lead} onChange={e => setLead(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Color</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: 40, height: 36, border: 'none', cursor: 'pointer', borderRadius: 4 }} />
+                    <span style={{ fontSize: 12, color: 'var(--gray-500)' }}>{color}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                <button className="btn btn-primary" onClick={handleSave}>Save Changes</button>
+                {saved && <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>✓ Saved</span>}
+              </div>
+            </div>
+            <div className="card" style={{ padding: 20, marginTop: 14 }}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Project Info</div>
+              <div style={{ fontSize: 12, color: 'var(--gray-500)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div>Key: <strong style={{ color: 'var(--text)' }}>{project.key}</strong></div>
+                <div>Created: {project.created}</div>
+                <div>Status: {project.status}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Workflow ── */}
+        {section === 'workflow' && <WorkflowEditor project={project} />}
+
+        {/* ── Fields ── */}
+        {section === 'fields' && (
+          <div style={{ maxWidth: 580 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 16 }}>🔧 Fields</div>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Ticket Fields for {project.name}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 18 }}>
+                {fields.map(f => (
+                  <div key={f.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 14px', border: '1.5px solid var(--gray-200)',
+                    borderRadius: 8, background: 'var(--gray-50)',
+                  }}>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{f.name}</span>
+                    <span style={{ fontSize: 11, background: '#eff6ff', color: '#1e40af', borderRadius: 10, padding: '2px 9px', fontWeight: 600 }}>{f.type}</span>
+                    {f.required && <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700 }}>Required</span>}
+                    <label style={{ fontSize: 11, color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={f.required}
+                        onChange={() => setFields(prev => prev.map(x => x.id === f.id ? { ...x, required: !x.required } : x))}
+                      />
+                      Required
+                    </label>
+                    <button
+                      onClick={() => setFields(prev => prev.filter(x => x.id !== f.id))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', fontSize: 18, lineHeight: 1, padding: 0 }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '12px 14px', background: '#f8faff', borderRadius: 8, border: '1px solid var(--gray-200)' }}>
+                <input
+                  className="form-input"
+                  placeholder="New field name…"
+                  value={newFieldName}
+                  onChange={e => setNewFieldName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addField()}
+                  style={{ flex: 1 }}
+                />
+                <select className="form-select" value={newFieldType} onChange={e => setNewFieldType(e.target.value)} style={{ width: 110 }}>
+                  {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <button className="btn btn-secondary btn-sm" onClick={addField}>+ Add Field</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Teams ── */}
+        {section === 'teams' && (
+          <div style={{ maxWidth: 620 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 16 }}>👥 Teams</div>
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Project Members</div>
+
+              {members.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--gray-400)', fontSize: 13, marginBottom: 12 }}>
+                  No members yet. Add someone below.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+                {members.map(m => {
+                  const u = users.find(u => u.id === m.userId)
+                  if (!u) return null
+                  return (
+                    <div key={m.userId} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 14px', border: '1.5px solid var(--gray-200)',
+                      borderRadius: 10, background: 'var(--white)',
+                    }}>
+                      <Avatar name={u.name} size={34} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{u.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--gray-500)' }}>{u.email || u.name.toLowerCase().replace(' ', '.') + '@company.com'}</div>
+                      </div>
+                      <select
+                        className="form-select"
+                        value={m.role}
+                        onChange={e => updateRole(m.userId, e.target.value)}
+                        style={{ width: 160, fontSize: 12 }}
+                      >
+                        {MEMBER_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                      <button
+                        onClick={() => removeMember(m.userId)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--gray-400)', fontSize: 20, lineHeight: 1, padding: '0 4px' }}
+                        title="Remove member"
+                      >×</button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Add member row */}
+              <div style={{ padding: '14px 16px', background: 'var(--gray-50)', borderRadius: 10, border: '1.5px solid var(--gray-200)' }}>
+                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: 'var(--gray-700)' }}>Add Member</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    className="form-select"
+                    value={addUserId}
+                    onChange={e => setAddUserId(e.target.value)}
+                    style={{ flex: 1, minWidth: 160 }}
+                  >
+                    <option value="">Select user…</option>
+                    {users.filter(u => u.active && !members.some(m => m.userId === u.id)).map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="form-select"
+                    value={addRole}
+                    onChange={e => setAddRole(e.target.value)}
+                    style={{ width: 170 }}
+                  >
+                    {MEMBER_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={addMember}
+                    disabled={!addUserId}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   )
@@ -1139,7 +1441,6 @@ export default function ProjectDetail() {
     { key: 'board',    label: 'Board',    icon: '📋' },
     { key: 'backlog',  label: 'Backlog',  icon: '📃' },
     { key: 'roadmap',  label: 'Roadmap',  icon: '🗺' },
-    { key: 'workflow', label: 'Workflow', icon: '⚡' },
     { key: 'reports',  label: 'Reports',  icon: '📊' },
     { key: 'settings', label: 'Settings', icon: '⚙' },
   ]
@@ -1196,10 +1497,6 @@ export default function ProjectDetail() {
 
       {projectTab === 'roadmap' && (
         <Roadmap project={project} tickets={projectTickets} />
-      )}
-
-      {projectTab === 'workflow' && (
-        <WorkflowEditor project={project} />
       )}
 
       {projectTab === 'reports' && (

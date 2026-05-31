@@ -127,22 +127,12 @@ export default function Sidebar() {
             </span>
           </div>
 
-          {[
-            { key: 'board',      icon: '📋', label: 'Board' },
-            { key: 'backlog',    icon: '📃', label: 'Backlog' },
-            { key: 'roadmap',    icon: '🗺',  label: 'Roadmap' },
-            { key: 'workflow',   icon: '⚡', label: 'Workflow' },
-            { key: 'reports',    icon: '📊', label: 'Reports' },
-            { key: 'settings',   icon: '⚙',  label: 'Project Settings' },
-          ].map(({ key, icon, label }) => (
-            <div
-              key={key}
-              className={`sidebar-item ${page === 'projectdetail' && projectTab === key ? 'active' : ''}`}
-              onClick={() => goTab(key)}
-            >
-              {icon} {label}
-            </div>
-          ))}
+          <div
+            className={`sidebar-item ${page === 'projectdetail' && projectTab === 'settings' ? 'active' : ''}`}
+            onClick={() => goTab('settings')}
+          >
+            ⚙ Project Settings
+          </div>
         </div>
       )}
     </div>

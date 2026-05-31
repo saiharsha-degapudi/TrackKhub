@@ -33,8 +33,14 @@ export default function HiThere() {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [callNotif, setCallNotif] = useState(null)
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
+
+  const handleCall = (type) => {
+    setCallNotif(type)
+    setTimeout(() => setCallNotif(null), 3500)
+  }
 
   // Set default channel when channels load
   useEffect(() => {
@@ -212,6 +218,45 @@ export default function HiThere() {
             </>
           ) : (
             <div style={{ fontWeight: 700, fontSize: 15 }}>Select a channel</div>
+          )}
+
+          {/* Call buttons + notification */}
+          {activeChannel && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {callNotif && (
+                <span style={{
+                  fontSize: 12, color: '#10b981', background: '#f0fdf4',
+                  padding: '4px 12px', borderRadius: 20, border: '1px solid #bbf7d0',
+                  fontWeight: 600, whiteSpace: 'nowrap',
+                }}>
+                  {callNotif === 'audio' ? '📞 Starting audio call…' : '🎥 Starting video call…'}
+                </span>
+              )}
+              <button
+                title="Audio call"
+                onClick={() => handleCall('audio')}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  border: '1.5px solid var(--gray-200)', background: 'var(--white)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 16, transition: 'all .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#10b981' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
+              >📞</button>
+              <button
+                title="Video call"
+                onClick={() => handleCall('video')}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  border: '1.5px solid var(--gray-200)', background: 'var(--white)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: 16, transition: 'all .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#eff6ff'; e.currentTarget.style.borderColor = '#3b82f6' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--white)'; e.currentTarget.style.borderColor = 'var(--gray-200)' }}
+              >🎥</button>
+            </div>
           )}
         </div>
 
