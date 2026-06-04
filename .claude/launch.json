@@ -18,6 +18,18 @@
       "runtimeExecutable": "C:\\Users\\hdega\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
       "runtimeArgs": ["-m", "http.server", "3457", "--directory", "C:\\Users\\hdega\\Downloads\\TrackKhub"],
       "port": 3457
+    },
+    {
+      "name": "launchinglaps-backend",
+      "runtimeExecutable": "C:\\Users\\hdega\\OneDrive\\Documents\\Launching laps\\backend\\run.bat",
+      "runtimeArgs": [],
+      "port": 8001
+    },
+    {
+      "name": "launchinglaps-frontend",
+      "runtimeExecutable": "C:\\Users\\hdega\\OneDrive\\Documents\\Launching laps\\frontend\\run.bat",
+      "runtimeArgs": [],
+      "port": 5174
     }
   ]
 }

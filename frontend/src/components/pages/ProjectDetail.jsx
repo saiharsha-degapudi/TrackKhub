@@ -38,14 +38,15 @@ const PRIO_CONF = {
   Low:      { color: '#22c55e', sym: '↓'  },
 }
 
-// ── Board card (Jira-style) ────────────────────────────────────────────────────
+// ── Board card (Premium Linear-style) ─────────────────────────────────────────
 function BoardCard({ ticket, allTickets = [], onDragStart, onClick }) {
   const tc = TYPE_CONF[ticket.type]  || { bg: '#f3f4f6', color: '#4b5563', char: '?' }
-  const pc = PRIO_CONF[ticket.priority] || { color: '#9ca3af', sym: '-' }
+  const pc = PRIO_CONF[ticket.priority] || { color: '#9ca3af' }
   const parentT   = ticket.parent ? allTickets.find(t => t.id === ticket.parent) : null
   const epicT     = parentT?.type === 'Epic' ? parentT
                   : parentT ? allTickets.find(t => t.id === parentT.parent && t.type === 'Epic') : null
   const isOverdue = ticket.dueDate && new Date(ticket.dueDate) < new Date() && ticket.status !== 'Done'
+  const [hovered, setHovered] = useState(false)
 
   return (
     <div
@@ -53,106 +54,192 @@ function BoardCard({ ticket, allTickets = [], onDragStart, onClick }) {
       draggable
       onDragStart={e => onDragStart(e, ticket.id)}
       onClick={() => onClick(ticket.id)}
-      style={{ borderLeft: `3px solid ${tc.color}` }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        borderTop: `3px solid ${tc.color}`,
+        borderLeft: 'none',
+        boxShadow: hovered
+          ? '0 8px 25px rgba(0,0,0,0.12)'
+          : '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        borderColor: hovered ? tc.color : '#e8ecf0',
+        padding: '14px 14px 10px',
+        marginBottom: 10,
+      }}
     >
       {/* Epic chip */}
       {epicT && (
-        <div style={{ marginBottom: 5 }}>
+        <div style={{ marginBottom: 7 }}>
           <span style={{
-            fontSize: 10, fontWeight: 700, borderRadius: 3, padding: '1px 6px',
-            background: '#ede9fe', color: '#5b21b6', display: 'inline-block',
+            fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px',
+            background: '#f3f0ff', color: '#6d28d9', display: 'inline-block',
             maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>{epicT.id} · {epicT.title}</span>
+          }}>⚡ {epicT.title}</span>
         </div>
       )}
 
       {/* Title */}
-      <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a2e', lineHeight: 1.45, marginBottom: 9, wordBreak: 'break-word' }}>
+      <div style={{ fontSize: 13.5, fontWeight: 500, color: '#111827', lineHeight: 1.5, marginBottom: 10, wordBreak: 'break-word' }}>
         {ticket.title}
       </div>
 
       {/* Labels */}
       {ticket.labels?.length > 0 && (
-        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', marginBottom: 7 }}>
-          {ticket.labels.slice(0, 3).map(l => (
-            <span key={l} style={{ fontSize: 10, background: '#eff6ff', color: '#1e40af', borderRadius: 3, padding: '1px 6px', fontWeight: 600 }}>{l}</span>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+          {ticket.labels.slice(0, 2).map(l => (
+            <span key={l} style={{ fontSize: 10, background: '#f0f9ff', color: '#0369a1', borderRadius: 20, padding: '2px 8px', fontWeight: 600 }}>{l}</span>
           ))}
+          {ticket.labels.length > 2 && (
+            <span style={{ fontSize: 10, color: '#9ca3af', padding: '2px 4px', fontWeight: 500 }}>+{ticket.labels.length - 2} more</span>
+          )}
         </div>
       )}
 
-      {/* Bottom row */}
+      {/* Divider */}
+      <div style={{ height: 1, background: '#f1f5f9', margin: '8px 0' }} />
+
+      {/* Footer row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          {/* Type badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Type icon */}
           <span style={{
-            width: 18, height: 18, borderRadius: 4, background: tc.bg, color: tc.color,
-            fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0, border: `1px solid ${tc.color}30`,
+            width: 20, height: 20, borderRadius: 5, background: tc.bg, color: tc.color,
+            fontSize: 10, fontWeight: 900, display: 'inline-flex', alignItems: 'center',
+            justifyContent: 'center', flexShrink: 0,
           }}>{tc.char}</span>
-          {/* ID */}
-          <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>{ticket.id}</span>
-          {/* Priority */}
-          <span style={{ fontSize: 11, color: pc.color, fontWeight: 900, lineHeight: 1 }} title={ticket.priority}>{pc.sym}</span>
+          {/* Ticket ID */}
+          <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, fontFamily: 'monospace' }}>{ticket.id}</span>
+          {/* Priority dot */}
+          <span
+            title={ticket.priority}
+            style={{ width: 8, height: 8, borderRadius: '50%', background: pc.color, display: 'inline-block', flexShrink: 0 }}
+          />
           {/* Story points */}
           {ticket.storyPoints != null && (
             <span style={{
-              minWidth: 18, height: 18, borderRadius: '50%', background: '#eff6ff', color: '#1e40af',
-              fontSize: 10, fontWeight: 800, border: '1.5px solid #bfdbfe',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px',
+              width: 18, height: 18, borderRadius: '50%', background: '#eff6ff', color: '#1e40af',
+              fontSize: 10, fontWeight: 700, border: '1.5px solid #bfdbfe',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             }}>{ticket.storyPoints}</span>
           )}
-          {isOverdue && <span style={{ fontSize: 11, color: '#ef4444' }} title="Overdue">⚠</span>}
+          {/* Overdue */}
+          {isOverdue && (
+            <span title="Overdue" style={{
+              width: 16, height: 16, borderRadius: '50%', background: '#fee2e2', color: '#ef4444',
+              fontSize: 10, fontWeight: 900, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>!</span>
+          )}
         </div>
-        <Avatar name={ticket.assignee} size={22} />
+        <Avatar name={ticket.assignee} size={24} />
       </div>
     </div>
   )
 }
 
-// ── Kanban column with drop zone ──────────────────────────────────────────────
+// ── Kanban column with drop zone (Premium Linear-style) ───────────────────────
 function DropColumn({ status, cards, allTickets, isOver, onDragStart, onDragOver, onDragLeave, onDrop, openTicketView, openModal, pid }) {
   const color = COL_COLORS[status] || '#64748b'
-  const bg    = COL_BG[status]    || '#f8faff'
+  const icon  = COL_ICONS[status]  || '○'
+  const [addHovered, setAddHovered] = useState(false)
+
   return (
     <div
       className="kanban-col"
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={e => onDrop(e, status)}
-      style={{ outline: isOver ? `2.5px dashed ${color}` : 'none', outlineOffset: -2, transition: 'outline .1s' }}
+      style={{
+        background: 'transparent',
+        outline: isOver ? `2px solid ${color}` : 'none',
+        outlineOffset: 2,
+        transition: 'outline 0.1s',
+      }}
     >
       {/* Header */}
-      <div className="kanban-col-header" style={{ background: bg, borderBottom: `3px solid ${color}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ width: 9, height: 9, borderRadius: '50%', background: color, flexShrink: 0 }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color, letterSpacing: 0.3 }}>{status.toUpperCase()}</span>
+      <div style={{
+        background: '#fff',
+        border: '1.5px solid #e8ecf0',
+        borderRadius: '12px 12px 0 0',
+        borderTop: `3px solid ${color}`,
+        padding: '12px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 16, color, lineHeight: 1 }}>{icon}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1f2937' }}>{status}</span>
+          <span style={{
+            width: 22, height: 22, borderRadius: '50%',
+            background: `${color}26`,
+            color,
+            fontSize: 11, fontWeight: 800,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>{cards.length}</span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: color, borderRadius: 12, padding: '1px 8px', minWidth: 22, textAlign: 'center' }}>
-          {cards.length}
-        </span>
+        <div
+          onClick={() => openModal('createTicket', { project: pid })}
+          title="Add issue"
+          style={{
+            width: 24, height: 24, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', fontSize: 16, color: '#9ca3af',
+            transition: 'background 0.15s, color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background='#f3f4f6'; e.currentTarget.style.color='#374151' }}
+          onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#9ca3af' }}
+        >+</div>
       </div>
 
       {/* Body */}
       <div
-        className="kanban-col-body"
-        style={{ background: isOver ? `${color}07` : 'rgba(0,0,0,.018)', transition: 'background .15s' }}
+        style={{
+          background: isOver ? `${color}0d` : '#f8fafc',
+          border: '1.5px solid #e8ecf0',
+          borderTop: 'none',
+          borderRadius: '0 0 12px 12px',
+          padding: '10px 10px 6px',
+          minHeight: 200,
+          transition: 'background 0.15s',
+        }}
       >
         {cards.length === 0 && (
-          <div style={{ border: `2px dashed ${color}30`, borderRadius: 7, padding: '18px 8px', textAlign: 'center', fontSize: 11, color: 'var(--gray-400)' }}>
-            {isOver ? '📥 Drop here' : 'No issues'}
+          <div style={{
+            border: isOver ? `2px solid ${color}50` : `2px dashed ${color}25`,
+            borderRadius: 8,
+            padding: '24px 10px',
+            textAlign: 'center',
+            fontSize: 12,
+            color: '#9ca3af',
+            transition: 'all 0.15s',
+          }}>
+            {isOver ? '📥 Drop here' : 'Drop issues here'}
           </div>
         )}
         {cards.map(t => (
           <BoardCard key={t.id} ticket={t} allTickets={allTickets} onDragStart={onDragStart} onClick={openTicketView} />
         ))}
+        {/* Add issue button */}
         <div
           onClick={() => openModal('createTicket', { project: pid })}
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 4px', fontSize: 12, color: 'var(--gray-400)', cursor: 'pointer', borderRadius: 5, transition: 'all .12s', marginTop: 2 }}
-          onMouseEnter={e => { e.currentTarget.style.background='var(--gray-100)'; e.currentTarget.style.color='var(--blue)' }}
-          onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='var(--gray-400)' }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 700 }}>+</span> Create issue
-        </div>
+          onMouseEnter={() => setAddHovered(true)}
+          onMouseLeave={() => setAddHovered(false)}
+          style={{
+            padding: '8px 10px',
+            borderRadius: 8,
+            background: addHovered ? '#fff' : 'transparent',
+            color: addHovered ? color : '#9ca3af',
+            border: addHovered ? `1px solid ${color}30` : '1px solid transparent',
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            marginTop: 4,
+            width: '100%',
+            textAlign: 'left',
+          }}
+        >+ Add issue</div>
       </div>
     </div>
   )
