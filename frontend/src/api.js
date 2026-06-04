@@ -148,33 +148,10 @@ const mock = {
   messages: {},
 }
 
-// ── Backend reachability check ───────────────────────────────────────────────
-let _backendUp = null // null = unknown, true/false = checked
-
-async function checkBackend() {
-  if (_backendUp !== null) return _backendUp
-  try {
-    const r = await fetch('/api/projects', { method: 'GET', signal: AbortSignal.timeout(2000) })
-    _backendUp = r.ok
-  } catch {
-    _backendUp = false
-  }
-  return _backendUp
-}
+// Always use mock data (backend optional)
+let _backendUp = false
 
 async function request(method, path, body) {
-  const up = await checkBackend()
-  if (up) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } }
-    if (body !== undefined) opts.body = JSON.stringify(body)
-    const res = await fetch(BASE + path, opts)
-    if (!res.ok) {
-      const err = await res.text()
-      throw new Error(err || `${method} ${path} failed: ${res.status}`)
-    }
-    return res.json()
-  }
-  // Backend offline — use mock
   return mockRequest(method, path, body)
 }
 
