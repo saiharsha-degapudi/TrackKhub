@@ -1,199 +1,487 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useApp } from '../../context/AppContext'
 import Avatar from '../common/Avatar'
-import { getTypeColor } from '../common/Badge'
 
-function UsersPanel() {
-  const { users, openModal, doDeleteUser, doToggleUser } = useApp()
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const primary = '#2563eb'
+const primaryLight = '#eff6ff'
+
+const card = {
+  background: '#fff',
+  borderRadius: 14,
+  boxShadow: '0 4px 24px rgba(59,130,246,0.10)',
+  padding: 24,
+}
+
+function SectionHeader({ icon, title, subtitle }) {
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Users</div>
-        <button className="btn btn-primary btn-sm" onClick={() => openModal('addUser')}>+ Add User</button>
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{
+          width: 4, height: 28, background: primary, borderRadius: 4, flexShrink: 0,
+        }} />
+        <span style={{ fontSize: 22, fontWeight: 800, color: '#1e293b' }}>{icon} {title}</span>
       </div>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
-          <thead>
-            <tr><th>User</th><th>Email</th><th>Role</th><th>Group</th><th>Status</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id}>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Avatar name={u.name} size={30} />
-                    <span style={{ fontWeight: 600 }}>{u.name}</span>
-                  </div>
-                </td>
-                <td style={{ color: 'var(--gray-500)' }}>{u.email}</td>
-                <td>
-                  <span className={`badge ${u.role === 'Admin' ? 'badge-red' : u.role === 'Manager' ? 'badge-purple' : u.role === 'Developer' ? 'badge-blue' : 'badge-gray'}`}>
-                    {u.role}
-                  </span>
-                </td>
-                <td><span className="tag">{u.group}</span></td>
-                <td>
-                  <div className="toggle-wrap">
-                    <div className={`toggle ${u.active ? 'on' : ''}`} onClick={() => doToggleUser(u.id)}>
-                      <div className="toggle-knob" />
-                    </div>
-                    <span style={{ fontSize: 12 }}>{u.active ? 'Active' : 'Inactive'}</span>
-                  </div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openModal('editUser', u.id)}>✏</button>
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => {
-                      if (window.confirm('Remove user?')) doDeleteUser(u.id)
-                    }}>🗑</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {subtitle && <div style={{ fontSize: 13, color: '#64748b', marginLeft: 14 }}>{subtitle}</div>}
     </div>
   )
 }
 
-function RolesPanel() {
-  const { roles, groups, users, openModal } = useApp()
+function Toggle({ on, onChange }) {
   return (
-    <div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Roles & Groups</div>
-      <div className="grid-2">
-        <div className="card">
-          <div className="card-title">Roles</div>
-          {roles.map(r => (
-            <div key={r} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--gray-100)' }}>
-              <span className={`badge ${r === 'Admin' ? 'badge-red' : r === 'Manager' ? 'badge-purple' : r === 'Developer' ? 'badge-blue' : 'badge-gray'}`}>{r}</span>
-              <span style={{ fontSize: 12, color: 'var(--gray-500)' }}>{users.filter(u => u.role === r).length} users</span>
-            </div>
-          ))}
-          <button className="btn btn-outline btn-sm w-full" style={{ marginTop: 10 }} onClick={() => openModal('addRole')}>+ New Role</button>
-        </div>
-        <div className="card">
-          <div className="card-title">Groups</div>
-          {groups.map(g => (
-            <div key={g} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--gray-100)' }}>
-              <span className="tag">{g}</span>
-              <span style={{ fontSize: 12, color: 'var(--gray-500)' }}>{users.filter(u => u.group === g).length} members</span>
-            </div>
-          ))}
-          <button className="btn btn-outline btn-sm w-full" style={{ marginTop: 10 }} onClick={() => openModal('addGroup')}>+ New Group</button>
-        </div>
-      </div>
+    <div
+      onClick={() => onChange(!on)}
+      style={{
+        width: 44, height: 24, borderRadius: 12,
+        background: on ? primary : '#cbd5e1',
+        cursor: 'pointer', position: 'relative', transition: 'background .2s', flexShrink: 0,
+      }}
+    >
+      <div style={{
+        width: 18, height: 18, borderRadius: '50%', background: '#fff',
+        position: 'absolute', top: 3, left: on ? 23 : 3, transition: 'left .2s',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+      }} />
     </div>
   )
 }
 
-function TeamsPanel() {
-  const { teams, users, doDeleteTeam, openModal } = useApp()
+function RoleBadge({ role }) {
+  const map = {
+    Admin: { bg: '#dbeafe', color: '#1d4ed8' },
+    Developer: { bg: '#e0e7ff', color: '#4338ca' },
+    Designer: { bg: '#ffedd5', color: '#c2410c' },
+    'QA Engineer': { bg: '#dcfce7', color: '#15803d' },
+    'Product Manager': { bg: '#f3e8ff', color: '#7e22ce' },
+  }
+  const s = map[role] || { bg: '#f1f5f9', color: '#475569' }
+  return (
+    <span style={{
+      padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+      background: s.bg, color: s.color,
+    }}>{role}</span>
+  )
+}
 
-  const getUserName = (id) => users.find(u => u.id === id)?.name || '—'
+function StatusBadge({ status }) {
+  const s = status === 'Active'
+    ? { bg: '#dcfce7', color: '#15803d' }
+    : { bg: '#fef9c3', color: '#b45309' }
+  return (
+    <span style={{
+      padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+      background: s.bg, color: s.color,
+    }}>{status}</span>
+  )
+}
+
+function Btn({ children, onClick, variant = 'primary', style: s = {} }) {
+  const styles = {
+    primary: { background: primary, color: '#fff', border: 'none' },
+    outline: { background: '#fff', color: primary, border: `1.5px solid ${primary}` },
+    ghost: { background: 'transparent', color: '#475569', border: '1.5px solid #e2e8f0' },
+    danger: { background: '#fee2e2', color: '#dc2626', border: '1.5px solid #fca5a5' },
+  }
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+        ...styles[variant], ...s,
+      }}
+    >{children}</button>
+  )
+}
+
+function Input({ value, onChange, placeholder, style: s = {}, readOnly, type = 'text' }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      readOnly={readOnly}
+      style={{
+        width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0',
+        fontSize: 13, outline: 'none', background: readOnly ? '#f8fafc' : '#fff',
+        color: readOnly ? '#94a3b8' : '#1e293b', boxSizing: 'border-box',
+        fontFamily: readOnly ? 'monospace' : 'inherit', ...s,
+      }}
+    />
+  )
+}
+
+function Select({ value, onChange, children, style: s = {} }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      style={{
+        padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0',
+        fontSize: 13, background: '#fff', color: '#1e293b', outline: 'none',
+        cursor: 'pointer', ...s,
+      }}
+    >{children}</select>
+  )
+}
+
+// ─── Section: General ────────────────────────────────────────────────────────
+
+function GeneralSection() {
+  const [name, setName] = useState('TracKorbit Hub')
+  const [desc, setDesc] = useState('Central workspace for all sprint and project management across teams.')
+  const [dateFormat, setDateFormat] = useState('MM/DD/YYYY')
+  const [timezone, setTimezone] = useState('US/Eastern')
+  const [saved, setSaved] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+
+  const handleSave = () => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Teams</div>
-        <button className="btn btn-primary btn-sm" onClick={() => openModal('createTeam')}>+ New Team</button>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {teams.map(t => (
-          <div key={t.id} className="card" style={{ borderLeft: `4px solid ${t.color}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 9, background: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 14 }}>
-                  {t.name.charAt(0)}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
-                  {t.description && <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{t.description}</div>}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className="btn btn-ghost btn-sm" onClick={() => openModal('editTeam', t.id)}>✏</button>
-                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => {
-                  if (window.confirm('Delete team?')) doDeleteTeam(t.id)
-                }}>🗑</button>
+      <SectionHeader icon="🏢" title="General" subtitle="Manage your workspace identity and regional settings." />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Workspace Name */}
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Workspace Identity</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 5 }}>WORKSPACE NAME</label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Workspace name" style={{ maxWidth: 320 }} />
+                <Btn onClick={handleSave} variant={saved ? 'outline' : 'primary'}>
+                  {saved ? '✓ Saved' : 'Save'}
+                </Btn>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--gray-600)' }}>
-              <span><strong>Lead:</strong> {getUserName(t.lead)}</span>
-              <span><strong>Members:</strong> {t.members.length}</span>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 5 }}>DESCRIPTION</label>
+              <textarea
+                value={desc}
+                onChange={e => setDesc(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%', maxWidth: 480, padding: '8px 12px', borderRadius: 8,
+                  border: '1.5px solid #e2e8f0', fontSize: 13, resize: 'vertical',
+                  outline: 'none', color: '#1e293b', boxSizing: 'border-box', fontFamily: 'inherit',
+                }}
+              />
             </div>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
-              {t.members.map(mid => {
-                const u = users.find(x => x.id === mid)
-                return u ? <Avatar key={mid} name={u.name} size={26} title={u.name} /> : null
-              })}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 5 }}>WORKSPACE URL</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <span style={{ padding: '8px 12px', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRight: 'none', borderRadius: '8px 0 0 8px', fontSize: 13, color: '#94a3b8' }}>trackorbit.io/</span>
+                <Input value="trackorbit-hub" readOnly style={{ borderRadius: '0 8px 8px 0', maxWidth: 200 }} />
+              </div>
             </div>
           </div>
-        ))}
-        {teams.length === 0 && (
-          <div className="empty-state">No teams yet. Create one to get started.</div>
-        )}
+        </div>
+
+        {/* Regional Settings */}
+        <div style={{ ...card, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Regional Settings</div>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 5 }}>DATE FORMAT</label>
+              <Select value={dateFormat} onChange={e => setDateFormat(e.target.value)}>
+                {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map(f => <option key={f}>{f}</option>)}
+              </Select>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 5 }}>TIMEZONE</label>
+              <Select value={timezone} onChange={e => setTimezone(e.target.value)}>
+                {['UTC', 'US/Eastern', 'US/Pacific', 'Europe/London', 'Asia/Kolkata', 'Asia/Tokyo'].map(tz => <option key={tz}>{tz}</option>)}
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Danger Zone */}
+        <div style={{ ...card, padding: 20, border: '1.5px solid #fca5a5', background: '#fff5f5' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>⚠ Danger Zone</div>
+          <div style={{ fontSize: 13, color: '#7f1d1d', marginBottom: 14 }}>
+            Deleting your workspace is permanent and cannot be undone. All projects, sprints, tickets, and data will be erased.
+          </div>
+          {!showDeleteConfirm ? (
+            <Btn variant="danger" onClick={() => setShowDeleteConfirm(true)}>Delete Workspace</Btn>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#dc2626' }}>Are you absolutely sure?</span>
+              <Btn variant="danger" onClick={() => alert('Workspace deletion is disabled in demo.')}>Yes, Delete</Btn>
+              <Btn variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</Btn>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function PermissionsPanel() {
-  const { roles } = useApp()
-  const perms = ['Create Tickets', 'Edit Tickets', 'Delete Tickets', 'Manage Projects', 'Manage Users', 'View Reports', 'Admin Settings']
+// ─── Section: Appearance ─────────────────────────────────────────────────────
+
+function AppearanceSection() {
+  const [theme, setTheme] = useState('light')
+  const [accent, setAccent] = useState('#2563eb')
+  const [fontSize, setFontSize] = useState('Medium')
+  const [sidebar, setSidebar] = useState('Expanded')
+
+  const accents = ['#2563eb', '#7c3aed', '#0891b2', '#059669', '#dc2626', '#d97706']
+
   return (
     <div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Permissions</div>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
+      <SectionHeader icon="🎨" title="Appearance" subtitle="Customize the look and feel of your workspace." />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Theme */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Theme</div>
+          <div style={{ display: 'flex', gap: 14 }}>
+            {[
+              { id: 'light', label: 'Light', bg: '#f8fafc', bars: ['#e2e8f0', '#cbd5e1', '#94a3b8'] },
+              { id: 'dark', label: 'Dark (coming soon)', bg: '#1e293b', bars: ['#334155', '#475569', '#64748b'], disabled: true },
+              { id: 'system', label: 'System', bg: 'linear-gradient(135deg, #f8fafc 50%, #1e293b 50%)', bars: ['#94a3b8', '#64748b', '#475569'] },
+            ].map(t => (
+              <div
+                key={t.id}
+                onClick={() => !t.disabled && setTheme(t.id)}
+                style={{
+                  width: 130, borderRadius: 12, border: `2px solid ${theme === t.id ? primary : '#e2e8f0'}`,
+                  cursor: t.disabled ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                  opacity: t.disabled ? 0.55 : 1, position: 'relative',
+                  boxShadow: theme === t.id ? `0 0 0 3px ${primary}22` : 'none',
+                }}
+              >
+                <div style={{ height: 70, background: t.bg, padding: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {t.bars.map((c, i) => (
+                    <div key={i} style={{ height: 8, borderRadius: 4, background: c, width: i === 2 ? '60%' : '100%' }} />
+                  ))}
+                </div>
+                <div style={{ padding: '8px 10px', fontSize: 12, fontWeight: 600, color: '#475569', background: '#fff', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {t.label}
+                  {theme === t.id && <span style={{ color: primary, fontSize: 14 }}>✓</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Accent Color */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Accent Color</div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {accents.map(c => (
+              <div
+                key={c}
+                onClick={() => setAccent(c)}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%', background: c, cursor: 'pointer',
+                  border: `3px solid ${accent === c ? '#1e293b' : 'transparent'}`,
+                  boxShadow: `0 2px 8px ${c}55`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {accent === c && <span style={{ color: '#fff', fontSize: 14, fontWeight: 800 }}>✓</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Font Size */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Font Size</div>
+          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1.5px solid #e2e8f0', width: 'fit-content' }}>
+            {['Small', 'Medium', 'Large'].map((s, i) => (
+              <div
+                key={s}
+                onClick={() => setFontSize(s)}
+                style={{
+                  padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  background: fontSize === s ? primary : '#fff',
+                  color: fontSize === s ? '#fff' : '#475569',
+                  borderRight: i < 2 ? '1.5px solid #e2e8f0' : 'none',
+                }}
+              >{s}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Sidebar Style</div>
+          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1.5px solid #e2e8f0', width: 'fit-content' }}>
+            {['Expanded', 'Compact'].map((s, i) => (
+              <div
+                key={s}
+                onClick={() => setSidebar(s)}
+                style={{
+                  padding: '8px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  background: sidebar === s ? primary : '#fff',
+                  color: sidebar === s ? '#fff' : '#475569',
+                  borderRight: i < 1 ? '1.5px solid #e2e8f0' : 'none',
+                }}
+              >{s}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Section: Notifications ───────────────────────────────────────────────────
+
+function NotificationsSection() {
+  const [prefs, setPrefs] = useState({
+    emailMentions: true,
+    emailAssignments: true,
+    desktop: false,
+    weeklyDigest: true,
+    sprintReminders: true,
+  })
+
+  const items = [
+    { key: 'emailMentions', label: 'Email notifications for mentions', desc: 'Get emailed when someone @mentions you in a ticket or comment.' },
+    { key: 'emailAssignments', label: 'Email for ticket assignments', desc: 'Receive an email when a ticket is assigned to you.' },
+    { key: 'desktop', label: 'Desktop notifications', desc: 'Show browser notifications for real-time activity.' },
+    { key: 'weeklyDigest', label: 'Weekly digest email', desc: 'Get a weekly summary of activity across your projects every Monday.' },
+    { key: 'sprintReminders', label: 'Sprint reminders', desc: 'Notifications when sprints are starting, ending, or past due.' },
+  ]
+
+  return (
+    <div>
+      <SectionHeader icon="🔔" title="Notifications" subtitle="Control how and when you receive updates." />
+      <div style={card}>
+        {items.map((item, i) => (
+          <div
+            key={item.key}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 0', borderBottom: i < items.length - 1 ? '1px solid #f1f5f9' : 'none',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', marginBottom: 2 }}>{item.label}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>{item.desc}</div>
+            </div>
+            <Toggle on={prefs[item.key]} onChange={val => setPrefs(p => ({ ...p, [item.key]: val }))} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Section: User Management ─────────────────────────────────────────────────
+
+const SAMPLE_USERS = [
+  { id: 1, name: 'Harsha', initials: 'H', avatarBg: '#2563eb', email: 'harsha@trackkub.io', role: 'Admin', status: 'Active' },
+  { id: 2, name: 'Tom Wilson', initials: 'TW', avatarBg: '#0891b2', email: 'tom@company.com', role: 'Developer', status: 'Active' },
+  { id: 3, name: 'Sara Lee', initials: 'SL', avatarBg: '#d97706', email: 'sara@company.com', role: 'Designer', status: 'Active' },
+  { id: 4, name: 'Mike Chen', initials: 'MC', avatarBg: '#dc2626', email: 'mike@company.com', role: 'QA Engineer', status: 'Active' },
+  { id: 5, name: 'Priya Patel', initials: 'PP', avatarBg: '#7c3aed', email: 'priya@company.com', role: 'Product Manager', status: 'Invited' },
+]
+
+function UserAvatar({ initials, bg, size = 34 }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', background: bg,
+      color: '#fff', fontWeight: 700, fontSize: size * 0.38,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}>{initials}</div>
+  )
+}
+
+function UserManagementSection() {
+  const [members, setMembers] = useState(SAMPLE_USERS)
+  const [search, setSearch] = useState('')
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState('Developer')
+
+  const filtered = members.filter(u =>
+    u.name.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const handleRemove = (id) => {
+    if (window.confirm('Remove this member?')) setMembers(m => m.filter(u => u.id !== id))
+  }
+
+  const handleInvite = () => {
+    if (!inviteEmail) return
+    setMembers(m => [...m, {
+      id: Date.now(), name: inviteEmail.split('@')[0], initials: inviteEmail[0].toUpperCase(),
+      avatarBg: '#64748b', email: inviteEmail, role: inviteRole, status: 'Invited',
+    }])
+    setInviteEmail('')
+    setShowInvite(false)
+  }
+
+  return (
+    <div>
+      <SectionHeader icon="👤" title="User Management" subtitle="Invite and manage workspace members." />
+
+      {/* Search + Invite */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search members..."
+          style={{ maxWidth: 280 }}
+        />
+        <Btn onClick={() => setShowInvite(v => !v)}>+ Invite Member</Btn>
+      </div>
+
+      {/* Invite Form */}
+      {showInvite && (
+        <div style={{ ...card, marginBottom: 16, background: primaryLight, border: `1.5px solid ${primary}33`, padding: 16, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>EMAIL</label>
+            <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="colleague@company.com" style={{ width: 240 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>ROLE</label>
+            <Select value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
+              {['Developer', 'Designer', 'QA Engineer', 'Product Manager', 'Admin'].map(r => <option key={r}>{r}</option>)}
+            </Select>
+          </div>
+          <Btn onClick={handleInvite}>Send Invite</Btn>
+          <Btn variant="ghost" onClick={() => setShowInvite(false)}>Cancel</Btn>
+        </div>
+      )}
+
+      {/* Members Table */}
+      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr>
-              <th>Permission</th>
-              {roles.map(r => <th key={r}>{r}</th>)}
+            <tr style={{ background: '#f8fafc' }}>
+              {['Member', 'Email', 'Role', 'Status', 'Actions'].map(h => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px' }}>{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {perms.map(perm => (
-              <tr key={perm}>
-                <td style={{ fontWeight: 500 }}>{perm}</td>
-                {roles.map(r => {
-                  const has = ['Create Tickets', 'Edit Tickets', 'View Reports'].includes(perm) ||
-                    r === 'Admin' ||
-                    (['Manage Projects', 'Delete Tickets'].includes(perm) && ['Admin', 'Manager'].includes(r))
-                  return <td key={r} style={{ textAlign: 'center' }}>{has ? '✅' : '—'}</td>
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
-function FieldsPanel() {
-  const { customFields, openModal } = useApp()
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Custom Fields</div>
-        <button className="btn btn-primary btn-sm" onClick={() => openModal('addField')}>+ Add Field</button>
-      </div>
-      <div className="card" style={{ padding: 0 }}>
-        <table>
-          <thead><tr><th>Field</th><th>Type</th><th>Applies To</th><th>Required</th><th>Actions</th></tr></thead>
-          <tbody>
-            {customFields.map(f => (
-              <tr key={f.id}>
-                <td style={{ fontWeight: 600 }}>{f.name}</td>
-                <td><span className="badge badge-blue">{f.type}</span></td>
-                <td>{f.applyTo.map(t => <span key={t} className={`badge ${getTypeColor(t)}`} style={{ margin: 1 }}>{t}</span>)}</td>
-                <td>{f.required ? <span className="badge badge-red">Yes</span> : <span className="badge badge-gray">No</span>}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-ghost btn-sm">✏</button>
-                    <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }}>🗑</button>
+            {filtered.map((u, i) => (
+              <tr key={u.id} style={{ borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <UserAvatar initials={u.initials} bg={u.avatarBg} />
+                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{u.name}</span>
+                  </div>
+                </td>
+                <td style={{ padding: '12px 16px', fontSize: 13, color: '#64748b' }}>{u.email}</td>
+                <td style={{ padding: '12px 16px' }}><RoleBadge role={u.role} /></td>
+                <td style={{ padding: '12px 16px' }}><StatusBadge status={u.status} /></td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>✏ Edit</button>
+                    <button onClick={() => handleRemove(u.id)} style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}>✕ Remove</button>
                   </div>
                 </td>
               </tr>
@@ -205,173 +493,575 @@ function FieldsPanel() {
   )
 }
 
-function WorkflowsPanel() {
-  const { workflowDefs, doDeleteWorkflow, doSetDefaultWorkflow, openModal } = useApp()
+// ─── Section: Teams ───────────────────────────────────────────────────────────
 
-  const catColor = { todo: 'badge-gray', inprogress: 'badge-blue', done: 'badge-green', blocked: 'badge-red' }
+const SAMPLE_TEAMS = [
+  {
+    id: 1, name: 'Frontend Team', icon: '🎨', color: '#2563eb', desc: 'Builds the product UI and design system.',
+    members: [
+      { initials: 'H', bg: '#2563eb' }, { initials: 'SL', bg: '#d97706' }, { initials: 'TW', bg: '#0891b2' },
+    ],
+  },
+  {
+    id: 2, name: 'Backend Team', icon: '⚙️', color: '#059669', desc: 'Manages APIs, databases, and infrastructure.',
+    members: [
+      { initials: 'MC', bg: '#dc2626' }, { initials: 'TW', bg: '#0891b2' }, { initials: 'PP', bg: '#7c3aed' }, { initials: 'H', bg: '#2563eb' },
+    ],
+  },
+  {
+    id: 3, name: 'Design Team', icon: '✏️', color: '#7c3aed', desc: 'Owns brand, UX research, and visual design.',
+    members: [
+      { initials: 'SL', bg: '#d97706' }, { initials: 'PP', bg: '#7c3aed' },
+    ],
+  },
+]
+
+function TeamsSection() {
+  const [teams, setTeams] = useState(SAMPLE_TEAMS)
+  const [showCreate, setShowCreate] = useState(false)
+  const [newTeam, setNewTeam] = useState({ name: '', desc: '', color: '#2563eb' })
+
+  const handleCreate = () => {
+    if (!newTeam.name) return
+    setTeams(t => [...t, { id: Date.now(), name: newTeam.name, icon: '👥', color: newTeam.color, desc: newTeam.desc, members: [] }])
+    setNewTeam({ name: '', desc: '', color: '#2563eb' })
+    setShowCreate(false)
+  }
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Workflow Definitions</div>
-        <button className="btn btn-primary btn-sm" onClick={() => openModal('createWorkflow')}>+ New Workflow</button>
+      <SectionHeader icon="👥" title="Teams" subtitle="Organize members into focused functional teams." />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Btn onClick={() => setShowCreate(v => !v)}>+ Create Team</Btn>
       </div>
-      {workflowDefs.map(wf => (
-        <div key={wf.id} className="card" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{wf.name}</span>
-              {wf.isDefault && <span className="badge badge-green">Default</span>}
-            </div>
+
+      {showCreate && (
+        <div style={{ ...card, marginBottom: 20, background: primaryLight, border: `1.5px solid ${primary}33`, padding: 18, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>TEAM NAME</label>
+            <Input value={newTeam.name} onChange={e => setNewTeam(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Mobile Team" />
+          </div>
+          <div style={{ flex: 2, minWidth: 200 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>DESCRIPTION</label>
+            <Input value={newTeam.desc} onChange={e => setNewTeam(p => ({ ...p, desc: e.target.value }))} placeholder="What does this team do?" />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>COLOR</label>
             <div style={{ display: 'flex', gap: 6 }}>
-              {!wf.isDefault && (
-                <button className="btn btn-outline btn-sm" onClick={() => doSetDefaultWorkflow(wf.id)}>Set Default</button>
-              )}
-              <button className="btn btn-ghost btn-sm" onClick={() => openModal('editWorkflow', wf.id)}>✏</button>
-              {!wf.isDefault && (
-                <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => {
-                  if (window.confirm('Delete workflow?')) doDeleteWorkflow(wf.id)
-                }}>🗑</button>
-              )}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
-            {wf.statuses.map(s => (
-              <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: s.color + '22', color: s.color, border: `1.5px solid ${s.color}44` }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-                {s.name}
-              </span>
-            ))}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--gray-500)', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.5px' }}>Transitions</div>
-          {wf.transitions.map(tr => (
-            <div key={tr.from} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 12 }}>
-              <span style={{ fontWeight: 600, color: 'var(--gray-700)' }}>{tr.from}</span>
-              <span style={{ color: 'var(--gray-400)' }}>→</span>
-              {tr.to.map(x => <span key={x} style={{ background: 'var(--blue-light)', color: 'var(--blue)', padding: '1px 7px', borderRadius: 10, fontSize: 11, fontWeight: 600 }}>{x}</span>)}
-            </div>
-          ))}
-        </div>
-      ))}
-      {workflowDefs.length === 0 && <div className="empty-state">No workflows defined.</div>}
-    </div>
-  )
-}
-
-function ScreensPanel() {
-  const fields = ['Summary', 'Description', 'Assignee', 'Reporter', 'Priority', 'Status', 'Sprint', 'Labels', 'Start Date', 'Due Date', 'Story Points']
-  const [active, setActive] = React.useState({})
-  const toggle = (screen, field) => {
-    const key = `${screen}__${field}`
-    setActive(prev => ({ ...prev, [key]: !prev[key] }))
-  }
-  return (
-    <div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Screens</div>
-      {['Create Screen', 'Edit Screen', 'View Screen'].map(s => (
-        <div key={s} className="card" style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>{s}</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {fields.map(f => {
-              const on = active[`${s}__${f}`]
-              return (
-                <span
-                  key={f}
-                  onClick={() => toggle(s, f)}
-                  style={{ padding: '5px 11px', borderRadius: 6, fontSize: 12, border: `1.5px solid ${on ? 'var(--blue)' : 'var(--gray-200)'}`, background: on ? 'var(--blue-light)' : 'var(--gray-50)', cursor: 'pointer' }}
-                >
-                  {f}
-                </span>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function AppSettingsPanel() {
-  const { settings, doUpdateSettings } = useApp()
-  const [local, setLocal] = React.useState(settings)
-  React.useEffect(() => { setLocal(settings) }, [settings])
-
-  const handleSave = async () => {
-    await doUpdateSettings(local)
-    alert('✅ Settings saved!')
-  }
-
-  return (
-    <div>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>App Settings</div>
-      <div className="card" style={{ maxWidth: 480 }}>
-        <div className="form-group">
-          <label className="form-label">Application Name</label>
-          <input className="form-input" value={local.appName || ''} onChange={e => setLocal(p => ({ ...p, appName: e.target.value }))} />
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Timezone</label>
-            <select className="form-select" value={local.timezone || 'UTC'} onChange={e => setLocal(p => ({ ...p, timezone: e.target.value }))}>
-              {['UTC', 'US/Eastern', 'US/Pacific', 'Europe/London', 'Asia/Kolkata'].map(tz => (
-                <option key={tz} value={tz}>{tz}</option>
+              {['#2563eb', '#059669', '#7c3aed', '#dc2626', '#d97706'].map(c => (
+                <div key={c} onClick={() => setNewTeam(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: `2px solid ${newTeam.color === c ? '#1e293b' : 'transparent'}` }} />
               ))}
-            </select>
+            </div>
           </div>
-          <div className="form-group">
-            <label className="form-label">Date Format</label>
-            <select className="form-select" value={local.dateFormat || 'MM/DD/YYYY'} onChange={e => setLocal(p => ({ ...p, dateFormat: e.target.value }))}>
-              {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </div>
+          <Btn onClick={handleCreate}>Create</Btn>
+          <Btn variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Btn>
         </div>
-        {[['emailNotif', 'Email Notifications'], ['slackNotif', 'Slack Notifications'], ['allowSignup', 'Allow Self Signup']].map(([k, l]) => (
-          <div key={k} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--gray-100)' }}>
-            <span style={{ fontSize: 13 }}>{l}</span>
-            <div className={`toggle ${local[k] ? 'on' : ''}`} onClick={() => setLocal(p => ({ ...p, [k]: !p[k] }))}>
-              <div className="toggle-knob" />
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+        {teams.map(t => (
+          <div key={t.id} style={{ ...card, padding: 20, borderTop: `4px solid ${t.color}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: t.color + '22', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {t.icon}
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>{t.name}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>{t.members.length} member{t.members.length !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+            {t.desc && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>{t.desc}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex' }}>
+                {t.members.slice(0, 5).map((m, i) => (
+                  <div key={i} style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 5 - i, position: 'relative', border: '2px solid #fff', borderRadius: '50%' }}>
+                    <UserAvatar initials={m.initials} bg={m.bg} size={28} />
+                  </div>
+                ))}
+                {t.members.length > 5 && <div style={{ marginLeft: -8, width: 28, height: 28, borderRadius: '50%', background: '#e2e8f0', fontSize: 10, fontWeight: 700, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>+{t.members.length - 5}</div>}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: primary, cursor: 'pointer' }}>Manage →</span>
             </div>
           </div>
         ))}
-        <button className="btn btn-primary w-full" style={{ marginTop: 14 }} onClick={handleSave}>Save Settings</button>
       </div>
     </div>
   )
 }
 
-const TABS = {
-  users: 'Users', roles: 'Roles & Groups', teams: 'Teams', permissions: 'Permissions',
-  fields: 'Custom Fields', workflows: 'Workflows', screens: 'Screens', app: 'App Settings'
-}
+// ─── Section: Groups ──────────────────────────────────────────────────────────
 
-const PANELS = {
-  users: UsersPanel, roles: RolesPanel, teams: TeamsPanel, permissions: PermissionsPanel,
-  fields: FieldsPanel, workflows: WorkflowsPanel, screens: ScreensPanel, app: AppSettingsPanel
-}
+const SAMPLE_GROUPS = [
+  { id: 1, name: 'Engineering', members: 5, permission: 'Edit', permColor: { bg: '#dcfce7', color: '#15803d' }, desc: 'Can create and edit tickets' },
+  { id: 2, name: 'Product', members: 3, permission: 'View Only', permColor: { bg: '#f1f5f9', color: '#475569' }, desc: 'Can view and comment' },
+  { id: 3, name: 'Admins', members: 2, permission: 'Full Access', permColor: { bg: '#dbeafe', color: '#1d4ed8' }, desc: 'Full workspace access' },
+]
 
-export default function Settings() {
-  const { settingsTab, navSettings } = useApp()
-  const Panel = PANELS[settingsTab] || UsersPanel
+function GroupsSection() {
+  const [groups, setGroups] = useState(SAMPLE_GROUPS)
+
+  const handleDelete = (id) => {
+    if (window.confirm('Delete this group?')) setGroups(g => g.filter(x => x.id !== id))
+  }
 
   return (
-    <div className="page">
-      <div className="page-header"><div className="page-title">Settings</div></div>
-      <div className="settings-layout">
-        <div className="settings-nav">
-          <div className="settings-nav-group">Admin</div>
-          {['users', 'roles', 'teams', 'permissions'].map(k => (
-            <div key={k} className={`settings-nav-item ${settingsTab === k ? 'active' : ''}`} onClick={() => navSettings(k)}>
-              {TABS[k]}
+    <div>
+      <SectionHeader icon="🗂️" title="Groups" subtitle="Organize members into permission groups for access control." />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Btn>+ Create Group</Btn>
+      </div>
+
+      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc' }}>
+              {['Group', 'Members', 'Permissions', 'Actions'].map(h => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((g, i) => (
+              <tr key={g.id} style={{ borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                <td style={{ padding: '14px 16px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>{g.name}</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{g.desc}</div>
+                </td>
+                <td style={{ padding: '14px 16px', fontSize: 13, color: '#64748b' }}>
+                  <span style={{ fontWeight: 600 }}>{g.members}</span> members
+                </td>
+                <td style={{ padding: '14px 16px' }}>
+                  <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, background: g.permColor.bg, color: g.permColor.color }}>
+                    {g.permission}
+                  </span>
+                </td>
+                <td style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>✏ Edit</button>
+                    <button onClick={() => handleDelete(g.id)} style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}>🗑 Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ─── Section: Security ────────────────────────────────────────────────────────
+
+const AUDIT_LOGS = [
+  { id: 1, action: 'Harsha logged in', time: 'Today, 9:14 AM', icon: '🔑' },
+  { id: 2, action: 'Tom Wilson created ticket PRJ-45', time: 'Today, 8:52 AM', icon: '🎫' },
+  { id: 3, action: 'Sara Lee updated sprint "Sprint 3"', time: 'Yesterday, 5:30 PM', icon: '✏️' },
+  { id: 4, action: 'Priya Patel invited to workspace', time: 'Jun 2, 2:10 PM', icon: '✉️' },
+  { id: 5, action: 'Mike Chen deleted ticket PRJ-38', time: 'Jun 1, 11:45 AM', icon: '🗑️' },
+]
+
+function SecuritySection() {
+  const [twoFactor, setTwoFactor] = useState(false)
+  const [sessionTimeout, setSessionTimeout] = useState('8 hours')
+
+  return (
+    <div>
+      <SectionHeader icon="🔐" title="Security & Permissions" subtitle="Manage authentication, session, and access policies." />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Auth Settings */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>Authentication</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>Two-Factor Authentication</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Require 2FA for all workspace members.</div>
             </div>
-          ))}
-          <div className="settings-nav-group">App</div>
-          {['fields', 'workflows', 'screens', 'app'].map(k => (
-            <div key={k} className={`settings-nav-item ${settingsTab === k ? 'active' : ''}`} onClick={() => navSettings(k)}>
-              {TABS[k]}
+            <Toggle on={twoFactor} onChange={setTwoFactor} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>Session Timeout</div>
+              <div style={{ fontSize: 12, color: '#94a3b8' }}>Automatically log out inactive sessions.</div>
+            </div>
+            <Select value={sessionTimeout} onChange={e => setSessionTimeout(e.target.value)}>
+              {['1 hour', '8 hours', '24 hours', 'Never'].map(t => <option key={t}>{t}</option>)}
+            </Select>
+          </div>
+        </div>
+
+        {/* IP Allowlist */}
+        <div style={{ ...card, position: 'relative', opacity: 0.75 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>IP Allowlist</div>
+            <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#b45309' }}>Enterprise Plan</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 10 }}>Restrict workspace access to specific IP addresses or ranges.</div>
+          <textarea
+            disabled
+            placeholder="e.g. 192.168.1.0/24, 10.0.0.1"
+            rows={3}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 12, color: '#94a3b8', background: '#f8fafc', resize: 'none', boxSizing: 'border-box', cursor: 'not-allowed' }}
+          />
+        </div>
+
+        {/* Active Sessions */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Active Sessions</div>
+          {[
+            { device: 'Chrome on Windows 11', location: 'New York, US', current: true, time: 'Now' },
+            { device: 'Safari on iPhone 15', location: 'New York, US', current: false, time: '2 hours ago' },
+          ].map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: i < 1 ? '1px solid #f1f5f9' : 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 24 }}>{s.device.includes('Chrome') ? '💻' : '📱'}</div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>{s.device} {s.current && <span style={{ marginLeft: 6, padding: '1px 7px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: '#dcfce7', color: '#15803d' }}>Current</span>}</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.location} · {s.time}</div>
+                </div>
+              </div>
+              {!s.current && <button style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}>Revoke</button>}
             </div>
           ))}
         </div>
-        <div><Panel /></div>
+
+        {/* Audit Log */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Audit Log</div>
+          {AUDIT_LOGS.map((log, i) => (
+            <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < AUDIT_LOGS.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+              <span style={{ fontSize: 18 }}>{log.icon}</span>
+              <span style={{ fontSize: 13, color: '#1e293b', flex: 1 }}>{log.action}</span>
+              <span style={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }}>{log.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Section: Workflows ───────────────────────────────────────────────────────
+
+function WorkflowsSection() {
+  const { projects = [] } = useApp()
+
+  const fallback = [
+    { id: 'p1', name: 'TracKorbit Web', color: '#2563eb' },
+    { id: 'p2', name: 'Mobile App', color: '#059669' },
+    { id: 'p3', name: 'Design System', color: '#7c3aed' },
+  ]
+
+  const list = projects.length > 0 ? projects : fallback
+
+  return (
+    <div>
+      <SectionHeader icon="🔄" title="Workflows" subtitle="Configure ticket statuses and transitions per project." />
+      <div style={{ ...card, marginBottom: 20, background: '#fffbeb', border: '1.5px solid #fde68a' }}>
+        <div style={{ fontSize: 13, color: '#92400e' }}>
+          💡 <strong>Workflows are configured per project.</strong> Select a project below to edit its workflow stages and transitions.
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {list.map(p => (
+          <div key={p.id} style={{ ...card, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+              <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>{p.name}</span>
+            </div>
+            <button style={{ background: 'none', border: `1.5px solid ${primary}`, color: primary, borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              Configure →
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Section: Custom Fields ───────────────────────────────────────────────────
+
+const DEFAULT_FIELDS = [
+  { id: 1, name: 'Story Points', type: 'Number', required: false, projects: 'All projects' },
+  { id: 2, name: 'Sprint', type: 'Sprint Selector', required: false, projects: 'All projects' },
+  { id: 3, name: 'Assignee', type: 'User', required: false, projects: 'All projects' },
+  { id: 4, name: 'Due Date', type: 'Date', required: false, projects: 'All projects' },
+  { id: 5, name: 'Labels', type: 'Tags', required: false, projects: 'All projects' },
+]
+
+function CustomFieldsSection() {
+  const [fields, setFields] = useState(DEFAULT_FIELDS)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newField, setNewField] = useState({ name: '', type: 'Text', required: false })
+
+  const handleAdd = () => {
+    if (!newField.name) return
+    setFields(f => [...f, { id: Date.now(), ...newField, projects: 'All projects' }])
+    setNewField({ name: '', type: 'Text', required: false })
+    setShowAdd(false)
+  }
+
+  const handleDelete = (id) => setFields(f => f.filter(x => x.id !== id))
+
+  return (
+    <div>
+      <SectionHeader icon="📋" title="Custom Fields" subtitle="Add extra data fields to tickets across projects." />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <Btn onClick={() => setShowAdd(v => !v)}>+ Add Field</Btn>
+      </div>
+
+      {showAdd && (
+        <div style={{ ...card, marginBottom: 16, background: primaryLight, border: `1.5px solid ${primary}33`, padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>FIELD NAME</label>
+            <Input value={newField.name} onChange={e => setNewField(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Priority Score" style={{ width: 200 }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>TYPE</label>
+            <Select value={newField.type} onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}>
+              {['Text', 'Number', 'Date', 'User', 'Tags', 'Select', 'Checkbox'].map(t => <option key={t}>{t}</option>)}
+            </Select>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#475569', cursor: 'pointer' }}>
+            <input type="checkbox" checked={newField.required} onChange={e => setNewField(p => ({ ...p, required: e.target.checked }))} />
+            Required
+          </label>
+          <Btn onClick={handleAdd}>Add Field</Btn>
+          <Btn variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Btn>
+        </div>
+      )}
+
+      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f8fafc' }}>
+              {['Field Name', 'Type', 'Required', 'Projects', 'Actions'].map(h => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.5px' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {fields.map((f, i) => (
+              <tr key={f.id} style={{ borderTop: i > 0 ? '1px solid #f1f5f9' : 'none' }}>
+                <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: 13, color: '#1e293b' }}>{f.name}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#dbeafe', color: '#1d4ed8' }}>{f.type}</span>
+                </td>
+                <td style={{ padding: '12px 16px' }}>
+                  {f.required
+                    ? <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fee2e2', color: '#dc2626' }}>Yes</span>
+                    : <span style={{ padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#64748b' }}>No</span>}
+                </td>
+                <td style={{ padding: '12px 16px', fontSize: 13, color: '#64748b' }}>{f.projects}</td>
+                <td style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12 }}>✏</button>
+                    <button onClick={() => handleDelete(f.id)} style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}>🗑</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ─── Section: Labels & Tags ───────────────────────────────────────────────────
+
+const DEFAULT_LABELS = [
+  { id: 1, name: 'frontend', color: '#2563eb', count: 12 },
+  { id: 2, name: 'backend', color: '#059669', count: 9 },
+  { id: 3, name: 'bug', color: '#dc2626', count: 5 },
+  { id: 4, name: 'design', color: '#7c3aed', count: 7 },
+  { id: 5, name: 'urgent', color: '#ef4444', count: 3 },
+  { id: 6, name: 'documentation', color: '#64748b', count: 4 },
+  { id: 7, name: 'testing', color: '#d97706', count: 6 },
+  { id: 8, name: 'feature', color: '#4338ca', count: 11 },
+]
+
+function LabelsSection() {
+  const [labels, setLabels] = useState(DEFAULT_LABELS)
+  const [newLabel, setNewLabel] = useState('')
+  const [newColor, setNewColor] = useState('#2563eb')
+
+  const handleAdd = () => {
+    if (!newLabel.trim()) return
+    setLabels(l => [...l, { id: Date.now(), name: newLabel.trim(), color: newColor, count: 0 }])
+    setNewLabel('')
+  }
+
+  const handleDelete = (id) => setLabels(l => l.filter(x => x.id !== id))
+
+  return (
+    <div>
+      <SectionHeader icon="🏷️" title="Labels & Tags" subtitle="Create color-coded labels to categorize tickets." />
+
+      <div style={card}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 24 }}>
+          {labels.map(l => (
+            <div
+              key={l.id}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '6px 12px', borderRadius: 20,
+                background: l.color + '18', border: `1.5px solid ${l.color}44`,
+              }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color, flexShrink: 0 }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: l.color }}>{l.name}</span>
+              <span style={{ fontSize: 11, background: l.color + '30', color: l.color, borderRadius: 10, padding: '0 5px' }}>{l.count}</span>
+              <span
+                onClick={() => handleDelete(l.id)}
+                style={{ fontSize: 14, cursor: 'pointer', color: l.color, opacity: 0.7, lineHeight: 1, marginLeft: 2 }}
+              >×</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 12 }}>Add Label</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Input
+              value={newLabel}
+              onChange={e => setNewLabel(e.target.value)}
+              placeholder="Label name..."
+              style={{ width: 200 }}
+            />
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {['#2563eb', '#059669', '#dc2626', '#7c3aed', '#d97706', '#4338ca', '#64748b', '#0891b2'].map(c => (
+                <div
+                  key={c}
+                  onClick={() => setNewColor(c)}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
+                    border: `2px solid ${newColor === c ? '#1e293b' : 'transparent'}`,
+                    boxShadow: `0 1px 4px ${c}55`,
+                  }}
+                />
+              ))}
+            </div>
+            <Btn onClick={handleAdd}>Add Label</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Nav Config ───────────────────────────────────────────────────────────────
+
+const NAV_GROUPS = [
+  {
+    label: 'WORKSPACE',
+    items: [
+      { key: 'general', icon: '🏢', label: 'General' },
+      { key: 'appearance', icon: '🎨', label: 'Appearance' },
+      { key: 'notifications', icon: '🔔', label: 'Notifications' },
+    ],
+  },
+  {
+    label: 'PEOPLE',
+    items: [
+      { key: 'users', icon: '👤', label: 'User Management' },
+      { key: 'teams', icon: '👥', label: 'Teams' },
+      { key: 'groups', icon: '🗂️', label: 'Groups' },
+    ],
+  },
+  {
+    label: 'SECURITY',
+    items: [
+      { key: 'security', icon: '🔐', label: 'Security & Permissions' },
+    ],
+  },
+  {
+    label: 'DATA',
+    items: [
+      { key: 'workflows', icon: '🔄', label: 'Workflows' },
+      { key: 'fields', icon: '📋', label: 'Custom Fields' },
+      { key: 'labels', icon: '🏷️', label: 'Labels & Tags' },
+    ],
+  },
+]
+
+const SECTIONS = {
+  general: GeneralSection,
+  appearance: AppearanceSection,
+  notifications: NotificationsSection,
+  users: UserManagementSection,
+  teams: TeamsSection,
+  groups: GroupsSection,
+  security: SecuritySection,
+  workflows: WorkflowsSection,
+  fields: CustomFieldsSection,
+  labels: LabelsSection,
+}
+
+// ─── Root ─────────────────────────────────────────────────────────────────────
+
+export default function Settings() {
+  const [active, setActive] = useState('general')
+  const Section = SECTIONS[active] || GeneralSection
+
+  return (
+    <div style={{
+      display: 'flex', gap: 0, minHeight: 'calc(100vh - 56px)',
+      background: '#eef2ff', padding: 24, boxSizing: 'border-box',
+    }}>
+      {/* Left Nav */}
+      <div style={{
+        width: 220, flexShrink: 0, background: '#fff', borderRadius: 14,
+        boxShadow: '0 4px 24px rgba(59,130,246,0.08)',
+        borderRight: '1px solid rgba(37,99,235,0.10)',
+        padding: '18px 0', alignSelf: 'flex-start',
+        position: 'sticky', top: 24,
+      }}>
+        <div style={{ padding: '0 16px 14px', fontSize: 15, fontWeight: 800, color: '#1e293b', letterSpacing: '-0.3px' }}>
+          ⚙ Settings
+        </div>
+
+        {NAV_GROUPS.map(group => (
+          <div key={group.label} style={{ marginBottom: 4 }}>
+            <div style={{ padding: '10px 16px 4px', fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>
+              {group.label}
+            </div>
+            {group.items.map(item => {
+              const isActive = active === item.key
+              return (
+                <div
+                  key={item.key}
+                  onClick={() => setActive(item.key)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '8px 16px', cursor: 'pointer', fontSize: 13,
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? primary : '#475569',
+                    background: isActive ? primaryLight : 'transparent',
+                    borderRight: isActive ? `3px solid ${primary}` : '3px solid transparent',
+                    transition: 'all .15s',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>{item.icon}</span>
+                  {item.label}
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Content Area */}
+      <div style={{
+        flex: 1, marginLeft: 20, background: '#fff', borderRadius: 14,
+        boxShadow: '0 4px 24px rgba(59,130,246,0.10)',
+        padding: 28, minHeight: 'calc(100vh - 104px)', boxSizing: 'border-box',
+        overflowY: 'auto',
+      }}>
+        <Section />
       </div>
     </div>
   )

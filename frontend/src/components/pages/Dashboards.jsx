@@ -166,6 +166,22 @@ function DashboardReport({ d, res }) {
 const TYPE_BAR_COLOR = { Feature: '#f59e0b', Initiative: '#7c3aed', Epic: '#9333ea', Story: '#16a34a', Task: '#3b82f6', 'Sub-task': '#ea580c' }
 const CUSTOM_CARD_COLORS = ['#1a56db', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4']
 
+/* ─── Shared card style ─── */
+const cardStyle = (leftColor) => ({
+  background: '#fff',
+  borderRadius: 14,
+  border: '1px solid rgba(37,99,235,0.10)',
+  boxShadow: '0 4px 20px rgba(37,99,235,0.08)',
+  padding: '20px 24px',
+  ...(leftColor ? { borderLeft: `4px solid ${leftColor}` } : {}),
+})
+
+const cardTitle = (icon, label) => (
+  <div style={{ fontSize: 14, fontWeight: 800, color: '#1e293b', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 7 }}>
+    <span>{icon}</span><span>{label}</span>
+  </div>
+)
+
 export default function Dashboards() {
   const { tickets, projects, filters, customDashboards, openModal, doDeleteDashboard, getFilteredTickets, openTicketView } = useApp()
 
@@ -186,60 +202,73 @@ export default function Dashboards() {
   const CHART_PAD_TOP = 28
   const CHART_PAD_BOT = 28
   const usableH = CHART_H - CHART_PAD_TOP - CHART_PAD_BOT
-  const totalBarsW = STATUSES.length * BAR_W
-  const gapW = (statusChartWidth => statusChartWidth)(totalBarsW) // placeholder; we'll use % in SVG viewBox
 
   /* stat card config */
   const statCards = [
-    { label: 'Total Tickets', value: total, color: '#1a56db', icon: '📋', extra: null, borderColor: '#1a56db' },
     {
-      label: 'Done', value: done, color: '#10b981', icon: '✅',
+      label: 'Total Tickets', value: total, color: '#2563eb', emoji: '📋',
+      extra: <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>across all projects</div>,
+      borderColor: '#2563eb'
+    },
+    {
+      label: 'Done', value: done, color: '#10b981', emoji: '✅',
       extra: total ? (
-        <span style={{ display: 'inline-block', marginTop: 6, padding: '2px 10px', borderRadius: 999, background: '#d1fae5', color: '#065f46', fontSize: 11, fontWeight: 600 }}>
+        <span style={{ display: 'inline-block', marginTop: 6, padding: '2px 10px', borderRadius: 999, background: '#d1fae5', color: '#065f46', fontSize: 11, fontWeight: 700 }}>
           {Math.round(done / total * 100)}% complete
         </span>
       ) : null,
       borderColor: '#10b981'
     },
-    { label: 'In Progress', value: inprog, color: '#f59e0b', icon: '⚡', extra: null, borderColor: '#f59e0b' },
     {
-      label: 'Blocked', value: blocked, color: '#ef4444', icon: '🚫',
+      label: 'In Progress', value: inprog, color: '#f59e0b', emoji: '⚡',
+      extra: <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>currently active</div>,
+      borderColor: '#f59e0b'
+    },
+    {
+      label: 'Blocked', value: blocked, color: '#ef4444', emoji: '🚫',
       extra: blocked > 0 ? (
-        <span style={{ display: 'inline-block', marginTop: 6, padding: '2px 10px', borderRadius: 999, background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 600 }}>
+        <span style={{ display: 'inline-block', marginTop: 6, padding: '2px 10px', borderRadius: 999, background: '#fee2e2', color: '#991b1b', fontSize: 11, fontWeight: 700 }}>
           Needs attention
         </span>
-      ) : null,
+      ) : <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>All clear</div>,
       borderColor: '#ef4444'
     }
   ]
 
   return (
-    <div className="page" style={{ paddingBottom: 40 }}>
+    <div className="page" style={{ background: '#eef2ff', minHeight: '100%', paddingBottom: 40 }}>
 
-      {/* ── Hero Header ── */}
+      {/* ── Hero Banner ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #1a56db 0%, #4f46e5 100%)',
-        borderRadius: 16,
-        padding: '28px 32px',
+        background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 60%, #7c3aed 100%)',
+        borderRadius: 18,
+        padding: '30px 36px',
         marginBottom: 24,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 16
+        gap: 16,
+        position: 'relative',
+        overflow: 'hidden',
       }}>
-        <div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.2 }}>Dashboards</div>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>Analytics & KPIs across all projects</div>
+        {/* Decorative circles */}
+        <div style={{ position: 'absolute', top: -50, right: 280, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -40, right: 60, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.2 }}>📊 Dashboards</div>
+          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 }}>Analytics & KPIs across your workspace</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
           {filters.filter(f => f.shared).map(f => (
             <button key={f.id}
               title={Object.entries(f.conditions).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ')}
               style={{
-                padding: '5px 14px', borderRadius: 999, border: '1.5px solid rgba(255,255,255,0.35)',
-                background: 'rgba(255,255,255,0.15)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                backdropFilter: 'blur(4px)'
+                padding: '6px 16px', borderRadius: 999,
+                border: '1.5px solid rgba(255,255,255,0.3)',
+                background: 'rgba(255,255,255,0.15)', color: '#fff',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                backdropFilter: 'blur(6px)',
               }}>
               {f.name} ({getFilteredTickets(f.id).length})
             </button>
@@ -247,49 +276,51 @@ export default function Dashboards() {
           <button
             onClick={() => openModal('createDashboard')}
             style={{
-              padding: '8px 20px', borderRadius: 10, border: 'none',
-              background: '#fff', color: '#1a56db', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)', whiteSpace: 'nowrap'
+              padding: '8px 22px', borderRadius: 10, border: 'none',
+              background: '#fff', color: '#2563eb',
+              fontSize: 13, fontWeight: 800, cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.18)', whiteSpace: 'nowrap',
             }}>
             + New Dashboard
           </button>
         </div>
       </div>
 
-      {/* ── Stat Cards ── */}
+      {/* ── Summary Stat Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {statCards.map(card => (
           <div key={card.label} style={{
             background: '#fff',
             borderRadius: 14,
-            border: `1.5px solid #e8edf5`,
+            border: '1px solid rgba(37,99,235,0.10)',
             borderLeft: `4px solid ${card.borderColor}`,
-            boxShadow: '0 2px 8px rgba(26,86,219,0.10)',
+            boxShadow: '0 4px 20px rgba(37,99,235,0.08)',
             padding: '18px 20px',
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: 14, right: 16, fontSize: 20, opacity: 0.85 }}>{card.icon}</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: card.color, lineHeight: 1 }}>{card.value}</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 5, fontWeight: 500 }}>{card.label}</div>
+            {/* Ghost watermark emoji */}
+            <div style={{ position: 'absolute', top: 12, right: 16, fontSize: 26, opacity: 0.09, userSelect: 'none' }}>{card.emoji}</div>
+            <div style={{ fontSize: 36, fontWeight: 900, color: card.color, lineHeight: 1 }}>{card.value}</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 5, fontWeight: 600 }}>{card.label}</div>
             {card.extra}
           </div>
         ))}
       </div>
 
-      {/* ── Row 2: Status Chart + Team Workload ── */}
+      {/* ── Charts Row: Status Bar Chart + Team Workload ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
 
-        {/* SVG Bar Chart */}
-        <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #e8edf5', boxShadow: '0 2px 8px rgba(26,86,219,0.08)', padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>Tickets by Status</div>
+        {/* SVG Bar Chart — Tickets by Status */}
+        <div style={cardStyle('#2563eb')}>
+          {cardTitle('📊', 'Tickets by Status')}
           <svg width="100%" height={CHART_H} viewBox={`0 0 ${STATUSES.length * 80} ${CHART_H}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-            {/* grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
+            {/* Grid lines at 25/50/75/100% */}
+            {[0.25, 0.5, 0.75, 1].map((pct, i) => (
               <line key={i}
                 x1={0} y1={CHART_PAD_TOP + (1 - pct) * usableH}
                 x2={STATUSES.length * 80} y2={CHART_PAD_TOP + (1 - pct) * usableH}
-                stroke="#f1f5f9" strokeWidth={1} />
+                stroke="#e2e8f0" strokeWidth={1} strokeDasharray="4,3" />
             ))}
             {STATUSES.map((s, i) => {
               const barH = Math.max(Math.round(byStatus[s] / mx * usableH), 4)
@@ -297,9 +328,9 @@ export default function Dashboards() {
               const y = CHART_PAD_TOP + usableH - barH
               return (
                 <g key={s}>
-                  <rect x={x} y={y} width={48} height={barH} rx={4} fill={SC[s]} />
-                  <text x={x + 24} y={y - 6} textAnchor="middle" fontSize={13} fontWeight={700} fill="#1e293b">{byStatus[s]}</text>
-                  <text x={x + 24} y={CHART_PAD_TOP + usableH + 16} textAnchor="middle" fontSize={10} fill="#94a3b8">{s}</text>
+                  <rect x={x} y={y} width={BAR_W} height={barH} rx={5} fill={SC[s]} />
+                  <text x={x + BAR_W / 2} y={y - 7} textAnchor="middle" fontSize={13} fontWeight={800} fill="#1e293b">{byStatus[s]}</text>
+                  <text x={x + BAR_W / 2} y={CHART_PAD_TOP + usableH + 17} textAnchor="middle" fontSize={10} fill="#94a3b8">{s}</text>
                 </g>
               )
             })}
@@ -307,23 +338,23 @@ export default function Dashboards() {
         </div>
 
         {/* Team Workload */}
-        <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #e8edf5', boxShadow: '0 2px 8px rgba(26,86,219,0.08)', padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 16 }}>Team Workload</div>
+        <div style={cardStyle('#8b5cf6')}>
+          {cardTitle('👥', 'Team Workload')}
           {Object.entries(byAssignee).slice(0, 6).map(([name, count]) => {
             const pct = total ? Math.round(count / total * 100) : 0
             return (
               <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                 <Avatar name={name} size={28} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{name}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 11, padding: '1px 8px', borderRadius: 999, background: '#eff6ff', color: '#1a56db', fontWeight: 700 }}>{count}</span>
+                      <span style={{ fontSize: 11, padding: '1px 8px', borderRadius: 999, background: '#eff6ff', color: '#2563eb', fontWeight: 800 }}>{count}</span>
                       <span style={{ fontSize: 11, color: '#94a3b8', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
                     </div>
                   </div>
-                  <div style={{ height: 8, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: 'linear-gradient(90deg, #1a56db, #6366f1)', transition: 'width 0.4s ease' }} />
+                  <div style={{ height: 7, borderRadius: 999, background: '#e8edf5', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: 'linear-gradient(90deg, #2563eb, #7c3aed)', transition: 'width 0.4s ease' }} />
                   </div>
                 </div>
               </div>
@@ -332,31 +363,31 @@ export default function Dashboards() {
         </div>
       </div>
 
-      {/* ── Row 3: Issue Type + Projects + Recent Activity ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 20 }}>
+      {/* ── Second Row: Issue Type + Projects Overview + Recent Activity ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
 
         {/* By Issue Type */}
-        <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #e8edf5', boxShadow: '0 2px 8px rgba(26,86,219,0.08)', padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>By Issue Type</div>
+        <div style={cardStyle()}>
+          {cardTitle('🏷️', 'By Issue Type')}
           {ISSUE_TYPES.map(t => {
             const pct = byType[t] ? Math.round(byType[t] / mxT * 100) : 0
             const col = TYPE_BAR_COLOR[t] || '#94a3b8'
             return (
-              <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0 }} />
+              <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: col, flexShrink: 0 }} />
                 <span style={{ fontSize: 12, fontWeight: 500, color: '#334155', flex: 1 }}>{t}</span>
-                <div style={{ width: 80, height: 6, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
+                <div style={{ width: 72, height: 6, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: col, transition: 'width 0.4s' }} />
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', minWidth: 20, textAlign: 'right' }}>{byType[t]}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#1e293b', minWidth: 20, textAlign: 'right' }}>{byType[t]}</span>
               </div>
             )
           })}
         </div>
 
         {/* Projects Overview */}
-        <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #e8edf5', boxShadow: '0 2px 8px rgba(26,86,219,0.08)', padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Projects Overview</div>
+        <div style={cardStyle()}>
+          {cardTitle('🗂', 'Projects Overview')}
           {projects.map(p => {
             const pt = tks.filter(t => t.project === p.id)
             const pd = pt.filter(t => t.status === 'Done').length
@@ -370,10 +401,10 @@ export default function Dashboards() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 11, color: '#94a3b8' }}>{pd}/{pt.length}</span>
-                    <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 999, background: p.color + '1a', color: p.color, fontWeight: 700 }}>{pct}%</span>
+                    <span style={{ fontSize: 11, padding: '1px 7px', borderRadius: 999, background: p.color + '1a', color: p.color, fontWeight: 800 }}>{pct}%</span>
                   </div>
                 </div>
-                <div style={{ height: 6, borderRadius: 999, background: '#f1f5f9', overflow: 'hidden' }}>
+                <div style={{ height: 5, borderRadius: 999, background: '#e8edf5', overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: p.color, transition: 'width 0.4s' }} />
                 </div>
               </div>
@@ -382,35 +413,33 @@ export default function Dashboards() {
         </div>
 
         {/* Recent Activity */}
-        <div style={{ background: '#fff', borderRadius: 14, border: '1.5px solid #e8edf5', boxShadow: '0 2px 8px rgba(26,86,219,0.08)', padding: '20px 24px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 14 }}>Recent Activity</div>
+        <div style={cardStyle()}>
+          {cardTitle('🕐', 'Recent Activity')}
           {tks.slice(0, 6).map(t => (
             <div key={t.id}
               onClick={() => openTicketView(t.id)}
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 6px',
                 borderBottom: '1px solid #f1f5f9', cursor: 'pointer', borderRadius: 8,
-                transition: 'background 0.15s'
+                transition: 'background 0.15s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = '#f8faff'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              {/* Type badge pill */}
               <span style={{
                 display: 'inline-block', padding: '2px 7px', borderRadius: 6,
                 background: (TYPE_BAR_COLOR[t.type] || '#94a3b8') + '22',
                 color: TYPE_BAR_COLOR[t.type] || '#94a3b8',
-                fontSize: 10, fontWeight: 700, flexShrink: 0, marginTop: 1
-              }}>{t.type[0]}</span>
+                fontSize: 10, fontWeight: 700, flexShrink: 0, marginTop: 1,
+              }}>{t.type ? t.type[0] : '?'}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#1a56db', fontFamily: 'monospace', flexShrink: 0 }}>{t.id}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#2563eb', fontFamily: 'monospace', flexShrink: 0 }}>{t.id}</span>
                   <span style={{ fontSize: 12, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t.title.length > 30 ? t.title.slice(0, 30) + '…' : t.title}
+                    {t.title.length > 28 ? t.title.slice(0, 28) + '…' : t.title}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span className={`badge ${getStatusClass(t.status)}`} style={{ fontSize: 10 }}>{t.status}</span>
-                  <span style={{ fontSize: 10, color: '#94a3b8' }}>just now</span>
-                </div>
+                <span className={`badge ${getStatusClass(t.status)}`} style={{ fontSize: 10 }}>{t.status}</span>
               </div>
             </div>
           ))}
@@ -419,8 +448,10 @@ export default function Dashboards() {
 
       {/* ── Custom Dashboards ── */}
       {customDashboards.length > 0 && (
-        <div style={{ marginTop: 28 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: '#1e293b', marginBottom: 16, letterSpacing: '-0.3px' }}>Custom Dashboards</div>
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 17, fontWeight: 900, color: '#1e293b', marginBottom: 16, letterSpacing: '-0.3px' }}>
+            Custom Dashboards
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 18 }}>
             {customDashboards.map((d, idx) => {
               const accentColor = CUSTOM_CARD_COLORS[idx % CUSTOM_CARD_COLORS.length]
@@ -430,7 +461,7 @@ export default function Dashboards() {
               const inprogC = res.filter(t => t.status === 'In Progress').length
               const blockedC = res.filter(t => t.status === 'Blocked').length
               const miniStats = [
-                { label: 'Total', value: res.length, color: '#1a56db' },
+                { label: 'Total', value: res.length, color: '#2563eb' },
                 { label: 'Done', value: doneC, color: '#10b981' },
                 { label: 'In Progress', value: inprogC, color: '#f59e0b' },
                 { label: 'Blocked', value: blockedC, color: '#ef4444' }
@@ -439,26 +470,26 @@ export default function Dashboards() {
                 <div key={d.id} style={{
                   background: '#fff',
                   borderRadius: 14,
-                  border: '1.5px solid #e8edf5',
-                  boxShadow: '0 2px 12px rgba(26,86,219,0.09)',
-                  overflow: 'hidden'
+                  border: '1px solid rgba(37,99,235,0.10)',
+                  boxShadow: '0 4px 24px rgba(59,130,246,0.10)',
+                  overflow: 'hidden',
                 }}>
-                  {/* gradient top border */}
-                  <div style={{ height: 4, background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)` }} />
+                  {/* Gradient top border strip */}
+                  <div style={{ height: 4, background: 'linear-gradient(90deg, #2563eb, #7c3aed)' }} />
                   <div style={{ padding: '18px 22px' }}>
-                    {/* header */}
+                    {/* Header */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b' }}>{d.name}</div>
                         <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
-                          Filter: <span style={{ fontWeight: 600, color: accentColor }}>{f ? f.name : 'All Tickets'}</span>
+                          Filter: <span style={{ fontWeight: 700, color: accentColor }}>{f ? f.name : 'All Tickets'}</span>
                           {' · '}{REPORT_LABELS[d.reportType || 'issue-list']}
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button
                           onClick={() => openModal('editDashboard', d.id)}
-                          style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#f8faff', color: '#1a56db', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                          style={{ padding: '5px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#f8faff', color: '#2563eb', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                           ✏ Edit
                         </button>
                         <button
@@ -469,21 +500,21 @@ export default function Dashboards() {
                       </div>
                     </div>
 
-                    {/* mini stat chips */}
+                    {/* Mini stat chips */}
                     <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
                       {miniStats.map(ms => (
                         <div key={ms.label} style={{
                           flex: 1, padding: '10px 12px', borderRadius: 10,
                           background: ms.color + '0d', border: `1.5px solid ${ms.color}22`,
-                          textAlign: 'center'
+                          textAlign: 'center',
                         }}>
-                          <div style={{ fontSize: 20, fontWeight: 800, color: ms.color }}>{ms.value}</div>
-                          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500, marginTop: 2 }}>{ms.label}</div>
+                          <div style={{ fontSize: 20, fontWeight: 900, color: ms.color }}>{ms.value}</div>
+                          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginTop: 2 }}>{ms.label}</div>
                         </div>
                       ))}
                     </div>
 
-                    {/* report */}
+                    {/* Report */}
                     <DashboardReport d={d} res={res} />
                   </div>
                 </div>

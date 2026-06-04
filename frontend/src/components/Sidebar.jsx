@@ -1,23 +1,14 @@
 import React, { useMemo } from 'react'
 import { useApp } from '../context/AppContext'
-
-const NAV_ICONS = {
-  home:       '🏠',
-  dashboards: '📊',
-  alltickets: '🎫',
-  filters:    '🔍',
-  roadmaps:   '🗺',
-  hithere:    '💬',
-  settings:   '⚙',
-}
+import Avatar from './common/Avatar'
 
 export default function Sidebar() {
   const {
-    page, projects, tickets, sprints,
+    page, projects,
     activeProject, recentProjects, projectsOpen,
     projectSearch, nav, openProject, openModal,
     setProjectsOpen, setProjectSearch,
-    projectTab, setProjectTab,
+    user,
   } = useApp()
 
   const q = (projectSearch || '').toLowerCase()
@@ -29,59 +20,48 @@ export default function Sidebar() {
   } else {
     const recIds = recentProjects.length
       ? recentProjects
-      : projects.slice(0, 3).map(p => p.id)
+      : projects.slice(0, 4).map(p => p.id)
     shownProjects = recIds.map(id => projects.find(p => p.id === id)).filter(Boolean)
   }
 
-  const activeProj = activeProject ? projects.find(p => p.id === activeProject) : null
-
-  const goTab = (tab) => {
-    setProjectTab(tab)
-    if (page !== 'projectdetail') nav('projectdetail')
-  }
-
-  // Active sprints across all projects the user can see
-  const activeSprints = useMemo(() => {
-    if (!sprints) return []
-    return sprints
-      .filter(s => s.status === 'active')
-      .map(s => {
-        const proj = projects.find(p => p.id === s.project)
-        const spTickets = tickets ? tickets.filter(t => t.sprint === s.name && t.project === s.project) : []
-        const done = spTickets.filter(t => t.status === 'Done').length
-        const pct = spTickets.length ? Math.round(done / spTickets.length * 100) : 0
-        const daysLeft = s.endDate
-          ? Math.max(0, Math.ceil((new Date(s.endDate) - new Date()) / 86400000))
-          : null
-        return { ...s, proj, spTickets, done, pct, daysLeft }
-      })
-      .filter(s => s.proj)
-  }, [sprints, projects, tickets])
-
-  const NavItem = ({ pageKey, label }) => (
+  const NavItem = ({ pageKey, label, icon }) => (
     <div
       className={`sidebar-item ${page === pageKey ? 'active' : ''}`}
       onClick={() => nav(pageKey)}
     >
-      <span style={{ fontSize: 14, flexShrink: 0 }}>{NAV_ICONS[pageKey]}</span>
+      <span className="sidebar-icon">{icon}</span>
       <span>{label}</span>
     </div>
   )
 
   return (
     <div className="sidebar">
-      {/* Main Navigation */}
-      <div className="sidebar-section">
-        <div className="sidebar-label">Navigation</div>
-        <NavItem pageKey="home"       label="Home" />
-        <NavItem pageKey="dashboards" label="Dashboards" />
-        <NavItem pageKey="alltickets" label="All Tickets" />
-        <NavItem pageKey="filters"    label="Filters" />
-        <NavItem pageKey="roadmaps"   label="Roadmaps" />
-        <NavItem pageKey="hithere"    label="Hi There" />
+      {/* Logo area */}
+      <div style={{
+        height: 52, display: 'flex', alignItems: 'center',
+        padding: '0 16px', gap: 10, flexShrink: 0,
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: 4,
+      }}>
+        <div style={{
+          width: 28, height: 28,
+          background: 'linear-gradient(135deg, #2563eb, #7c3aed)',
+          borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff', fontSize: 14, fontWeight: 900,
+          boxShadow: '0 2px 8px rgba(37,99,235,0.40)', flexShrink: 0,
+        }}>H</div>
+        <span style={{ fontSize: 16, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-.4px' }}>Hub</span>
       </div>
 
-      {/* Projects section */}
+      {/* WORKSPACE */}
+      <div className="sidebar-section">
+        <div className="sidebar-label">Workspace</div>
+        <NavItem pageKey="home"       label="Home"       icon="🏠" />
+        <NavItem pageKey="dashboards" label="Dashboards"  icon="📊" />
+        <NavItem pageKey="myissues"   label="My Issues"   icon="👁️" />
+      </div>
+
+      {/* PROJECTS */}
       <div className="sidebar-section">
         <div
           style={{
@@ -91,18 +71,24 @@ export default function Sidebar() {
           onClick={() => setProjectsOpen(o => !o)}
         >
           <div className="sidebar-label" style={{ padding: 0, margin: 0 }}>Projects</div>
-          <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{projectsOpen ? '▾' : '▸'}</span>
+          <span style={{ fontSize: 11, color: '#475569' }}>{projectsOpen ? '▾' : '▸'}</span>
         </div>
 
         {projectsOpen && (
           <>
-            <div style={{ padding: '0 6px 6px' }}>
+            <div style={{ padding: '0 4px 6px' }}>
               <input
-                className="form-input"
-                placeholder="Search projects..."
+                placeholder="Search projects…"
                 value={projectSearch || ''}
                 onChange={e => setProjectSearch(e.target.value)}
-                style={{ fontSize: 12, padding: '5px 9px', width: '100%' }}
+                style={{
+                  width: '100%', padding: '6px 10px',
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  borderRadius: 7, fontSize: 12,
+                  color: '#cbd5e1', outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
             {shownProjects.map(p => (
@@ -113,7 +99,8 @@ export default function Sidebar() {
               >
                 <span style={{
                   width: 8, height: 8, borderRadius: '50%',
-                  background: p.color, flexShrink: 0,
+                  background: p.color || '#2563eb', flexShrink: 0,
+                  display: 'inline-block',
                 }} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {p.name}
@@ -122,12 +109,12 @@ export default function Sidebar() {
             ))}
             {!q && (
               <div style={{
-                fontSize: 10, color: 'var(--gray-400)', padding: '2px 10px 6px',
+                fontSize: 10, color: '#475569', padding: '2px 10px 4px',
                 display: 'flex', justifyContent: 'space-between',
               }}>
                 <span>Recent</span>
                 <span
-                  style={{ color: 'var(--blue)', cursor: 'pointer' }}
+                  style={{ color: '#60a5fa', cursor: 'pointer' }}
                   onClick={() => nav('projects')}
                 >View all →</span>
               </div>
@@ -135,97 +122,50 @@ export default function Sidebar() {
             <div
               className="sidebar-item"
               onClick={() => openModal('createProject')}
-              style={{ color: 'var(--blue)' }}
+              style={{ color: '#60a5fa' }}
             >
-              <span style={{ fontSize: 14 }}>＋</span>
+              <span className="sidebar-icon" style={{ fontSize: 16 }}>＋</span>
               <span>New Project</span>
             </div>
           </>
         )}
       </div>
 
-      {/* Active Sprints section */}
-      {activeSprints.length > 0 && (
-        <div className="sidebar-section">
-          <div className="sidebar-label">Active Sprints</div>
-          {activeSprints.map(s => (
-            <div
-              key={s.id}
-              style={{
-                padding: '8px 10px', borderRadius: 7, cursor: 'pointer',
-                margin: '1px 0', transition: 'background .15s',
-              }}
-              onClick={() => { openProject(s.project); setProjectTab('board') }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--blue-light)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: s.proj?.color || 'var(--blue)', flexShrink: 0,
-                }} />
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: 700, color: 'var(--gray-700)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {s.proj?.name || s.name}
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--gray-400)', marginTop: 1 }}>
-                    {s.name}
-                  </div>
-                </div>
-                <span style={{ fontSize: 10, color: 'var(--gray-400)', flexShrink: 0 }}>
-                  {s.daysLeft !== null ? `${s.daysLeft}d` : ''}
-                </span>
-              </div>
-              <div style={{ height: 3, background: 'var(--gray-200)', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${s.pct}%`,
-                  background: s.pct === 100 ? '#10b981' : 'var(--blue)',
-                  borderRadius: 2, transition: 'width .3s',
-                }} />
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--gray-400)', marginTop: 2 }}>
-                {s.done}/{s.spTickets.length} done · {s.pct}%
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* TEAM */}
+      <div className="sidebar-section">
+        <div className="sidebar-label">Team</div>
+        <NavItem pageKey="members"  label="Members"   icon="👥" />
+        <NavItem pageKey="hithere"  label="Hi There"  icon="💬" />
+      </div>
 
-      {/* Current project sub-nav */}
-      {activeProj && (
-        <div className="sidebar-section">
-          <div className="sidebar-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: activeProj.color, flexShrink: 0, display: 'inline-block',
-            }} />
-            <span style={{
+      {/* EXPLORE */}
+      <div className="sidebar-section">
+        <div className="sidebar-label">Explore</div>
+        <NavItem pageKey="alltickets" label="All Issues" icon="🎫" />
+        <NavItem pageKey="filters"    label="Filters"    icon="🔍" />
+        <NavItem pageKey="roadmaps"   label="Roadmaps"   icon="🗺️" />
+      </div>
+
+      {/* SETTINGS */}
+      <div className="sidebar-section">
+        <div className="sidebar-label">Settings</div>
+        <NavItem pageKey="settings" label="Settings" icon="⚙️" />
+      </div>
+
+      {/* Bottom: user + version */}
+      <div style={{ marginTop: 'auto', padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <Avatar name={user?.name} size={28} />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: '#cbd5e1',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              maxWidth: 130,
             }}>
-              {activeProj.name}
-            </span>
-          </div>
-
-          <div
-            className={`sidebar-item ${page === 'projectdetail' && projectTab === 'settings' ? 'active' : ''}`}
-            onClick={() => goTab('settings')}
-          >
-            <span style={{ fontSize: 14 }}>⚙</span>
-            <span>Project Settings</span>
+              {user?.name || 'User'}
+            </div>
+            <div style={{ fontSize: 10, color: '#475569' }}>v1.0</div>
           </div>
         </div>
-      )}
-
-      {/* Subtle footer */}
-      <div style={{
-        marginTop: 'auto', padding: '12px 14px',
-        fontSize: 10, color: 'var(--gray-300)', userSelect: 'none',
-      }}>
-        Hub v1.0
       </div>
     </div>
   )
