@@ -2035,70 +2035,142 @@ function ProjectReports({ pid, tickets }) {
     byPriority[t.priority] = (byPriority[t.priority] || 0) + 1
   })
 
-  const maxStatus = Math.max(...Object.values(byStatus), 1)
+  const maxStatus   = Math.max(...Object.values(byStatus), 1)
+  const maxAssignee = Math.max(...Object.values(byAssignee), 1)
+  const maxType     = Math.max(...Object.values(byType), 1)
+  const done        = byStatus['Done'] || 0
+  const inProg      = byStatus['In Progress'] || 0
+  const blocked     = byStatus['Blocked'] || 0
+  const completePct = ptix.length ? Math.round(done / ptix.length * 100) : 0
+
+  const STATUS_COLORS = { 'To Do': '#64748b', 'In Progress': '#3b82f6', 'In Review': '#8b5cf6', 'Done': '#10b981', 'Blocked': '#ef4444' }
+  const TYPE_COLORS   = { 'Feature': '#f59e0b', 'Initiative': '#7c3aed', 'Epic': '#9333ea', 'Story': '#16a34a', 'Task': '#3b82f6', 'Sub-task': '#ea580c', 'Bug': '#ef4444' }
+  const PRIO_COLORS   = { 'Critical': '#ef4444', 'High': '#f97316', 'Medium': '#eab308', 'Low': '#22c55e' }
 
   return (
     <div>
-      <div className="grid-2" style={{ marginBottom: 20 }}>
+      {/* ── Stat cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
         {[
-          { label: 'Total Tickets',  val: ptix.length,                                   color: '#3b82f6' },
-          { label: 'In Progress',    val: byStatus['In Progress'] || 0,                  color: '#f59e0b' },
-          { label: 'Done',           val: byStatus['Done']        || 0,                  color: '#10b981' },
-          { label: 'Blocked',        val: byStatus['Blocked']     || 0,                  color: '#ef4444' },
-        ].map(({ label, val, color }) => (
-          <div key={label} className="card" style={{ padding: '16px 20px' }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color }}>{val}</div>
-            <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 4 }}>{label}</div>
+          { label: 'Total Tickets', val: ptix.length,  color: '#1a56db', icon: '📋', sub: `${completePct}% complete`, subColor: '#1a56db' },
+          { label: 'In Progress',   val: inProg,        color: '#f59e0b', icon: '⚡', sub: inProg ? `${Math.round(inProg/ptix.length*100)}% of total` : 'none active', subColor: '#92400e' },
+          { label: 'Done',          val: done,           color: '#10b981', icon: '✅', sub: `${completePct}% done`, subColor: '#166534' },
+          { label: 'Blocked',       val: blocked,        color: '#ef4444', icon: '🚫', sub: blocked > 0 ? 'Needs attention' : 'No blockers 🎉', subColor: blocked > 0 ? '#991b1b' : '#166534' },
+        ].map(({ label, val, color, icon, sub, subColor }) => (
+          <div key={label} style={{
+            background: '#fff', borderRadius: 14, padding: '18px 20px',
+            border: '1.5px solid #e8ecf0', borderLeft: `4px solid ${color}`,
+            boxShadow: '0 2px 8px rgba(26,86,219,0.08)',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{ position: 'absolute', top: 14, right: 16, fontSize: 22, opacity: 0.18 }}>{icon}</div>
+            <div style={{ fontSize: 34, fontWeight: 800, color, lineHeight: 1, marginBottom: 6 }}>{val}</div>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 500, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 11, color: subColor, background: `${color}12`, borderRadius: 8, padding: '2px 8px', display: 'inline-block', fontWeight: 600 }}>{sub}</div>
           </div>
         ))}
       </div>
 
       <div className="grid-2">
-        {/* Status breakdown */}
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>By Status</div>
+        {/* ── By Status ── */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #e8ecf0', padding: '18px 20px', boxShadow: '0 1px 4px rgba(26,86,219,0.06)' }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 4, height: 16, background: '#1a56db', borderRadius: 2, display: 'inline-block' }} />
+            By Status
+          </div>
           {Object.entries(byStatus).sort((a,b) => b[1]-a[1]).map(([k,v]) => (
-            <div key={k} style={{ marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                <span>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
+            <div key={k} style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLORS[k] || '#64748b', display: 'inline-block', flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#374151' }}>{k}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#9ca3af' }}>{Math.round(v/maxStatus*100)}%</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: STATUS_COLORS[k] || '#64748b', minWidth: 20, textAlign: 'right' }}>{v}</span>
+                </div>
               </div>
-              <div style={{ height: 6, background: 'var(--gray-200)', borderRadius: 3 }}>
-                <div style={{ height: '100%', width: `${v/maxStatus*100}%`, background: COL_COLORS[k] || '#64748b', borderRadius: 3 }} />
+              <div style={{ height: 7, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${v/maxStatus*100}%`, background: STATUS_COLORS[k] || '#64748b', borderRadius: 4, transition: 'width .4s' }} />
               </div>
             </div>
           ))}
         </div>
 
-        {/* Assignee breakdown */}
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>By Assignee</div>
-          {Object.entries(byAssignee).sort((a,b) => b[1]-a[1]).slice(0,8).map(([k,v]) => (
-            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <Avatar name={k} size={22} />
-              <span style={{ flex: 1, fontSize: 12 }}>{k}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--blue)' }}>{v}</span>
+        {/* ── By Assignee ── */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #e8ecf0', padding: '18px 20px', boxShadow: '0 1px 4px rgba(26,86,219,0.06)' }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 4, height: 16, background: '#6366f1', borderRadius: 2, display: 'inline-block' }} />
+            Team Workload
+          </div>
+          {Object.entries(byAssignee).sort((a,b) => b[1]-a[1]).slice(0,6).map(([k,v]) => (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <Avatar name={k} size={26} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                  <span style={{ fontWeight: 500, color: '#374151' }}>{k}</span>
+                  <span style={{ fontWeight: 700, color: '#1a56db' }}>{v} tickets</span>
+                </div>
+                <div style={{ height: 7, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round(v/maxAssignee*100)}%`, background: 'linear-gradient(90deg, #1a56db, #6366f1)', borderRadius: 4 }} />
+                </div>
+              </div>
             </div>
           ))}
+          {Object.keys(byAssignee).length === 0 && (
+            <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '20px 0' }}>No assignees yet</div>
+          )}
         </div>
 
-        {/* Type breakdown */}
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>By Type</div>
-          {Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([k,v]) => (
-            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px solid var(--gray-100)' }}>
-              <span>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
-            </div>
-          ))}
+        {/* ── By Type ── */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #e8ecf0', padding: '18px 20px', boxShadow: '0 1px 4px rgba(26,86,219,0.06)' }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 4, height: 16, background: '#f59e0b', borderRadius: 2, display: 'inline-block' }} />
+            By Issue Type
+          </div>
+          {Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([k,v]) => {
+            const c = TYPE_COLORS[k] || '#64748b'
+            return (
+              <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ width: 24, height: 20, borderRadius: 5, background: `${c}20`, color: c, fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {k[0]}
+                </span>
+                <span style={{ fontSize: 12, color: '#374151', flex: 1 }}>{k}</span>
+                <div style={{ width: 80, height: 7, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round(v/maxType*100)}%`, background: c, borderRadius: 4 }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c, minWidth: 20, textAlign: 'right' }}>{v}</span>
+              </div>
+            )
+          })}
         </div>
 
-        {/* Priority breakdown */}
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontWeight: 700, marginBottom: 12 }}>By Priority</div>
-          {['Critical','High','Medium','Low'].filter(p => byPriority[p]).map(p => (
-            <div key={p} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px solid var(--gray-100)' }}>
-              <span className={priorityClass(p)}>{p}</span><span style={{ fontWeight: 600 }}>{byPriority[p]}</span>
-            </div>
-          ))}
+        {/* ── By Priority ── */}
+        <div style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #e8ecf0', padding: '18px 20px', boxShadow: '0 1px 4px rgba(26,86,219,0.06)' }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 4, height: 16, background: '#ef4444', borderRadius: 2, display: 'inline-block' }} />
+            By Priority
+          </div>
+          {['Critical','High','Medium','Low'].filter(p => byPriority[p]).map(p => {
+            const c = PRIO_COLORS[p] || '#64748b'
+            const v = byPriority[p]
+            const maxP = Math.max(...['Critical','High','Medium','Low'].map(x => byPriority[x]||0), 1)
+            return (
+              <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, width: 80 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: c, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{p}</span>
+                </div>
+                <div style={{ flex: 1, height: 7, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.round(v/maxP*100)}%`, background: c, borderRadius: 4 }} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: c, minWidth: 20, textAlign: 'right' }}>{v}</span>
+              </div>
+            )
+          })}
+          {Object.keys(byPriority).length === 0 && (
+            <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: '20px 0' }}>No priority data</div>
+          )}
         </div>
       </div>
     </div>
