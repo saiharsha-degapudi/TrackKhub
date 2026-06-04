@@ -873,6 +873,134 @@ textarea.input { height: auto; padding: 6px 8px; resize: vertical; min-height: 7
   color: var(--text);
 }
 
+/* ── Missing variables aliases (for restored original pages) ── */
+:root {
+  --gray-50: #f8faff;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-300: #cbd5e1;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --radius-lg: 14px;
+  --orange: #f97316;
+  --indigo: #4f46e5;
+  --violet: #7c3aed;
+}
+
+/* ── Page layout (original) ── */
+.page { padding: 24px 28px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -.4px; }
+.page-sub { font-size: 13px; color: var(--gray-500); margin-top: 3px; }
+
+/* ── Gradient Hero Banner ── */
+.page-hero {
+  background: linear-gradient(135deg, #1e40af 0%, #4f46e5 50%, #7c3aed 100%);
+  border-radius: var(--radius-lg); padding: 24px 28px;
+  margin-bottom: 20px; color: white; position: relative; overflow: hidden;
+}
+.page-hero::before {
+  content: ''; position: absolute; top: -40px; right: -40px;
+  width: 200px; height: 200px; background: rgba(255,255,255,0.06); border-radius: 50%;
+}
+
+/* ── Stat cards ── */
+.stat-card {
+  background: #fff; border-radius: 12px;
+  border: 1px solid rgba(37,99,235,0.10);
+  padding: 18px 20px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.stat-val { font-size: 32px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--gray-500); margin-top: 4px; font-weight: 500; }
+.stat-delta { font-size: 11px; margin-top: 6px; font-weight: 700; }
+
+/* ── Badge color variants ── */
+.badge-blue   { background: #dbeafe; color: #1e40af; }
+.badge-green  { background: #d1fae5; color: #065f46; }
+.badge-red    { background: #fee2e2; color: #991b1b; }
+.badge-orange { background: #fed7aa; color: #9a3412; }
+.badge-yellow { background: #fef3c7; color: #92400e; }
+.badge-purple { background: #ede9fe; color: #5b21b6; }
+.badge-gray   { background: #f1f5f9; color: var(--gray-600); }
+.badge-pink   { background: #fce7f3; color: #9d174d; }
+
+/* ── Status badge shortcuts ── */
+.s-todo       { background: #f1f5f9; color: #475569; }
+.s-inprogress { background: #dbeafe; color: #1d4ed8; }
+.s-review     { background: #fef3c7; color: #92400e; }
+.s-done       { background: #d1fae5; color: #065f46; }
+.s-blocked    { background: #fee2e2; color: #991b1b; }
+
+/* ── Priority colors ── */
+.p-critical { color: #ef4444; font-weight: 700; }
+.p-high     { color: #f97316; font-weight: 700; }
+.p-medium   { color: #f59e0b; font-weight: 600; }
+.p-low      { color: #22c55e; font-weight: 600; }
+
+/* ── Form select ── */
+.form-select {
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; background: #fff; color: var(--text); font-family: inherit; outline: none;
+  cursor: pointer;
+}
+.form-select:focus { border-color: var(--blue); }
+.form-textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; color: var(--text); min-height: 80px; resize: vertical;
+  font-family: inherit; outline: none;
+}
+.form-textarea:focus { border-color: var(--blue); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 5px; }
+
+/* ── Board card ── */
+.board-card {
+  background: #fff; border-radius: 8px; border: 1px solid var(--border);
+  padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+}
+.board-card:hover { box-shadow: 0 4px 16px rgba(37,99,235,0.12); transform: translateY(-1px); border-color: #c7d7f8; }
+
+/* ── Swimlane ── */
+.swimlane-header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: #fff; border: 1px solid var(--border); border-radius: 6px 6px 0 0;
+  cursor: pointer; user-select: none;
+}
+.swimlane-header:hover { background: var(--bg); }
+
+/* ── Kanban column ── */
+.kanban-col-header {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-3); padding: 4px 0 8px; display: flex; align-items: center; gap: 6px;
+}
+
+/* ── Roadmap ── */
+.roadmap-row { display: flex; align-items: center; border-bottom: 1px solid var(--border-light); }
+.roadmap-row:hover { background: var(--bg); }
+.roadmap-label { width: 260px; flex-shrink: 0; padding: 8px 12px; font-size: 13px; }
+.roadmap-bar-area { flex: 1; position: relative; height: 36px; overflow: hidden; }
+
+/* ── Progress bar ── */
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple)); border-radius: 3px; transition: width .3s; }
+
+/* ── Tabs (original style) ── */
+.tabs { display: flex; border-bottom: 1.5px solid var(--border); margin-bottom: 0; }
+.tab-btn {
+  padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--text-3);
+  background: none; border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all .15s; margin-bottom: -1.5px;
+}
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 700; }
+.tab-btn:hover:not(.active) { color: var(--text); }
+
+/* ── Blue-light util ── */
+.blue-light { background: var(--blue-light); color: var(--blue); }
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .sidebar { display: none; }
