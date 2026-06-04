@@ -510,7 +510,11 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
   const activeCount     = filterAssignees.length + (filterType?1:0) + (filterPriority?1:0) + (filterSearch?1:0)
 
   // ── Stats ──
-  const doneCount = sprintTickets.filter(t => t.status === 'Done').length
+  const doneCount    = sprintTickets.filter(t => t.status === 'Done').length
+  const blockedCount = sprintTickets.filter(t => t.status === 'Blocked').length
+  const overdueCount = sprintTickets.filter(t =>
+    t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done'
+  ).length
   const progress  = sprintTickets.length ? Math.round(doneCount / sprintTickets.length * 100) : 0
   const totalPts  = sprintTickets.reduce((s, t) => s + (t.storyPoints || 0), 0)
   const donePts   = sprintTickets.filter(t => t.status === 'Done').reduce((s, t) => s + (t.storyPoints || 0), 0)
@@ -581,38 +585,90 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
     <div>
       {/* ── Sprint info bar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px',
-        background: 'linear-gradient(90deg,#1a56db 0%,#1e3a8a 100%)',
-        borderRadius: 10, marginBottom: 12, color: '#fff', flexWrap: 'wrap',
-        boxShadow: '0 3px 14px rgba(26,86,219,.22)',
+        background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 12,
+        borderLeft: '4px solid #1a56db', padding: '14px 18px', marginBottom: 12,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span style={{ fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap' }}>{activeSprint.name}</span>
-          <span style={{ background: '#10b981', borderRadius: 20, padding: '2px 9px', fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ ACTIVE</span>
-          {activeSprint.goal && (
-            <span style={{ fontSize: 12, color: '#bfdbfe', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {activeSprint.goal}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {/* Sprint name + badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+            <span style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e', whiteSpace: 'nowrap' }}>{activeSprint.name}</span>
+            <span style={{ background: '#dcfce7', color: '#166534', borderRadius: 20, padding: '2px 9px', fontSize: 10, fontWeight: 800, whiteSpace: 'nowrap' }}>⚡ ACTIVE</span>
+            {activeSprint.goal && (
+              <span style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeSprint.goal}
+              </span>
+            )}
+          </div>
+          {/* Dates + days left */}
+          {activeSprint.startDate && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#64748b', flexShrink: 0 }}>
+              <span>📅 {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}</span>
+              {daysLeft !== null && (
+                <span style={{
+                  marginLeft: 4, borderRadius: 10, padding: '2px 8px', fontWeight: 700, fontSize: 11,
+                  background: daysLeft === 0 ? '#fee2e2' : daysLeft <= 2 ? '#ffedd5' : '#f1f5f9',
+                  color: daysLeft === 0 ? '#dc2626' : daysLeft <= 2 ? '#ea580c' : '#475569',
+                }}>
+                  {daysLeft === 0 ? '🔥 Due today' : `${daysLeft}d left`}
+                </span>
+              )}
+            </div>
+          )}
+          {/* Story points */}
+          {totalPts > 0 && (
+            <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '2px 8px' }}>
+              ⭐ {donePts}/{totalPts} pts
             </span>
           )}
         </div>
-        {activeSprint.startDate && (
-          <span style={{ fontSize: 11, color: '#93c5fd', flexShrink: 0 }}>
-            📅 {activeSprint.startDate} → {activeSprint.endDate || 'ongoing'}
-            {daysLeft !== null && (
-              <span style={{ marginLeft: 8, background: daysLeft <= 2 ? '#ef4444' : 'rgba(255,255,255,.18)', borderRadius: 10, padding: '1px 8px', fontWeight: 700 }}>
-                {daysLeft === 0 ? '🔥 Due today' : `${daysLeft}d left`}
-              </span>
-            )}
-          </span>
+        {/* Progress bar */}
+        <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, height: 6, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#10b981' : '#1a56db', borderRadius: 4, transition: 'width .4s' }} />
+          </div>
+          <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap', fontWeight: 600 }}>{doneCount}/{sprintTickets.length} done · {progress}%</span>
+        </div>
+      </div>
+
+      {/* ── Sprint Health summary bar ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
+        background: 'var(--white)', border: '1.5px solid var(--gray-200)',
+        borderRadius: 8, marginBottom: 10, flexWrap: 'wrap',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gray-500)', marginRight: 4 }}>SPRINT HEALTH</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 6, background: '#f0fdf4' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#10b981' }}>{progress}%</span>
+          <span style={{ fontSize: 11, color: '#166534' }}>complete</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 6, background: '#f1f5f9' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: '#64748b' }}>{sprintTickets.length}</span>
+          <span style={{ fontSize: 11, color: '#64748b' }}>tickets</span>
+        </div>
+        {blockedCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 6, background: '#fee2e2' }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#dc2626' }}>{blockedCount}</span>
+            <span style={{ fontSize: 11, color: '#991b1b' }}>blocked</span>
+          </div>
+        )}
+        {overdueCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 6, background: '#fff7ed' }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#ea580c' }}>{overdueCount}</span>
+            <span style={{ fontSize: 11, color: '#c2410c' }}>overdue</span>
+          </div>
+        )}
+        {blockedCount === 0 && overdueCount === 0 && (
+          <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>✓ No blockers or overdue tickets</span>
         )}
         <span style={{ flex: 1 }} />
-        {/* Inline progress */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <div style={{ width: 90, height: 6, background: 'rgba(255,255,255,.25)', borderRadius: 4, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: '#10b981', borderRadius: 4, transition: 'width .4s' }} />
+        {/* inline progress bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 120, height: 6, background: 'var(--gray-200)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#10b981' : 'var(--blue)', borderRadius: 3, transition: 'width .4s' }} />
           </div>
-          <span style={{ fontSize: 11, color: '#93c5fd', whiteSpace: 'nowrap' }}>{doneCount}/{sprintTickets.length} done</span>
-          {totalPts > 0 && <span style={{ fontSize: 11, color: '#bfdbfe', whiteSpace: 'nowrap' }}>⭐ {donePts}/{totalPts} pts</span>}
+          <span style={{ fontSize: 11, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>{doneCount}/{sprintTickets.length} done</span>
         </div>
       </div>
 

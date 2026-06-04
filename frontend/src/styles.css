@@ -38,7 +38,7 @@ input,select,textarea{font-family:inherit;outline:none}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .page-title{font-size:20px;font-weight:700;color:var(--text)}
 .page-sub{font-size:13px;color:var(--gray-500);margin-top:2px}
-.card{background:var(--white);border-radius:10px;border:1.5px solid var(--gray-200);padding:18px 20px;box-shadow:var(--shadow)}
+.card{background:var(--white);border-radius:8px;border:1.5px solid var(--gray-200);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04)}
 .card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
@@ -53,7 +53,7 @@ thead th{background:var(--gray-50);font-size:11px;text-transform:uppercase;lette
 tbody tr{border-bottom:1px solid var(--gray-100);transition:background .1s}
 tbody tr:hover{background:var(--blue-light)}
 tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle}
-.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
 .badge-blue{background:#dbeafe;color:#1e40af}.badge-green{background:#dcfce7;color:#166534}
 .badge-red{background:#fee2e2;color:#991b1b}.badge-orange{background:#ffedd5;color:#9a3412}
 .badge-yellow{background:#fef9c3;color:#854d0e}.badge-purple{background:#f3e8ff;color:#6b21a8}
@@ -85,11 +85,11 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 .board-filter-chip:hover{border-color:var(--blue);color:var(--blue);background:#eff6ff}
 .board-filter-chip.active{border-color:var(--blue);color:var(--blue);background:#eff6ff;font-weight:700}
 .board-filter-chip select{border:none;background:transparent;font-size:12px;font-weight:600;color:inherit;cursor:pointer;outline:none;padding:0}
-.kanban-board{display:flex;gap:12px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}
-.kanban-col{min-width:240px;max-width:260px;flex-shrink:0;border-radius:10px;background:#f4f5f7;display:flex;flex-direction:column}
+.kanban-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}
+.kanban-col{min-width:300px;max-width:320px;flex-shrink:0;border-radius:8px;background:#f4f5f7;display:flex;flex-direction:column}
 .kanban-col-header{padding:10px 12px 9px;display:flex;align-items:center;justify-content:space-between;border-radius:10px 10px 0 0}
 .kanban-col-body{padding:8px;min-height:180px;border-radius:0 0 10px 10px;border:1.5px solid rgba(0,0,0,.07);border-top:none;flex:1}
-.board-card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:11px 13px;margin-bottom:6px;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.07);position:relative}
+.board-card{background:#fff;border-radius:8px;border:1px solid #e2e8f0;padding:12px 14px;margin-bottom:7px;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .1s;box-shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);position:relative}
 .board-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.13);border-color:#93c5fd;transform:translateY(-1px)}
 .board-card:active{transform:translateY(0)}
 .swimlane-header{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--white);border:1.5px solid var(--gray-200);border-radius:8px 8px 0 0;cursor:pointer;user-select:none;transition:background .12s}
@@ -145,7 +145,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text);vertical-align:middle
 .w-full{width:100%}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:var(--gray-300);border-radius:3px}
-.version-badge{position:fixed;bottom:14px;right:14px;background:var(--blue);color:#fff;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;z-index:9999;box-shadow:var(--shadow-md)}
+.version-badge{display:none}
 
 /* ===================== ROADMAP STYLES ===================== */
 .roadmap-wrap{width:100%;overflow-x:auto;background:var(--white);border-radius:12px;border:1.5px solid var(--gray-200);box-shadow:var(--shadow)}

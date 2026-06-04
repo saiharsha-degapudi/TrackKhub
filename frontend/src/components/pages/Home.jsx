@@ -2,6 +2,100 @@ import React, { useMemo } from 'react'
 import { useApp } from '../../context/AppContext'
 import Avatar from '../common/Avatar'
 
+function SprintOverview({ sprints, tickets, projects, openProject, setProjectTab }) {
+  const activeSprints = useMemo(() => {
+    return sprints
+      .filter(s => s.status === 'active')
+      .map(s => {
+        const proj = projects.find(p => p.id === s.project)
+        const spTix = tickets.filter(t => t.sprint === s.name && t.project === s.project)
+        const done = spTix.filter(t => t.status === 'Done').length
+        const blocked = spTix.filter(t => t.status === 'Blocked').length
+        const pct = spTix.length ? Math.round(done / spTix.length * 100) : 0
+        const daysLeft = s.endDate
+          ? Math.max(0, Math.ceil((new Date(s.endDate) - new Date()) / 86400000))
+          : null
+        return { ...s, proj, spTix, done, blocked, pct, daysLeft }
+      })
+      .filter(s => s.proj)
+  }, [sprints, tickets, projects])
+
+  if (activeSprints.length === 0) return null
+
+  return (
+    <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>⚡ Active Sprints</span>
+        <span style={{ fontSize: 11, background: 'var(--blue-light)', color: 'var(--blue)', borderRadius: 10, padding: '1px 8px', fontWeight: 700 }}>
+          {activeSprints.length}
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {activeSprints.map(s => (
+          <div
+            key={s.id}
+            style={{
+              padding: '12px 14px', borderRadius: 8,
+              border: '1.5px solid var(--gray-200)',
+              background: 'var(--gray-50)', cursor: 'pointer',
+              transition: 'border-color .15s, background .15s',
+            }}
+            onClick={() => { openProject(s.project); setProjectTab('board') }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = s.proj.color || 'var(--blue)'
+              e.currentTarget.style.background = '#f8faff'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--gray-200)'
+              e.currentTarget.style.background = 'var(--gray-50)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.proj.color || 'var(--blue)', flexShrink: 0 }} />
+                <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{s.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--gray-500)' }}>· {s.proj.name}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {s.blocked > 0 && (
+                  <span style={{ fontSize: 11, background: '#fee2e2', color: '#991b1b', borderRadius: 6, padding: '2px 7px', fontWeight: 700 }}>
+                    {s.blocked} blocked
+                  </span>
+                )}
+                {s.daysLeft !== null && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '2px 7px',
+                    background: s.daysLeft <= 2 ? '#fee2e2' : s.daysLeft <= 5 ? '#fff7ed' : '#f0fdf4',
+                    color: s.daysLeft <= 2 ? '#991b1b' : s.daysLeft <= 5 ? '#92400e' : '#166534',
+                  }}>
+                    {s.daysLeft === 0 ? 'Due today' : `${s.daysLeft}d left`}
+                  </span>
+                )}
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue)' }}>{s.pct}%</span>
+              </div>
+            </div>
+            <div style={{ height: 6, background: 'var(--gray-200)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${s.pct}%`,
+                background: s.pct === 100 ? '#10b981' : s.pct >= 60 ? 'var(--blue)' : '#f59e0b',
+                borderRadius: 3,
+                transition: 'width .4s ease',
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--gray-400)', marginTop: 4 }}>
+              <span>{s.done} of {s.spTix.length} tickets done</span>
+              {s.spTix.filter(t => t.status === 'In Progress').length > 0 && (
+                <span>{s.spTix.filter(t => t.status === 'In Progress').length} in progress</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const STATUS_COLORS = {
   'To Do':       '#64748b',
   'In Progress': '#3b82f6',
@@ -34,9 +128,9 @@ function todayStr() {
 
 export default function Home() {
   const {
-    user, tickets, projects,
+    user, tickets, projects, sprints,
     openTicketView, openProject,
-    nav, setStatusFilter, setProjectFilter,
+    nav, setStatusFilter, setProjectFilter, setProjectTab,
   } = useApp()
   const firstName = user?.name?.split(' ')[0] || 'there'
 
@@ -202,13 +296,22 @@ export default function Home() {
             key={label}
             onClick={onClick}
             style={{
-              flex: '1 1 120px', background: bg, borderRadius: 12, padding: '14px 18px',
-              border: `1.5px solid ${color}30`, minWidth: 100,
+              flex: '1 1 120px', background: '#fff', borderRadius: 10,
+              padding: '14px 18px', minWidth: 100,
+              border: '1.5px solid var(--gray-200)',
+              borderLeft: `4px solid ${color}`,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)',
               cursor: 'pointer', transition: 'transform .15s, box-shadow .15s',
               userSelect: 'none',
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow=`0 4px 16px ${color}22` }}
-            onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='none' }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = `0 4px 16px ${color}22`
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)'
+            }}
           >
             {value !== null && (
               <div style={{ fontSize: 28, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
@@ -222,13 +325,24 @@ export default function Home() {
               {label}
             </div>
             {value !== null && (
-              <div style={{ fontSize: 10, color: color, fontWeight: 600, marginTop: 4, opacity: 0.7 }}>
-                Click to view →
+              <div style={{ fontSize: 10, color, fontWeight: 600, marginTop: 4, opacity: 0.7 }}>
+                View →
               </div>
             )}
           </div>
         ))}
       </div>
+
+      {/* Sprint Overview */}
+      {sprints && (
+        <SprintOverview
+          sprints={sprints}
+          tickets={tickets}
+          projects={projects}
+          openProject={openProject}
+          setProjectTab={setProjectTab}
+        />
+      )}
 
       {/* Status bar chart */}
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
