@@ -158,6 +158,173 @@ function DropColumn({ status, cards, allTickets, isOver, onDragStart, onDragOver
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ── BURNDOWN CHART ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+function BurndownChart({ sprint, sprintTickets }) {
+  const [visible, setVisible] = useState(false)
+
+  const total     = sprintTickets.length
+  const doneCount = sprintTickets.filter(t => t.status === 'Done').length
+
+  // Compute chart data
+  const chartData = useMemo(() => {
+    if (!sprint?.startDate || !sprint?.endDate) return null
+
+    const start     = new Date(sprint.startDate)
+    const end       = new Date(sprint.endDate)
+    const today     = new Date()
+    const totalDays = Math.max(1, Math.ceil((end - start) / 86400000))
+    const elapsed   = Math.min(totalDays, Math.max(0, Math.ceil((today - start) / 86400000)))
+
+    // Ideal line: total tickets → 0 over totalDays
+    const idealPoints = []
+    for (let d = 0; d <= totalDays; d++) {
+      idealPoints.push({ day: d, remaining: total - (total / totalDays) * d })
+    }
+
+    // Actual line: approximate — start at total, end at (total - doneCount) today
+    const actualPoints = [
+      { day: 0,       remaining: total },
+      { day: elapsed, remaining: Math.max(0, total - doneCount) },
+    ]
+
+    return { totalDays, idealPoints, actualPoints, elapsed }
+  }, [sprint, total, doneCount])
+
+  // SVG dimensions
+  const W = 560, H = 130, PAD = { top: 12, right: 16, bottom: 28, left: 36 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top  - PAD.bottom
+
+  const toX = (day)       => PAD.left + (day / Math.max(1, chartData?.totalDays || 1)) * chartW
+  const toY = (remaining) => PAD.top  + chartH - (remaining / Math.max(1, total)) * chartH
+
+  const polyline = (pts) =>
+    pts.map(p => `${toX(p.day).toFixed(1)},${toY(p.remaining).toFixed(1)}`).join(' ')
+
+  // Y-axis tick count
+  const yTicks = total <= 10 ? total : 5
+
+  return (
+    <div style={{
+      background: '#fff', border: '1.5px solid var(--gray-200)',
+      borderRadius: 10, padding: '12px 16px', marginBottom: 12,
+    }}>
+      {/* Toggle button */}
+      <button
+        onClick={() => setVisible(v => !v)}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 12, fontWeight: 700, color: visible ? 'var(--blue)' : 'var(--gray-500)',
+          padding: 0,
+        }}
+      >
+        <span>📈 Burndown</span>
+        <span style={{ fontSize: 10, color: 'var(--gray-400)' }}>{visible ? '▲ hide' : '▼ show'}</span>
+      </button>
+
+      {visible && (
+        <div style={{ marginTop: 12 }}>
+          {!chartData ? (
+            <div style={{ fontSize: 12, color: 'var(--gray-400)', textAlign: 'center', padding: '20px 0' }}>
+              No date range set for this sprint
+            </div>
+          ) : (
+            <>
+              {/* SVG chart */}
+              <svg
+                viewBox={`0 0 ${W} ${H}`}
+                style={{ width: '100%', height: 160, display: 'block' }}
+                preserveAspectRatio="none"
+              >
+                {/* Grid lines */}
+                {Array.from({ length: yTicks + 1 }, (_, i) => {
+                  const val = Math.round((total / yTicks) * i)
+                  const y   = toY(val)
+                  return (
+                    <g key={i}>
+                      <line x1={PAD.left} y1={y} x2={PAD.left + chartW} y2={y}
+                        stroke="#f1f5f9" strokeWidth="1" />
+                      <text x={PAD.left - 4} y={y + 3.5} textAnchor="end"
+                        fontSize="9" fill="#94a3b8">{val}</text>
+                    </g>
+                  )
+                })}
+
+                {/* X axis labels: start / mid / end */}
+                {[0, Math.floor(chartData.totalDays / 2), chartData.totalDays].map((d, i) => {
+                  const label = new Date(new Date(sprint.startDate).getTime() + d * 86400000)
+                    .toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  return (
+                    <text key={i} x={toX(d)} y={H - 6} textAnchor="middle"
+                      fontSize="9" fill="#94a3b8">{label}</text>
+                  )
+                })}
+
+                {/* Axes */}
+                <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top + chartH}
+                  stroke="#e2e8f0" strokeWidth="1" />
+                <line x1={PAD.left} y1={PAD.top + chartH} x2={PAD.left + chartW} y2={PAD.top + chartH}
+                  stroke="#e2e8f0" strokeWidth="1" />
+
+                {/* Ideal line (dashed gray) */}
+                <polyline
+                  points={polyline(chartData.idealPoints)}
+                  fill="none" stroke="#cbd5e1" strokeWidth="1.5"
+                  strokeDasharray="5 3"
+                />
+
+                {/* Actual line (solid blue) */}
+                <polyline
+                  points={polyline(chartData.actualPoints)}
+                  fill="none" stroke="#3b82f6" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                />
+
+                {/* Today marker */}
+                {chartData.elapsed > 0 && chartData.elapsed < chartData.totalDays && (
+                  <line
+                    x1={toX(chartData.elapsed)} y1={PAD.top}
+                    x2={toX(chartData.elapsed)} y2={PAD.top + chartH}
+                    stroke="#f59e0b" strokeWidth="1" strokeDasharray="3 3"
+                  />
+                )}
+
+                {/* Dot at current actual */}
+                <circle
+                  cx={toX(chartData.actualPoints[chartData.actualPoints.length - 1].day)}
+                  cy={toY(chartData.actualPoints[chartData.actualPoints.length - 1].remaining)}
+                  r="4" fill="#3b82f6" stroke="#fff" strokeWidth="1.5"
+                />
+              </svg>
+
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: 16, marginTop: 4, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#64748b' }}>
+                  <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="5 3" /></svg>
+                  Ideal
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#64748b' }}>
+                  <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" /></svg>
+                  Actual
+                </div>
+                {chartData.elapsed > 0 && chartData.elapsed < chartData.totalDays && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#64748b' }}>
+                    <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke="#f59e0b" strokeWidth="1" strokeDasharray="3 3" /></svg>
+                    Today
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Drag & drop hook ───────────────────────────────────────────────────────────
 function useDragDrop(tickets) {
   const { doUpdateTicket } = useApp()
@@ -671,6 +838,9 @@ function ScrumBoard({ board, pid, tickets, sprints }) {
           <span style={{ fontSize: 11, color: 'var(--gray-500)', whiteSpace: 'nowrap' }}>{doneCount}/{sprintTickets.length} done</span>
         </div>
       </div>
+
+      {/* ── Burndown Chart ── */}
+      <BurndownChart sprint={activeSprint} sprintTickets={sprintTickets} />
 
       {/* ── Action bar (Jira-style) ── */}
       <div className="board-action-bar">
@@ -1381,26 +1551,124 @@ function BacklogView({ pid, tickets, sprints }) {
     setDragOver(null)
   }
 
-  // ── Ticket row (draggable, clickable) ──────────────────────────────────────
-  const TicketRow = ({ t }) => (
-    <div
-      draggable
-      onDragStart={e => { e.dataTransfer.setData('ticketId', t.id); e.dataTransfer.effectAllowed = 'move' }}
-      onClick={() => openTicketView(t.id)}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid var(--gray-100)', cursor: 'pointer', background: 'var(--white)', userSelect: 'none' }}
-    >
-      <span style={{ fontSize: 10, color: 'var(--gray-300)', cursor: 'grab' }}>⠿</span>
-      <span className={`badge ${getTypeColor(t.type)}`} style={{ fontSize: 9 }}>{t.type}</span>
-      <span style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 700, minWidth: 64 }}>{t.id}</span>
-      <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-      {t.storyPoints != null && (
-        <span style={{ fontSize: 10, background: '#eff6ff', color: '#1e40af', borderRadius: 8, padding: '1px 6px', fontWeight: 600 }}>{t.storyPoints}p</span>
-      )}
-      <span className={`badge ${getStatusClass(t.status)}`} style={{ fontSize: 10 }}>{t.status}</span>
-      <span className={priorityClass(t.priority)} style={{ fontSize: 10 }}>{t.priority}</span>
-      <Avatar name={t.assignee} size={22} />
-    </div>
-  )
+  // ── Ticket row (draggable, clickable, with quick-add sprint) ─────────────
+  const TicketRow = ({ t, showSprintPicker = false }) => {
+    const [hovered,        setHovered]        = useState(false)
+    const [pickerOpen,     setPickerOpen]     = useState(false)
+    const [addingToSprint, setAddingToSprint] = useState(false)
+    const tc = TYPE_CONF[t.type] || { bg: '#f3f4f6', color: '#4b5563', char: '?' }
+    const pc = PRIO_CONF[t.priority] || { color: '#9ca3af', sym: '-' }
+    const availableSprints = planningSprints.concat(activeSprint ? [activeSprint] : [])
+
+    const handleQuickAdd = async (e, sprintName) => {
+      e.stopPropagation()
+      setPickerOpen(false)
+      setAddingToSprint(true)
+      await doUpdateTicket(t.id, { sprint: sprintName })
+      setAddingToSprint(false)
+    }
+
+    return (
+      <div
+        draggable
+        onDragStart={e => { e.dataTransfer.setData('ticketId', t.id); e.dataTransfer.effectAllowed = 'move' }}
+        onClick={() => openTicketView(t.id)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setPickerOpen(false) }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '7px 12px', borderBottom: '1px solid var(--gray-100)',
+          cursor: 'pointer', userSelect: 'none',
+          background: hovered ? '#f8faff' : 'var(--white)',
+          transition: 'background .1s', position: 'relative',
+        }}
+      >
+        {/* Drag handle */}
+        <span style={{ fontSize: 10, color: '#cbd5e1', cursor: 'grab', flexShrink: 0 }}>⠿</span>
+
+        {/* Type badge */}
+        <span style={{
+          width: 18, height: 18, borderRadius: 4, background: tc.bg, color: tc.color,
+          fontSize: 10, fontWeight: 800, display: 'inline-flex', alignItems: 'center',
+          justifyContent: 'center', flexShrink: 0, border: `1px solid ${tc.color}30`,
+        }}>{tc.char}</span>
+
+        {/* ID */}
+        <span style={{ fontSize: 11, color: 'var(--blue)', fontWeight: 700, minWidth: 60, flexShrink: 0 }}>{t.id}</span>
+
+        {/* Title */}
+        <span style={{ flex: 1, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {t.title.length > 60 ? t.title.slice(0, 60) + '…' : t.title}
+        </span>
+
+        {/* Priority dot */}
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: pc.color, flexShrink: 0 }} title={t.priority} />
+
+        {/* Story points */}
+        {t.storyPoints != null && (
+          <span style={{
+            fontSize: 10, background: '#eff6ff', color: '#1e40af',
+            borderRadius: 8, padding: '1px 6px', fontWeight: 700, flexShrink: 0,
+          }}>{t.storyPoints}p</span>
+        )}
+
+        {/* Status badge */}
+        <span className={`badge ${getStatusClass(t.status)}`} style={{ fontSize: 10, flexShrink: 0 }}>{t.status}</span>
+
+        {/* Assignee avatar */}
+        <Avatar name={t.assignee} size={22} />
+
+        {/* Quick-add sprint button (only for backlog rows, shown on hover) */}
+        {showSprintPicker && availableSprints.length > 0 && (
+          <div style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={e => { e.stopPropagation(); setPickerOpen(v => !v) }}
+              style={{
+                opacity: hovered ? 1 : 0, transition: 'opacity .15s',
+                fontSize: 11, fontWeight: 700, padding: '3px 8px',
+                borderRadius: 6, border: '1.5px solid var(--blue)',
+                background: pickerOpen ? '#eff6ff' : 'var(--white)',
+                color: 'var(--blue)', cursor: 'pointer', whiteSpace: 'nowrap',
+                pointerEvents: hovered ? 'auto' : 'none',
+              }}
+            >
+              {addingToSprint ? '…' : '+ Sprint'}
+            </button>
+            {pickerOpen && (
+              <div style={{
+                position: 'absolute', right: 0, top: '110%', zIndex: 200,
+                background: '#fff', border: '1.5px solid var(--gray-200)',
+                borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,.12)',
+                minWidth: 160, overflow: 'hidden',
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--gray-400)', padding: '6px 10px 4px', letterSpacing: .4 }}>ADD TO SPRINT</div>
+                {availableSprints.map(sp => (
+                  <div
+                    key={sp.id}
+                    onClick={e => handleQuickAdd(e, sp.name)}
+                    style={{
+                      padding: '7px 12px', fontSize: 12, cursor: 'pointer',
+                      borderTop: '1px solid var(--gray-100)',
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f0f6ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{
+                      fontSize: 9, padding: '1px 5px', borderRadius: 8, fontWeight: 700,
+                      background: sp.status === 'active' ? '#dcfce7' : '#dbeafe',
+                      color: sp.status === 'active' ? '#166534' : '#1e40af',
+                    }}>{sp.status === 'active' ? '⚡' : '📅'}</span>
+                    {sp.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // ── Sprint panel ───────────────────────────────────────────────────────────
   const SprintPanel = ({ sprint }) => {
@@ -1610,8 +1878,22 @@ function BacklogView({ pid, tickets, sprints }) {
       {/* Planning sprint panels */}
       {planningSprints.map(sp => <SprintPanel key={sp.id} sprint={sp} />)}
 
+      {/* ── Drag hint banner ── */}
+      {planningSprints.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '9px 14px', marginBottom: 8,
+          background: '#eff6ff', border: '1.5px solid #bfdbfe',
+          borderRadius: 8, fontSize: 12, color: '#1e40af', fontWeight: 500,
+        }}>
+          <span style={{ fontSize: 14 }}>💡</span>
+          <span>Drag tickets into a sprint to plan your next sprint, or use the <strong>+ Sprint</strong> button on each row.</span>
+        </div>
+      )}
+
       {/* Backlog section */}
       <div
+        id="backlog-section"
         style={{ border: `2px solid ${dragOver === 'backlog' ? '#2563eb' : 'var(--gray-200)'}`, borderRadius: 8, overflow: 'hidden', transition: 'border-color .15s' }}
         onDragOver={e => { e.preventDefault(); setDragOver('backlog') }}
         onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null) }}
@@ -1632,7 +1914,7 @@ function BacklogView({ pid, tickets, sprints }) {
             {dragOver === 'backlog' ? '📥 Drop here to remove from sprint' : 'Backlog is empty — all tickets are in sprints'}
           </div>
         ) : (
-          backlogTickets.map(t => <TicketRow key={t.id} t={t} />)
+          backlogTickets.map(t => <TicketRow key={t.id} t={t} showSprintPicker />)
         )}
       </div>
 

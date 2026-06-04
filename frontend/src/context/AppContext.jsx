@@ -6,7 +6,7 @@ const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [page, setPage] = useState('login')
+  const [page, setPage] = useState('landing')
   const [prevPage, setPrevPage] = useState(null)
   const [activeProject, setActiveProject] = useState(null)
   const [projectTab, setProjectTab] = useState('board')
@@ -97,7 +97,7 @@ export function AppProvider({ children }) {
 
   const doLogout = useCallback(() => {
     setUser(null)
-    setPage('login')
+    setPage('landing')
     setActiveProject(null)
   }, [])
 

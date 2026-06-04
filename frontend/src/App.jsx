@@ -15,6 +15,7 @@ import Roadmaps from './components/pages/Roadmaps'
 import TicketView from './components/pages/TicketView'
 import HiThere from './components/pages/HiThere'
 import Settings from './components/pages/Settings'
+import Landing from './components/pages/Landing'
 
 function PageContent() {
   const { page } = useApp()
@@ -35,10 +36,11 @@ function PageContent() {
 }
 
 export default function App() {
-  const { user } = useApp()
+  const { user, page } = useApp()
 
   if (!user) {
-    return <Login />
+    if (page === 'login') return <Login />
+    return <Landing />
   }
 
   return (
