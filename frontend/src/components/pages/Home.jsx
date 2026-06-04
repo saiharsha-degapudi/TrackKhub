@@ -177,7 +177,7 @@ export default function Home() {
                         onMouseLeave={e => e.currentTarget.style.background = ''}
                       >
                         <td style={{ padding: '7px 14px', fontSize: 11, color: '#6b7280', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
-                          {proj ? `${proj.key}-${t.id}` : `#${t.id}`}
+                          {t.id}
                         </td>
                         <td style={{ padding: '7px 14px', fontSize: 13, color: '#111827', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {t.title}

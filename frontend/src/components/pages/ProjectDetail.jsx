@@ -111,7 +111,7 @@ function BoardCard({ ticket, allTickets, onDragStart, onClick }) {
         <TypeBadge type={ticket.type} />
         <PriorityDot priority={ticket.priority} />
         <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#9ca3af', marginLeft: 'auto' }}>
-          {ticket.key || ticket.id?.slice(0, 8)}
+          {ticket.id}
         </span>
       </div>
       <div style={{
@@ -296,7 +296,7 @@ function ListTab({ tickets, openTicketView, openModal }) {
                 onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? '#fff' : '#fafafa'}
               >
                 <td style={td}><TypeBadge type={t.type} /></td>
-                <td style={{ ...td, fontFamily: 'monospace', fontSize: 11, color: '#9ca3af' }}>{t.key || t.id?.slice(0, 8)}</td>
+                <td style={{ ...td, fontFamily: 'monospace', fontSize: 11, color: '#9ca3af' }}>{t.id}</td>
                 <td style={{ ...td, maxWidth: 300 }}>
                   <span style={{ fontSize: 13, color: '#111827', fontWeight: 500 }}>{t.title}</span>
                 </td>
@@ -312,7 +312,7 @@ function ListTab({ tickets, openTicketView, openModal }) {
                 <td style={{ ...td, fontSize: 12, color: t.dueDate && new Date(t.dueDate) < new Date() ? '#ef4444' : '#6b7280' }}>
                   {fmt(t.dueDate)}
                 </td>
-                <td style={{ ...td, fontSize: 12, color: '#9ca3af' }}>{fmt(t.createdAt)}</td>
+                <td style={{ ...td, fontSize: 12, color: '#9ca3af' }}>{fmt(t.created)}</td>
               </tr>
             ))}
             {sorted.length === 0 && (

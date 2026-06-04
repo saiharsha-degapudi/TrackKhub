@@ -383,7 +383,7 @@ textarea.input { height: auto; padding: 6px 8px; resize: vertical; min-height: 7
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-.modal-box {
+.modal, .modal-box {
   background: var(--surface);
   border-radius: 8px;
   box-shadow: var(--shadow-md);
@@ -877,5 +877,5 @@ textarea.input { height: auto; padding: 6px 8px; resize: vertical; min-height: 7
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .kanban-wrap { padding: 10px; }
-  .modal-box { min-width: unset; max-width: 96vw; }
+  .modal, .modal-box { min-width: unset; max-width: 96vw; }
 }

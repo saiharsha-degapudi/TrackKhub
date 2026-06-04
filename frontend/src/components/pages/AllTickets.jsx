@@ -305,7 +305,7 @@ export default function AllTickets() {
                 <th style={thStyle('assignee')} onClick={() => handleSort('assignee')}>Assignee <SortIcon field="assignee" sortField={sortField} sortDir={sortDir} /></th>
                 <th style={thStyle('project')}>Project</th>
                 <th style={thStyle('dueDate')} onClick={() => handleSort('dueDate')}>Due <SortIcon field="dueDate" sortField={sortField} sortDir={sortDir} /></th>
-                <th style={thStyle('createdAt')} onClick={() => handleSort('createdAt')}>Created <SortIcon field="createdAt" sortField={sortField} sortDir={sortDir} /></th>
+                <th style={thStyle('created')} onClick={() => handleSort('created')}>Created <SortIcon field="created" sortField={sortField} sortDir={sortDir} /></th>
               </tr>
             </thead>
             <tbody>
@@ -339,7 +339,7 @@ export default function AllTickets() {
                     const due = t.dueDate || t.due
                     const overdue = isOverdue(due) && t.status !== 'Done'
                     const dueFmt = fmtDate(due)
-                    const createdFmt = fmtDate(t.createdAt)
+                    const createdFmt = fmtDate(t.created)
                     const isHovered = hoveredRow === t.id
                     return (
                       <tr
@@ -359,7 +359,7 @@ export default function AllTickets() {
                         {/* ID */}
                         <td style={{ padding: '7px 12px' }}>
                           <span style={{ fontSize: 11, color: '#9ca3af', fontFamily: 'monospace' }}>
-                            {proj ? `${proj.key}-${t.id}` : `#${t.id}`}
+                            {t.id}
                           </span>
                         </td>
 

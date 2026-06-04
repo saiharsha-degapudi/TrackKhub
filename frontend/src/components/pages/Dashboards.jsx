@@ -138,7 +138,7 @@ export default function Dashboards() {
   const total = tickets.length
   const inProgress = tickets.filter(t => t.status === 'In Progress').length
   const doneThisPeriod = tickets.filter(t =>
-    t.status === 'Done' && t.updatedAt && new Date(t.updatedAt) >= rangeStart
+    t.status === 'Done' && t.updated && new Date(t.updated) >= rangeStart
   ).length
   const overdue = tickets.filter(t =>
     t.dueDate && new Date(t.dueDate) < now && t.status !== 'Done'
@@ -171,7 +171,7 @@ export default function Dashboards() {
 
   // Recent activity
   const recentTickets = [...tickets]
-    .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))
+    .sort((a, b) => new Date(b.updated || b.created || 0) - new Date(a.updated || a.created || 0))
     .slice(0, 6)
 
   // Projects overview
@@ -180,7 +180,7 @@ export default function Dashboards() {
     const pDone = pts.filter(t => t.status === 'Done').length
     const pOpen = pts.filter(t => t.status !== 'Done').length
     const lastUpdated = pts.reduce((acc, t) => {
-      const d = new Date(t.updatedAt || t.createdAt || 0)
+      const d = new Date(t.updated || t.created || 0)
       return d > acc ? d : acc
     }, new Date(0))
     return { ...p, total: pts.length, open: pOpen, done: pDone, lastUpdated }
@@ -322,7 +322,7 @@ export default function Dashboards() {
                   {t.title}
                 </span>
                 <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0 }}>
-                  {fmtDate(t.updatedAt || t.createdAt)}
+                  {fmtDate(t.updated || t.created)}
                 </span>
               </div>
             ))}

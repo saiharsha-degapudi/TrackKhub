@@ -245,7 +245,7 @@ export default function Projects() {
                         }}>{status}</span>
                       </td>
                       <td style={{ padding: '8px 14px', fontSize: 13, color: '#374151' }}>{count}</td>
-                      <td style={{ padding: '8px 14px', fontSize: 12, color: '#6b7280' }}>{fmtDate(p.createdAt)}</td>
+                      <td style={{ padding: '8px 14px', fontSize: 12, color: '#6b7280' }}>{fmtDate(p.created)}</td>
                       <td style={{ padding: '8px 14px' }} onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => openProject(p.id)}

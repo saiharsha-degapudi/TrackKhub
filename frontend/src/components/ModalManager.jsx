@@ -10,6 +10,7 @@ import AddUserModal from './modals/AddUserModal'
 import NotificationsModal from './modals/NotificationsModal'
 import AddFieldModal from './modals/AddFieldModal'
 import SimpleModal from './modals/SimpleModal'
+import CreateSprintModal from './modals/CreateSprintModal'
 
 export default function ModalManager() {
   const { modal, closeModal } = useApp()
@@ -35,6 +36,7 @@ export default function ModalManager() {
   else if (type === 'editUser') inner = <AddUserModal data={data} />
   else if (type === 'addField') inner = <AddFieldModal />
   else if (type === 'notifications') inner = <NotificationsModal />
+  else if (type === 'createSprint') inner = <CreateSprintModal />
   else if (type === 'addGroup') inner = <SimpleModal type="addGroup" />
   else if (type === 'addRole') inner = <SimpleModal type="addRole" />
   else inner = <div><div className="modal-title">Coming Soon</div><button className="modal-close" onClick={closeModal}>×</button></div>

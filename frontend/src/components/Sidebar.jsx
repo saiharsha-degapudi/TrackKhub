@@ -171,7 +171,7 @@ export default function Sidebar() {
             <NavItem page={page} pageKey="alltickets" label="All Issues"  iconD={ICONS.allissues} nav={nav} />
             <NavItem page={page} pageKey="filters"    label="Filters"     iconD={ICONS.filters}   nav={nav} />
             <NavItem page={page} pageKey="roadmaps"   label="Roadmaps"    iconD={ICONS.roadmaps}  nav={nav} />
-            <NavItem page={page} pageKey="reports"    label="Reports"     iconD={ICONS.reports}   nav={nav} />
+            <NavItem page={page} pageKey="dashboards"  label="Reports"     iconD={ICONS.reports}   nav={nav} />
           </>
         )}
       </div>
