@@ -1006,62 +1006,68 @@ const SECTIONS = {
 export default function Settings() {
   const [active, setActive] = useState('general')
   const Section = SECTIONS[active] || GeneralSection
+  const allItems = NAV_GROUPS.flatMap(g => g.items)
 
   return (
-    <div style={{
-      display: 'flex', gap: 0, minHeight: 'calc(100vh - 56px)',
-      background: '#eef2ff', padding: 24, boxSizing: 'border-box',
-    }}>
-      {/* Left Nav */}
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#eef2ff', boxSizing: 'border-box' }}>
+
+      {/* Hero bar */}
       <div style={{
-        width: 220, flexShrink: 0, background: '#fff', borderRadius: 14,
-        boxShadow: '0 4px 24px rgba(59,130,246,0.08)',
-        borderRight: '1px solid rgba(37,99,235,0.10)',
-        padding: '18px 0', alignSelf: 'flex-start',
-        position: 'sticky', top: 24,
+        background: 'linear-gradient(135deg, #1e40af 0%, #4f46e5 60%, #7c3aed 100%)',
+        padding: '28px 32px 0',
       }}>
-        <div style={{ padding: '0 16px 14px', fontSize: 15, fontWeight: 800, color: '#1e293b', letterSpacing: '-0.3px' }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 4 }}>
           ⚙ Settings
         </div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 20 }}>
+          Manage your workspace, team, security and data preferences
+        </div>
 
-        {NAV_GROUPS.map(group => (
-          <div key={group.label} style={{ marginBottom: 4 }}>
-            <div style={{ padding: '10px 16px 4px', fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '1px' }}>
-              {group.label}
-            </div>
-            {group.items.map(item => {
-              const isActive = active === item.key
-              return (
-                <div
-                  key={item.key}
-                  onClick={() => setActive(item.key)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 9,
-                    padding: '8px 16px', cursor: 'pointer', fontSize: 13,
-                    fontWeight: isActive ? 700 : 500,
-                    color: isActive ? primary : '#475569',
-                    background: isActive ? primaryLight : 'transparent',
-                    borderRight: isActive ? `3px solid ${primary}` : '3px solid transparent',
-                    transition: 'all .15s',
-                  }}
-                >
-                  <span style={{ fontSize: 15 }}>{item.icon}</span>
-                  {item.label}
-                </div>
-              )
-            })}
-          </div>
-        ))}
+        {/* Top tab bar */}
+        <div style={{ display: 'flex', gap: 2, overflowX: 'auto', paddingBottom: 0 }}>
+          {NAV_GROUPS.map((group, gi) => (
+            <React.Fragment key={group.label}>
+              {gi > 0 && (
+                <div style={{ width: 1, background: 'rgba(255,255,255,0.2)', margin: '6px 8px', flexShrink: 0 }} />
+              )}
+              {group.items.map(item => {
+                const isActive = active === item.key
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setActive(item.key)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '9px 16px', cursor: 'pointer',
+                      fontSize: 13, fontWeight: isActive ? 700 : 500,
+                      color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
+                      background: isActive ? 'rgba(255,255,255,0.18)' : 'transparent',
+                      border: 'none',
+                      borderBottom: isActive ? '3px solid #fff' : '3px solid transparent',
+                      borderRadius: '8px 8px 0 0',
+                      transition: 'all .15s', whiteSpace: 'nowrap', flexShrink: 0,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    <span style={{ fontSize: 15 }}>{item.icon}</span>
+                    {item.label}
+                  </button>
+                )
+              })}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       {/* Content Area */}
-      <div style={{
-        flex: 1, marginLeft: 20, background: '#fff', borderRadius: 14,
-        boxShadow: '0 4px 24px rgba(59,130,246,0.10)',
-        padding: 28, minHeight: 'calc(100vh - 104px)', boxSizing: 'border-box',
-        overflowY: 'auto',
-      }}>
-        <Section />
+      <div style={{ padding: '24px 32px' }}>
+        <div style={{
+          background: '#fff', borderRadius: 14,
+          boxShadow: '0 4px 24px rgba(59,130,246,0.10)',
+          padding: 28, minHeight: 'calc(100vh - 240px)', boxSizing: 'border-box',
+        }}>
+          <Section />
+        </div>
       </div>
     </div>
   )
